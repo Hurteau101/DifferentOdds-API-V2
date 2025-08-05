@@ -2,7 +2,9 @@ import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from enum import Enum
+import asyncio
 from tls_client import Session
+
 
 class SportbookRequestType(Enum):
     ASYNC = "async"
@@ -56,8 +58,13 @@ class BookBase(ABC):
 # Asynchronous book fetching class
 class AsyncBook:
     @staticmethod
-    async def fetch(session, url, headers=None):
-        async with session.get(url, headers=headers) as response:
+    async def fetch(session, url, method, headers=None, **kwargs):
+        method = method.lower()
+        if method not in ["get", "post"]:
+            raise ValueError("Method must be 'get' or 'post'.")
+
+        request_method = getattr(session, method)
+        async with request_method(url, headers=headers, **kwargs) as response:
             if response.status == 200:
                 return await response.json()
             else:
@@ -67,13 +74,17 @@ class AsyncBook:
 # Spoofing book fetching class
 class Spoof:
     @staticmethod
-    async def fetch(api_url, headers=None, client_identifier="chrome_114"):
-        import asyncio
-        from tls_client import Session
-
+    async def fetch(api_url, method, headers=None, client_identifier="chrome_114", **kwargs):
         def _spoof_request():
             session = Session(client_identifier=client_identifier)
-            response = session.get(api_url, headers=headers)
+            method_lower = method.lower()
+
+            if method_lower not in ["get", "post"]:
+                raise ValueError("Method must be 'get' or 'post'.")
+
+            request_method = getattr(session, method_lower)
+            response = request_method(api_url, headers=headers, **kwargs)
+
             if response.status_code == 200:
                 return response.json()
             else:
