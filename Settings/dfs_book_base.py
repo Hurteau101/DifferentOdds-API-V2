@@ -3,6 +3,7 @@ from Settings.book_base import BookBase
 from Settings.sportsbook_config import SportsbookConfig
 from Settings.logger import FileLogger, ConsoleLogger
 import os
+from dfs_model import PlayerData
 
 class DFSBookBase(BookBase, ABC):
     """Base class for DFS books, inheriting from BookBase."""
@@ -27,4 +28,24 @@ class DFSBookBase(BookBase, ABC):
             os.makedirs(directory)
 
 
+    def _database_mapper(self, sportsbook_data: PlayerData):
+        pass
+
+
+
+#### EXAMPLE CALLS
+### SPOOF
+# api_data = await self.api_caller(
+#     url=self.book_data.url.get("main_url"),
+#     method=self.book_data.method,
+#     client_identifier="chrome_114"  # or whichever spoof client you want
+# )
+
+### ASYNC
+# async with aiohttp.ClientSession() as session:
+    #     api_data = await self.api_caller(
+    #         session=session,
+    #         url=self.book_data.url.get("main_url"),
+    #         method=self.book_data.method
+    #     )
 

@@ -34,6 +34,24 @@ class BookBase(ABC):
         """Serialize data to JSON format."""
         return [asdict(player_data) for player_data in data]
 
+    @staticmethod
+    def _split_teams(game_title):
+        """Split teams from the game title."""
+        split_operators = [" vs ", " @ "]
+
+        for operator in split_operators:
+            if operator in game_title:
+                parts = game_title.split(operator)
+                if len(parts) == 2:
+                    team_a, team_b = sorted([parts[0].strip(), parts[1].strip()])
+                    return {
+                        "team_a": team_a,
+                        "team_b": team_b,
+                        "operator": operator.strip()
+                    }
+
+        return None
+
     @abstractmethod
     async def run_book(self):
         raise NotImplementedError("Subclasses must implement the run_book method.")
