@@ -43,14 +43,16 @@ class BookBase(ABC):
         session = kwargs.get("session")
         url = kwargs.get("url")
         headers = kwargs.get("headers")
+        method = kwargs.get("method")
+
+        if not url or not method:
+            raise ValueError("Both 'url' and 'method' are required for API calls.")
 
         if self.request_type == SportbookRequestType.ASYNC:
-            if not session or not url:
-                raise ValueError("session and url are required for ASYNC calls")
-            return await AsyncBook.fetch(session, url, headers)
+            return await AsyncBook.fetch(session, url, method, headers)
         elif self.request_type == SportbookRequestType.SPOOF:
             client_identifier = kwargs.get("client_identifier", "chrome_114")
-            return await Spoof.fetch(url, headers, client_identifier)
+            return await Spoof.fetch(url, method, headers, client_identifier)
         else:
             raise NotImplementedError(f"Request type {self.request_type} is not supported.")
 
