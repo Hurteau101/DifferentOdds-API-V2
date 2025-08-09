@@ -112,7 +112,7 @@ class AsyncBook:
             if response.status == 200:
                 return await response.json()
             else:
-                raise Exception(f"Failed to fetch data: {response.status} - {await response.text()}")
+                return None
 
 
 # Spoofing book fetching class
@@ -132,6 +132,6 @@ class Spoof:
             if response.status_code == 200:
                 return response.json()
             else:
-                raise Exception(f"Failed to fetch data: {response.status_code} - {response.text}")
+                return None
 
         return await asyncio.to_thread(_spoof_request)
