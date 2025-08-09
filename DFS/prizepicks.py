@@ -1,3 +1,5 @@
+import asyncio
+from Settings.proxy_manger import ProxyManager
 import aiohttp
 
 from Settings.book_base import SportbookRequestType
@@ -10,14 +12,17 @@ class Prizepicks(DFSBookBase):
 
 
 
-
-
-
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            api_data = await self.api_caller(
+            proxy_manger = ProxyManager(self.api_caller)
+            data = await proxy_manger.proxy_controller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
-                method=self.book_data.method
+                method=self.book_data.method,
             )
 
+            print(data)
+
+if __name__ == "__main__":
+    prizepicks = Prizepicks()
+    asyncio.run(prizepicks.run_book())
