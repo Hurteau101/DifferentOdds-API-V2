@@ -120,6 +120,17 @@ class DFSBookBase(BookBase, ABC):
 #     client_identifier="chrome_114"  # or whichever spoof client you want
 # )
 
+### SPOOF PROXY
+
+        # proxy_manager = ProxyManager(self.api_caller)
+        # data = await proxy_manager.proxy_controller(
+        #     url=self.book_data.url.get("main_url"),
+        #     method=self.book_data.method,
+        #     client_identifier="chrome_114",
+        #     sync_type="spoof"
+        # )
+
+
 ### ASYNC
 # async with aiohttp.ClientSession() as session:
     #     api_data = await self.api_caller(
@@ -128,3 +139,12 @@ class DFSBookBase(BookBase, ABC):
     #         method=self.book_data.method
     #     )
 
+
+### USING ASYNC PROXY3
+# async with aiohttp.ClientSession() as session:
+# proxy_manger = ProxyManager(self.api_caller)
+            # data = await proxy_manger.proxy_controller(
+            #     session=session,
+            #     url=self.book_data.url.get("main_url"),
+            #     method=self.book_data.method,
+            # )

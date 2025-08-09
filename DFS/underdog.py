@@ -7,9 +7,12 @@ from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import *
 import re
 
+from Settings.proxy_manger import ProxyManager
+
+
 class Underdog(DFSBookBase):
     def __init__(self):
-        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="underdog")
+        super().__init__(SportbookRequestType.SPOOF, sportsbook_name="underdog")
 
     @staticmethod
     def _mapper(api_data):
@@ -243,11 +246,7 @@ class Underdog(DFSBookBase):
                 if (data := self._extract_api_data(map_data, player))
             ]
 
-            data = await self._database_mapper(underdog_data)
-            serialized_data = self._serialize_data(data)
-
-
-
+            return await self._database_mapper(underdog_data)
 
 
 if __name__ == "__main__":

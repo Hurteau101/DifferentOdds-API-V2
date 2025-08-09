@@ -267,9 +267,11 @@ class Mapper:
 
         except json.JSONDecodeError:
             self.file_logger.log(
-                message=f"{self.caller_file_name} - Could not parse JSON: {content}",
+                message=f"Could not parse JSON: {content}",
+                file=self.caller_file_name,
                 level="INFO"
             )
+
             return None
 
 
