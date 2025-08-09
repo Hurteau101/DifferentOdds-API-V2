@@ -27,14 +27,13 @@ class ConsoleLogger(BaseLogger):
 # FileLogger.set_log_file("custom_log.txt")
 # FileLogger.log("Logging to a custom file", level="ERROR", error_code=500)
 class FileLogger(BaseLogger):
-    log_file = "app.log"
+    def __init__(self, path="app.log"):
+        self.log_file = path
 
-    @classmethod
-    def set_log_file(cls, path):
-        cls.log_file = path
+    def set_log_file(self, path):
+        self.log_file = path
 
-    @classmethod
-    def log(cls, message, level="info", **kwargs):
-        formatted_message = cls.format(message, level, **kwargs)
-        with open(cls.log_file, "a") as file:
+    def log(self, message, level="info", **kwargs):
+        formatted_message = self.format(message, level, **kwargs)
+        with open(self.log_file, "a") as file:
             file.write(formatted_message + "\n")

@@ -235,6 +235,7 @@ class Underdog(DFSBookBase):
 
             if not api_data:
                 self._api_call_log("underdog")
+                return
 
             map_data = Underdog._mapper(api_data)
             underdog_data = [
@@ -244,9 +245,6 @@ class Underdog(DFSBookBase):
 
             data = await self._database_mapper(underdog_data)
             serialized_data = self._serialize_data(data)
-
-
-            ### TRY SWITHC MODEL WITHOUT WEB SEARCH TO SEE IF IT WORKS, OR USE WEB SEARCH ONLY FOR TENNIS ETC.
 
 
 
