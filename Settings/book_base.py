@@ -3,10 +3,12 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict
 from enum import Enum
 import asyncio
+from functools import lru_cache
+
 from tls_client import Session
-
+from dateutil import parser
 from Settings.logger import FileLogger, ConsoleLogger
-
+import pytz
 
 class SportbookRequestType(Enum):
     ASYNC = "async"
@@ -51,6 +53,22 @@ class BookBase(ABC):
 
         generate_key = sorted(key_data, reverse=True)
         return "_".join([str(key.replace(" ", "_")).lower() for key in generate_key])
+
+    @staticmethod
+    def convert_time(date_time_str):
+        """Convert the date to UTC format"""
+        if date_time_str is None:
+            return None
+
+        dfs_time = parser.parse(date_time_str)
+        utc_time = dfs_time.astimezone(pytz.utc)
+
+        return utc_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    @lru_cache(maxsize=1000)
+    def cache_time(self, date_time_str):
+        """Convert the date to UTC format and cache the result"""
+        return self.convert_time(date_time_str)
 
     @staticmethod
     def _serialize_data(data):
