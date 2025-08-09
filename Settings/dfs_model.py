@@ -27,6 +27,7 @@ class Stats:
     bet_direction: str # The type of bet (Over, Under)
     regular_line: bool # If the bet is just a regular line (no multiplier)
     optional_stats: OptionalStatInformation = field(default_factory=OptionalStatInformation)
+    discounts: Optional[Discounts] = field(default_factory=Discounts)
 
 
 @dataclass
@@ -47,6 +48,5 @@ class PlayerData:
     future: bool
     stats: List[Stats]
     solo_game: Optional[bool] = None
-    discounts: Optional[Discounts] = field(default_factory=Discounts)
 
 

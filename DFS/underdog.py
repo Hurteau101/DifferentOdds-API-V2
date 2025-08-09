@@ -203,7 +203,7 @@ class Underdog(DFSBookBase):
             player_name=player_details.get("player_name"),
             team_id=player_details.get("team_id") if game_type == "Game" else None,
         )
-        league = self.league_mapping.get(player_details.get("league").lower(), player_details.get("league"))
+        league = self.LEAGUE_MAPPING.get(player_details.get("league").lower(), player_details.get("league"))
 
         stat_details = Underdog.__extract_stats(map_data.get("lines").get(line_id))
 

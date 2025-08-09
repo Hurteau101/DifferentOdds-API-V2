@@ -9,7 +9,7 @@ from Settings.logger import FileLogger, ConsoleLogger
 import os
 from  Settings.dfs_model import PlayerData
 from Mapper.mapping_database import Mapper
-from Mapper.league_mapper import LEAGUES
+from Mapper.static_mapper import LEAGUES, STAT_TYPES
 
 class DFSBookBase(BookBase, ABC):
     """Base class for DFS books, inheriting from BookBase."""
@@ -17,7 +17,8 @@ class DFSBookBase(BookBase, ABC):
         self.book_data = SportsbookConfig.get_dfs_provider(sportsbook_name)
         super().__init__(request_type, log_directory=log_directory, log_name=log_name)
         self.mapper = Mapper()
-        self.league_mapping = LEAGUES
+        self.LEAGUE_MAPPING = LEAGUES
+        self.STAT_TYPES = STAT_TYPES
 
 
     def _unique_teams(self, sportsbook_data: list[PlayerData]):
