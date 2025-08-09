@@ -4,8 +4,8 @@ class BaseLogger:
     @classmethod
     def format(cls, message, level, **kwargs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        additional_info = f"| Additional Info: {kwargs}" if kwargs else ""
-        return f"{timestamp} - {level.upper()}: {message}{additional_info}"
+        additional_info = f" | Additional Info: {kwargs}" if kwargs else ""
+        return f"{timestamp} - {level.upper()}: {message} {additional_info}"
 
 
 # Class to log messages to the console
@@ -36,4 +36,4 @@ class FileLogger(BaseLogger):
     def log(self, message, level="info", **kwargs):
         formatted_message = self.format(message, level, **kwargs)
         with open(self.log_file, "a") as file:
-            file.write(formatted_message + "\n")
+            file.write(formatted_message + " \n")

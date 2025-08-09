@@ -104,27 +104,3 @@ class DFSBookBase(BookBase, ABC):
                 data.team_data.team_key = self._generate_key([data.team_data.team_a, data.team_data.team_b, data.start_date])
 
         return sportsbook_data
-
-
-
-
-
-
-
-
-#### EXAMPLE CALLS
-### SPOOF
-# api_data = await self.api_caller(
-#     url=self.book_data.url.get("main_url"),
-#     method=self.book_data.method,
-#     client_identifier="chrome_114"  # or whichever spoof client you want
-# )
-
-### ASYNC
-# async with aiohttp.ClientSession() as session:
-    #     api_data = await self.api_caller(
-    #         session=session,
-    #         url=self.book_data.url.get("main_url"),
-    #         method=self.book_data.method
-    #     )
-
