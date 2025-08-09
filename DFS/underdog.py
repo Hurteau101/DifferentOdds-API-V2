@@ -9,6 +9,7 @@ class Underdog(DFSBookBase):
     def __init__(self):
         super().__init__(SportbookRequestType.SPOOF, sportsbook_name="underdog")
 
+
     @staticmethod
     def _mapper(api_data):
         """Map the different sections of the API data to their respective dictionaries."""
