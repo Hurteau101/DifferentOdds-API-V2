@@ -44,7 +44,9 @@ class PlayerData:
     league: str
     start_date: str
     team_data: TeamData
+    future: bool
     stats: List[Stats]
+    solo_game: Optional[bool] = None
     discounts: Optional[Discounts] = field(default_factory=Discounts)
 
 

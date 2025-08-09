@@ -1,10 +1,11 @@
 import asyncio
+import json
+
 import aiohttp
 from Settings.book_base import BookBase, SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import *
 import re
-
 
 class Underdog(DFSBookBase):
     def __init__(self):
@@ -75,9 +76,9 @@ class Underdog(DFSBookBase):
 
             return {
                 "match_title": game_section.get("full_team_names_title").strip(),
-                "player_team": player_team,
-                "team_a": team_a,
-                "team_b": team_b,
+                "player_team": DFSBookBase.clean_and_normalize_name(player_team),
+                "team_a": DFSBookBase.clean_and_normalize_name(team_a),
+                "team_b": DFSBookBase.clean_and_normalize_name(team_b),
                 "team_key": game_key,
                 "team_a_abbreviation": abbreviation_split.get("team_a"),
                 "team_b_abbreviation": abbreviation_split.get("team_b"),
@@ -104,9 +105,9 @@ class Underdog(DFSBookBase):
 
         return {
             "match_title": game_section.get("title").strip(),
-            "player_team": player_name,
-            "team_a": team_a,
-            "team_b": team_b,
+            "player_team": DFSBookBase.clean_and_normalize_name(player_name),
+            "team_a": DFSBookBase.clean_and_normalize_name(team_a),
+            "team_b": DFSBookBase.clean_and_normalize_name(team_b),
             "team_key": game_key,
         }
 
@@ -119,9 +120,11 @@ class Underdog(DFSBookBase):
 
         if game_type == "Game":
             team_data = Underdog._extract_team_games(game_section, team_id, player_name)
+            team_data["solo_game"] = False
             full_details.update(**team_data)
         else:
             solo_data = Underdog._extract_solo_games(game_section, player_name)
+            solo_data["solo_game"] = True
             full_details.update(**solo_data)
 
         return full_details
@@ -183,8 +186,8 @@ class Underdog(DFSBookBase):
             for option in line_section.get("options", [])
         ]
 
-    @staticmethod
-    def _extract_api_data(map_data, appearance_data):
+
+    def _extract_api_data(self, map_data, appearance_data):
         if not (player_id := appearance_data.get("player_id")) or not (
         game_id := appearance_data.get("match_id")) or not (line_id := appearance_data.get("id")):
             return
@@ -201,13 +204,16 @@ class Underdog(DFSBookBase):
             player_name=player_details.get("player_name"),
             team_id=player_details.get("team_id") if game_type == "Game" else None,
         )
+        league = self.league_mapping.get(player_details.get("league").lower(), player_details.get("league"))
 
         stat_details = Underdog.__extract_stats(map_data.get("lines").get(line_id))
 
         return PlayerData(
             player_name= player_details.get("player_name"),
-            league= player_details.get("league"),
+            league=league,
             start_date= game_details.get("start_date"),
+            solo_game=game_details.get("solo_game"),
+            future=True if "szn" in league.lower() else False,
             team_data=TeamData(
                 team_a=game_details.get("team_a"),
                 team_b=game_details.get("team_b"),
@@ -239,13 +245,11 @@ class Underdog(DFSBookBase):
                 if (data := self._extract_api_data(map_data, player))
             ]
 
-            print(underdog_data)
+            data = await self._database_mapper(underdog_data)
+            serialized_data = self._serialize_data(data)
 
-            # data = self._serialize_data(underdog_data)
-            # with open("underdog_data.json", "w") as file:
-            #     import json
-            #     json.dump(data, file, indent=4)
 
+            ### TRY SWITHC MODEL WITHOUT WEB SEARCH TO SEE IF IT WORKS, OR USE WEB SEARCH ONLY FOR TENNIS ETC.
 
 
 
