@@ -1,4 +1,6 @@
 import asyncio
+from collections import defaultdict
+
 import aiohttp
 from Settings.book_base import BookBase, SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
@@ -8,7 +10,7 @@ import re
 class Underdog(DFSBookBase):
     def __init__(self):
         super().__init__(SportbookRequestType.SPOOF, sportsbook_name="underdog")
-
+        self.stats_list = []
 
     @staticmethod
     def _mapper(api_data):
@@ -128,8 +130,7 @@ class Underdog(DFSBookBase):
 
         return full_details
 
-    @staticmethod
-    def __extract_stats(line_section):
+    def _extract_stats(self, line_section):
         """Extract Stats Details"""
 
         def check_half_market(stat):
@@ -166,12 +167,13 @@ class Underdog(DFSBookBase):
 
         return [
             Stats(
-                stat_type=line_section.get("over_under", {}).get("appearance_stat", {}).get("display_stat").strip().title(),
-                line=float(line_section.get("stat_value")),
+                stat_type=self.STAT_TYPES.get(line.get("display_stat"), line.get("display_stat")),
+                line=float(line.get("line")),
                 bet_direction=choice_mapping.get(option.get("choice")),
-                regular_line=True if option.get("payout_multiplier") == 0 else False,
+                regular_line=True if option.get("payout_multiplier") == "1.0" else False,
                 optional_stats={
-                    "market_type": check_half_market(line_section.get("over_under", {}).get("appearance_stat", {}).get("display_stat")),
+                    "market_type": check_half_market(
+                        line.get("display_stat")),
                     "odds_type": set_payout_label(float(option.get("payout_multiplier", 0))),
                     "multiplier": float(option.get("payout_multiplier")),
                     "odds": {
@@ -182,11 +184,11 @@ class Underdog(DFSBookBase):
                 }
             )
 
-            for option in line_section.get("options", [])
+            for line in line_section
+            for option in line.get("options", [])
         ]
 
-
-    def _extract_api_data(self, map_data, appearance_data):
+    def _extract_api_data(self, map_data, appearance_data, stats):
         if not (player_id := appearance_data.get("player_id")) or not (
         game_id := appearance_data.get("match_id")) or not (line_id := appearance_data.get("id")):
             return
@@ -205,7 +207,10 @@ class Underdog(DFSBookBase):
         )
         league = self.LEAGUE_MAPPING.get(player_details.get("league").lower(), player_details.get("league"))
 
-        stat_details = Underdog.__extract_stats(map_data.get("lines").get(line_id))
+        grouped_stats = stats.get(line_id)
+
+
+        stat_details = self._extract_stats(grouped_stats)
 
         return PlayerData(
             player_name= player_details.get("player_name"),
@@ -224,6 +229,27 @@ class Underdog(DFSBookBase):
             stats=stat_details
         )
 
+    def regroup_stats(self, api_data):
+        """Regroup the stats"""
+        grouped_stats = defaultdict(list)
+
+        for stat in api_data["over_under_lines"]:
+            appearance_stat = stat.get("over_under", {}).get("appearance_stat", {})
+            appearance_id = appearance_stat.get("appearance_id")
+
+            if not appearance_id:
+                continue
+
+            stat_data = {
+                "options": stat.get("options", []),
+                "display_stat": appearance_stat.get("display_stat"),
+                "line": float(stat.get("stat_value")),
+            }
+
+            grouped_stats[appearance_id].append(stat_data)
+
+        return grouped_stats
+
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             api_data = await self.api_caller(
@@ -237,9 +263,11 @@ class Underdog(DFSBookBase):
                 return
 
             map_data = Underdog._mapper(api_data)
+            stats = self.regroup_stats(api_data)
+
             underdog_data = [
                 data for player in api_data.get("appearances", [])
-                if (data := self._extract_api_data(map_data, player))
+                if (data := self._extract_api_data(map_data, player, stats))
             ]
 
             return await self._database_mapper(underdog_data)
