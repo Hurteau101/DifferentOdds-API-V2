@@ -1,14 +1,9 @@
 import asyncio
-import json
-
 import aiohttp
 from Settings.book_base import BookBase, SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import *
 import re
-
-from Settings.proxy_manger import ProxyManager
-
 
 class Underdog(DFSBookBase):
     def __init__(self):

@@ -120,7 +120,6 @@ class Spoof:
     @staticmethod
     async def fetch(api_url, method, headers=None, client_identifier="chrome_114", proxy=None, **kwargs):
         def _spoof_request():
-            print("HIT")
             session = Session(client_identifier=client_identifier)
             method_lower = method.lower()
 
