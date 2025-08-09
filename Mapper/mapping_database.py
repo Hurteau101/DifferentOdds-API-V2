@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import json
 import multiprocessing
 from concurrent.futures.process import ProcessPoolExecutor
@@ -145,7 +146,13 @@ class Mapper:
         self.database_teams = self.db.load_teams()
         self.client = AsyncOpenAI(api_key=os.getenv("OPEN_AI_KEY"))
         self.file_logger = FileLogger()
-        self.file_logger.set_log_file("OpenAI.log")
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        log_path = os.path.join(current_dir, "OpenAI.log")
+
+        self.file_logger.set_log_file(log_path)
+        caller_file_full = inspect.stack()[2].filename  # Path of the caller.
+        self.caller_file_name = os.path.basename(caller_file_full) # File name of the caller
 
 
     async def controller(self, team_data):
@@ -260,7 +267,7 @@ class Mapper:
 
         except json.JSONDecodeError:
             self.file_logger.log(
-                message=f"Could not parse JSON: {content}",
+                message=f"{self.caller_file_name} - Could not parse JSON: {content}",
                 level="INFO"
             )
             return None

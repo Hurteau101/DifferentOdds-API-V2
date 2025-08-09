@@ -1,8 +1,11 @@
+import os
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from enum import Enum
 import asyncio
 from tls_client import Session
+
+from Settings.logger import FileLogger, ConsoleLogger
 
 
 class SportbookRequestType(Enum):
@@ -11,13 +14,34 @@ class SportbookRequestType(Enum):
 
 # This is the base class for all sportsbook books, providing common functionality
 class BookBase(ABC):
-    def __init__(self, request_type: SportbookRequestType):
+    def __init__(self, request_type: SportbookRequestType, log_directory=None, log_name=None):
         if not isinstance(request_type, SportbookRequestType):
             raise ValueError(
                 f"Invalid request type: {request_type}. Valid options are: {', '.join([item.value for item in SportbookRequestType])}."
             )
 
         self.request_type = request_type
+        self._create_directory(log_directory)
+
+        if log_name is None:
+            log_name = f"{self.__class__.__name__}.log"
+
+        log_path = os.path.join(log_directory, log_name)
+
+        self.file_logger = FileLogger(log_path)
+        self.console_logger = ConsoleLogger()
+
+    def _create_directory(self, directory: str):
+        """Create a directory if it doesn't exist."""
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+    def _api_call_log(self, sportsbook_name):
+        """General logger for when a sportsbook can't get data from API"""
+        self.file_logger.log(
+            message=f"Failed to fetch data from {sportsbook_name} API",
+            level="ERROR",
+        )
 
     @staticmethod
     def _generate_key(key_data):
@@ -50,6 +74,7 @@ class BookBase(ABC):
                     }
 
         return None
+
 
     @abstractmethod
     async def run_book(self):
