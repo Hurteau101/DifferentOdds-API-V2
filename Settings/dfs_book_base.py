@@ -36,6 +36,12 @@ class DFSBookBase(BookBase, ABC):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
+    def _api_call_log(self, sportsbook_name):
+        """General logger for when a sportsbook can't get data from API"""
+        self.file_logger.log(
+            message=f"Failed to fetch data from {sportsbook_name} API",
+            level="ERROR",
+        )
 
     def _unique_teams(self, sportsbook_data: list[PlayerData]):
         """Create a list of unique team names, so we can pass this data to RapidFuzz and OpenAI"""
