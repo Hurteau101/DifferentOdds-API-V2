@@ -47,12 +47,14 @@ async def example(self):
 
 ```python
 from Settings.proxy_manger import ProxyManager
+import aiohttp
 
 async def example(self):
-    proxy_manger = ProxyManager(self.api_caller)
-    data = await proxy_manger.proxy_controller(
-        session=session,
-        url=self.book_data.url.get("main_url"),
-        method=self.book_data.method,
-    )
+    async with aiohttp.ClientSession() as session:
+        proxy_manger = ProxyManager(self.api_caller)
+        data = await proxy_manger.proxy_controller(
+            session=session,
+            url=self.book_data.url.get("main_url"),
+            method=self.book_data.method,
+        )
 ```
