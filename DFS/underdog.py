@@ -234,10 +234,7 @@ class Underdog(DFSBookBase):
             )
 
             if not api_data:
-                self.file_logger.log(
-                    message="Failed to fetch data from Underdog API",
-                    level="ERROR",
-                )
+                self._api_call_log("underdog")
 
             map_data = Underdog._mapper(api_data)
             underdog_data = [
