@@ -18,5 +18,12 @@ DFS_PROVIDERS = [
             "main_url": "https://api.underdogfantasy.com/beta/v5/over_under_lines",
         },
         method="GET",
+    ),
+    DFSProvider(
+        name="prizepicks",
+        url={
+            "main_url": "https://partner-api.prizepicks.com/projections"
+        },
+        method="GET"
     )
 ]
