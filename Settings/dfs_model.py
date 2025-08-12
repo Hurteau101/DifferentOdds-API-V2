@@ -48,5 +48,7 @@ class PlayerData:
     future: bool
     stats: List[Stats]
     solo_game: Optional[bool] = None
+    combo: Optional[bool] = False
+    live: Optional[bool] = False
 
 

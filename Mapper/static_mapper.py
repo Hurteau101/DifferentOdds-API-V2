@@ -1,11 +1,16 @@
 LEAGUES = {
     "cs": "CS2",
     "counter-strike": "CS2",
-    "valorant": "CS2",
     "league of legends": "LOL",
     "dota": "DOTA2",
+    "dota pro circuit": "DOTA2",
     "lck": "LOL",
     "lcs": "LOL",
+    'lec': "LOL",
+    'lpl': "LOL",
+    'valorant champions tour': "VAL",
+    'valorant': "VAL",
+    'eu lcs': "LOL",
     "mlbcombos": "MLB",
     "ncaaf": "CFB"
 }

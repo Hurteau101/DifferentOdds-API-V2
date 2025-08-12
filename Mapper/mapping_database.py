@@ -8,21 +8,19 @@ from Settings.logger import FileLogger
 from dotenv import load_dotenv
 from rapidfuzz import fuzz, process
 from Mapper.database import Database
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAIError
 import os
+from collections import defaultdict
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 
-COMMON_LEAGUES = [
-    "NHL",
-    "NFL",
-    "CFL",
-    "CBB",
-    "CFB"
-    "NBA",
-    "WNBA",
-    "MLB",
-]
+def group_teams_by_name(database_teams):
+    normalized = defaultdict(list)
+    received = defaultdict(list)
+    for team in database_teams:
+        normalized[team[0].lower()].append(team)
+        received[team[1].lower()].append(team)
+    return [normalized, received]
 
 
 def find_matches(args):
@@ -32,57 +30,66 @@ def find_matches(args):
 
     league_upper = team_data.get('league').upper()
     received_name = team_data.get('team_name').lower()
+    sportsbook = team_data.get('sportsbook', None)
+    SOURCE = "RapidFuzz"
 
+    # Group teams by normalized and received names
+    name_sources = group_teams_by_name(database_teams)
 
-    name_sources = [
-        {team[0].lower(): team for team in database_teams},  # Normalized names
-        {team[1].lower(): team for team in database_teams},  # Received names
-    ]
-
-    # Check for exact match first.
     for name_dict in name_sources:
         if received_name in name_dict:
-            matched_team = name_dict[received_name]
+            matched_teams = name_dict[received_name]
+            for matched_team in matched_teams:
 
-            # This check is to ensure if it's a common league and if it is, ensure that the league matches.
-            if matched_team[3].upper() in COMMON_LEAGUES and matched_team[3].upper() != league_upper:
-                continue
-
-            return {
-                "found": True,
-                "team_name": matched_team[0],
-                "league": matched_team[3].upper() if matched_team[3] else league_upper,
-                "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                "original_name": received_name,
-                "update_db": False,
-            }
-
-    # Match against normalized and received names first
-    for name_dict in name_sources:
-        match = process.extractOne(received_name.lower(), name_dict.keys(), scorer=fuzz.ratio, score_cutoff=95)
-        if match:
-            matched_str, score, _ = match
-            if 95 <= score < 100:
-                matched_team = name_dict[matched_str]
-
-                # This check is to ensure if it's a common league and if it is, ensure that the league matches.
-                if matched_team[3].upper() in COMMON_LEAGUES and matched_team[3].upper() != league_upper:
+                # Check if the league matches or base league.
+                base_league = matched_team[4].split(",") if matched_team[4] else []
+                if matched_team[3].upper() != league_upper and league_upper not in base_league:
                     continue
 
                 return {
                     "found": True,
                     "team_name": matched_team[0],
                     "league": matched_team[3].upper() if matched_team[3] else league_upper,
+                    "original_league": league_upper,
                     "abbreviation": matched_team[2].upper() if matched_team[2] else None,
                     "original_name": received_name,
-                    "update_db": True
+                    "update_db": False,
+                    "source": SOURCE,
+                    "sportsbook": sportsbook
                 }
+
+    # Match against normalized and received names first
+    for name_dict in name_sources:
+        match = process.extractOne(received_name.lower(), name_dict.keys(), scorer=fuzz.ratio, score_cutoff=90)
+        if match:
+            matched_str, score, _ = match
+            if 90 <= score < 100:
+                matched_teams = name_dict[matched_str]
+                for matched_team in matched_teams:
+                    base_league = matched_team[4].split(",") if matched_team[4] else []
+
+                    # Check if the league matches or base league.
+                    if matched_team[3].upper() != league_upper and league_upper not in base_league:
+                        continue
+
+                    return {
+                        "found": True,
+                        "team_name": matched_team[0],
+                        "league": matched_team[3].upper() if matched_team[3] else league_upper,
+                        "original_league": league_upper,
+                        "abbreviation": matched_team[2].upper() if matched_team[2] else None,
+                        "original_name": received_name,
+                        "update_db": True,
+                        "source": SOURCE,
+                        "sportsbook": sportsbook
+                    }
 
 
     other_model = textdistance_match(
         received_name=received_name,
         name_sources=name_sources,
-        league_upper=league_upper
+        league_upper=league_upper,
+        sportsbook=sportsbook,
     )
 
     if other_model.get("found"):
@@ -94,49 +101,64 @@ def find_matches(args):
         "league": league_upper,
         "solo_game": team_data.get("solo_game"),
         "update_db": False,
+        "source": SOURCE,
+        "sportsbook": sportsbook
     }
 
 
-def textdistance_match(received_name, name_sources, league_upper):
+def textdistance_match(received_name, name_sources, league_upper, sportsbook):
     """Use textdistance library for matching using various algorithms"""
+    SOURCE = "RapidFuzz"
+
     for name_dict in name_sources:
         for team_name in name_dict.keys():
             score = textdistance.cosine.similarity(received_name.lower(), team_name)
             if score > 0.90:
-                matched_team = name_dict[team_name]
+                matched_teams = name_dict[team_name]
+                for matched_team in matched_teams:
 
-                # This check is to ensure if it's a common league and if it is, ensure that the league matches.
-                if matched_team[3].upper() in COMMON_LEAGUES and matched_team[3].upper() != league_upper:
-                    continue
+                    # Check if the league matches or base league.
+                    base_league = matched_team[4].split(",") if matched_team[4] else []
 
-                return {
-                    "found": True,
-                    "team_name": matched_team[0],
-                    "league": matched_team[3].upper() if matched_team[3] else league_upper,
-                    "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                    "original_name": received_name,
-                    "update_db": True
-                }
+                    if matched_team[3].upper() != league_upper and league_upper not in base_league:
+                        continue
+
+                    return {
+                        "found": True,
+                        "team_name": matched_team[0],
+                        "league": matched_team[3].upper() if matched_team[3] else league_upper,
+                        "original_league": league_upper,
+                        "abbreviation": matched_team[2].upper() if matched_team[2] else None,
+                        "original_name": received_name,
+                        "update_db": True,
+                        "source": SOURCE,
+                        "sportsbook": sportsbook
+                    }
 
             score = textdistance.jaro_winkler.similarity(received_name.lower(), team_name)
             if score > 0.90:
-                matched_team = name_dict[team_name]
+                matched_teams = name_dict[team_name]
+                for matched_team in matched_teams:
 
-                # This check is to ensure if it's a common league and if it is, ensure that the league matches.
-                if matched_team[3].upper() in COMMON_LEAGUES and matched_team[3].upper() != league_upper:
-                    continue
+                    # Check if the league matches or base league.
+                    base_league = matched_team[4].split(",") if matched_team[4] else []
 
-                return {
-                    "found": True,
-                    "team_name": matched_team[0],
-                    "league": matched_team[3].upper() if matched_team[3] else league_upper,
-                    "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                    "original_name": received_name,
-                    "update_db": True
-                }
+                    if matched_team[3].upper() != league_upper and league_upper not in base_league:
+                        continue
+
+                    return {
+                        "found": True,
+                        "team_name": matched_team[0],
+                        "league": matched_team[3].upper() if matched_team[3] else league_upper,
+                        "original_league": league_upper,
+                        "abbreviation": matched_team[2].upper() if matched_team[2] else None,
+                        "original_name": received_name,
+                        "update_db": True,
+                        "source": SOURCE,
+                        "sportsbook": sportsbook
+                    }
 
     return {"found": False}
-
 
 
 class Mapper:
@@ -148,7 +170,12 @@ class Mapper:
         self.file_logger = FileLogger()
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        log_path = os.path.join(current_dir, "OpenAI.log")
+        log_folder = os.path.join(current_dir, "Open AI Logs")
+
+        if not os.path.exists(log_folder):
+            os.makedirs(log_folder)
+
+        log_path = os.path.join(log_folder, "OpenAI.log")
 
         self.file_logger.set_log_file(log_path)
         caller_file_full = inspect.stack()[2].filename  # Path of the caller.
@@ -171,15 +198,20 @@ class Mapper:
         teams_to_return = [result for result in results if result.get("found")] # Return these teams for mapping.
         database_teams = [team for team in teams_to_return if team.get("update_db")] # Update DB with these teams.
 
+        # # Bulk update the database with any 'close' RapidFuzz matches.
+        if database_teams:
+            self.db.bulk_update_verification_table(database_teams)
+
+        existing_names = self.db.get_all_received_names()
+
         # Any teams unable to match will be passed to OpenAI to try to map.
         teams_to_pass_to_ai = [
             result for result in results
-            if result and not result.get("found") and any(result.values())
+            if result
+               and not result.get("found")
+               and any(result.values())
+               and result.get('team_name').lower() not in existing_names
         ]
-
-        # Bulk update the database with any 'close' RapidFuzz matches.
-        if database_teams:
-            self.db.bulk_update_mapper_table(teams_to_return)
 
         if teams_to_pass_to_ai:
             print(f"Passing {len(teams_to_pass_to_ai)} to AI")
@@ -193,14 +225,7 @@ class Mapper:
     async def fetch_response(self, prompt, prompt_data):
         from Settings.dfs_book_base import DFSBookBase
 
-        # Load not found data to ensure non-matching calls aren't called repeatedly.
-        not_found = self.db.load_not_found()
-        key = (prompt_data.get("team_name").lower(), prompt_data.get("league").upper())
-
-        if key in not_found:
-            return None
-
-        print(f"Running AI {key}")
+        print(f"Running AI {prompt_data.get('team_name')} | {prompt_data.get('league')}")
 
         #### THESE ARE WAY MORE EXPENSIVE SO COMMENTED OUT TO TEST OTHER MODELS.
 
@@ -210,13 +235,15 @@ class Mapper:
         #     tools=[{"type": "web_search_preview"}],
         #     input=prompt
         # )
-
+        #
         # response = await self.client.responses.create(
         #     model="gpt-3.5-turbo",
         #     input=prompt
         # )
-
+        #
         # content = response.output_text
+
+        ##############################################
 
         response = await self.client.chat.completions.create(
             model="gpt-5-nano",
@@ -227,9 +254,15 @@ class Mapper:
 
         content = response.choices[0].message.content
 
+        # Check if the content is None or contains "NULL" or "null" we add to verification table, avoiding any further processing.
         if content is None or any(x in content for x in ["NULL", "null"]):
-            self.db.insert_not_found(team_name=prompt_data.get("team_name").lower(),
-                                     league=prompt_data.get("league").upper())
+            self.db.update_verification_table(
+                received_name=prompt_data.get("team_name").lower(),
+                league=prompt_data.get("league").upper(),
+                original_league=prompt_data.get("league").upper(),
+                sportsbook= prompt_data.get("sportsbook", "unknown"),
+                source="OpenAI",
+            )
             return None
 
         try:
@@ -237,30 +270,45 @@ class Mapper:
             if prompt_data.get("solo_game"):
                 # If any are blank, most likely AI couldn't find the mapping, so we store in not found DB.
                 if normalized_data is None or normalized_data.get("full_name") is None or normalized_data.get("league") is None:
-                    self.db.insert_not_found(team_name=prompt_data.get("team_name").lower(),
-                                             league=prompt_data.get("league").upper())
+                    self.db.update_verification_table(
+                        received_name=prompt_data.get("team_name").lower(),
+                        league=prompt_data.get("league").upper(),
+                        original_league=prompt_data.get("league").upper(),
+                        sportsbook=prompt_data.get("sportsbook", "unknown"),
+                        source="OpenAI",
+                    )
+
                     return None
             else:
                 if normalized_data is None or normalized_data.get("full_name") is None or normalized_data.get("abbreviation") is None:
-                    self.db.insert_not_found(team_name=prompt_data.get("team_name").lower(),
-                                             league=prompt_data.get("league").upper())
+                    self.db.update_verification_table(
+                        received_name=prompt_data.get("team_name").lower(),
+                        league=prompt_data.get("league").upper(),
+                        original_league=prompt_data.get("league").upper(),
+                        sportsbook=prompt_data.get("sportsbook", "unknown"),
+                        source="OpenAI",
+                    )
                     return None
 
             mapped_data = {
                 "found": True,
                 "team_name": DFSBookBase.clean_and_normalize_name(normalized_data.get("full_name")),
                 "league": normalized_data.get("league", prompt_data.get('league').upper()),
+                "original_league": prompt_data.get('league').upper(),
                 "abbreviation": normalized_data.get("abbreviation"),
                 "original_name": prompt_data.get("team_name")
 
             }
 
             # Update the database with the OpenAI matches.
-            self.db.update_mapper_table(
+            self.db.update_verification_table(
                 normalized_name=mapped_data.get("team_name"),
                 received_name=prompt_data.get("team_name").lower(),
                 abbreviation=mapped_data.get("abbreviation").upper() if mapped_data.get("abbreviation") else None,
-                league=mapped_data.get("league").upper()
+                league=mapped_data.get("league").upper(),
+                original_league=prompt_data.get("league").upper(),
+                sportsbook=prompt_data.get("sportsbook", "unknown"),
+                source="OpenAI",
             )
 
             return mapped_data
@@ -275,6 +323,7 @@ class Mapper:
             return None
 
 
+
     async def run_open_ai(self, prompt_data):
         # Run this Async, to speed up the process.
         tasks = [
@@ -285,15 +334,49 @@ class Mapper:
             for prompt in prompt_data
         ]
 
-        results = await asyncio.gather(*tasks)
-        results = [result for result in results if result and any(result.values())]
-        return results
+        try:
+            results = await asyncio.gather(*tasks)
+            results = [result for result in results if result and any(result.values())]
+            return results
+
+        except OpenAIError as e:
+            self.file_logger.log(
+                message=f"{e}",
+                file=self.caller_file_name,
+                level="ERROR"
+            )
+
 
     def _extract_prompt(self, prompt):
         # Open AI prompts. Using different prompts based on a solo or team game.
+        if "/" in prompt.get("team_name"):
+            if prompt.get("solo_game"):
+                return (
+                    "Normalize the 2 players between the '/' to there official first and last name ONLY no middle name and the exact league they play in."
+                    f"Player names: {prompt.get('team_name')}, League: {prompt.get('league')}. "
+                    "The 'league' should be a specific organization like 'ATP', 'WTA', 'UFC', 'PGA', 'MLS', or anything like that etc. Do not use generic names like 'TENNIS', 'MMA', 'FIFA' or anything like that unless its an unknown league"
+                    "If you cannot find the league or EITHER player return NULL. "
+                    "Please ensure you have the '/' dividing the 2 players in 'full_name'"
+                    "Return your answer ONLY as a JSON object with keys 'full_name' which is both players first and last name and 'league'. "
+                    "Do not wrap the json codes in JSON markers"
+                )
+            else:
+                return (
+                    "Normalize the 2 teams between the '/' to there official sports team name and abbreviation, based on the correct league. "
+                    "Do NOT include terms like 'University', 'College', or other institution names unless they are officially part of the team names. "
+                    "Ensure you include the full official team names, such as 'Boston Celtics' or 'Manchester United'. "
+                    "The 'league' must be the specific competition or organization the team plays in (e.g., 'NFL', 'CFB', 'NHL', 'CBB', 'EPL', 'La Liga', 'MLS', 'UEFA CL', 'Serie A'). "
+                    "Do NOT use generic names like 'BASKETBALL', 'HOCKEY', 'SOCCER', or 'FIFA'. "
+                    "If the specific league cannot be confidently determined, return NULL for the league or EITHER team cannot be found, return NULL for 'full_name'"
+                    "Please ensure you have the '/' dividing the 2 teams in 'full_name'"
+                    f"Team name: {prompt.get('team_name')}, League: {prompt.get('league')}. "
+                    "Return your answer ONLY as a JSON object with keys 'full_name', 'abbreviation', and 'league'. "
+                    "Do not wrap the JSON in code blocks or markdown."
+                )
+
         if prompt.get("solo_game"):
             return (
-                "Normalize this solo player name to their official first and last name ONLY no middle name and the exact league they play in.  Limit to 1 web source"
+                "Normalize this solo player name to their official first and last name ONLY no middle name and the exact league they play in."
                 f"Player name: {prompt.get('team_name')}, League: {prompt.get('league')}. "
                 "The 'league' should be a specific organization like 'ATP', 'WTA', 'UFC', 'PGA', 'MLS', or anything like that etc. Do not use generic names like 'TENNIS', 'MMA', 'FIFA' or anything like that unless its an unknown league"
                 "If you cannot find the league or player return NULL. "
@@ -301,15 +384,20 @@ class Mapper:
                 "Do not wrap the json codes in JSON markers"
             )
 
+
         return (
-                f"Normalize this team name to its official sports team name and abbreviation, based on the league.  Limit to 1 web source"
-                f"Do NOT include terms like 'University', 'College', or other institution names unless they are officially part of the team name. "
-                f"Ensure you include there full name though like Boston Celtics, etc. "
-                f"Focus on how the team is referred to in sports stats, broadcasts, or standings. "
-                "The 'league' should be a specific organization like 'NFL', 'CFB', 'NHL', 'CBB', or anything like that etc. Do not use generic names like 'BASKETBALL', 'HOCKEY', 'SOCCER' or anything like that unless its an unknown league"
-                f"Team name: {prompt.get('team_name')}, League: {prompt.get('league')}. "
-                f"Return your answer ONLY as a JSON object with keys 'full_name' and 'abbreviation'. "
-                f"Do not wrap the JSON in code blocks or markdown."
+            "Normalize this team name to its official sports team name and abbreviation, based on the correct league. "
+            "Limit to 1 web source. "
+            "Do NOT include terms like 'University', 'College', or other institution names unless they are officially part of the team name. "
+            "Ensure you include the full official team name, such as 'Boston Celtics' or 'Manchester United'. "
+            "The 'league' must be the specific competition or organization the team plays in (e.g., 'NFL', 'CFB', 'NHL', 'CBB', 'EPL', 'La Liga', 'MLS', 'UEFA CL', 'Serie A'). "
+            "Do NOT use generic names like 'BASKETBALL', 'HOCKEY', 'SOCCER', or 'FIFA'. "
+            "If the specific league cannot be confidently determined, return NULL for the league. "
+            "For soccer teams, identify the exact league or competition (e.g., 'EPL', 'La Liga', 'MLS', 'Bundesliga', 'UEFA CL', 'Serie A') based on the team name. "
+            "If there is a '/' in the 'team_name' then DO NOT change the team_name, just find the league they are in."
+            f"Team name: {prompt.get('team_name')}, League: {prompt.get('league')}. "
+            "Return your answer ONLY as a JSON object with keys 'full_name', 'abbreviation', and 'league'. "
+            "Do not wrap the JSON in code blocks or markdown."
             )
 
 

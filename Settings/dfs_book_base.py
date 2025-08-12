@@ -1,3 +1,4 @@
+import inspect
 import re
 from abc import ABC
 
@@ -21,39 +22,45 @@ class DFSBookBase(BookBase, ABC):
         self.STAT_TYPES = STAT_TYPES
 
 
-    def _unique_teams(self, sportsbook_data: list[PlayerData]):
+    def _unique_teams(self, sportsbook_data: list[PlayerData], sportsbook):
         """Create a list of unique team names, so we can pass this data to RapidFuzz and OpenAI"""
+
+
         team_set = set()
         team_data = []
 
         for data in sportsbook_data:
-            if not data.future:
-                player_name = data.player_name
-                league = data.league
-                team_a = data.team_data.team_a
-                team_b = data.team_data.team_b
+            if data.future or data.combo or data.live:
+                continue
 
-                # Some solo games like Tennis on some books will have team_a and team_b, so we need this check.
-                if data.solo_game and (not data.team_data.team_a or not data.team_data.team_b):
-                    key = (player_name, league)
-                    if key not in team_set:
-                        team_set.add(key)
-                        team_data.append({
-                            "team_name": player_name,
-                            "league": league,
-                            "solo_game": data.solo_game
-                        })
-                else:
-                    for team in (team_a, team_b):
-                        if team and team.strip():
-                            key = (team, league)
-                            if key not in team_set:
-                                team_set.add(key)
-                                team_data.append({
-                                    "team_name": team,
-                                    "league": league,
-                                    "solo_game": data.solo_game
-                                })
+            player_name = data.player_name
+            league = data.league
+            team_a = data.team_data.team_a
+            team_b = data.team_data.team_b
+
+            # Some solo games like Tennis on some books will have team_a and team_b, so we need this check.
+            if data.solo_game and (not data.team_data.team_a or not data.team_data.team_b):
+                key = (player_name, league)
+                if key not in team_set:
+                    team_set.add(key)
+                    team_data.append({
+                        "team_name": player_name.strip(),
+                        "league": league,
+                        "solo_game": data.solo_game,
+                        "sportsbook": sportsbook
+                    })
+            else:
+                for team in (team_a, team_b):
+                    if team and team.strip():
+                        key = (team, league)
+                        if key not in team_set:
+                            team_set.add(key)
+                            team_data.append({
+                                "team_name": team.strip(),
+                                "league": league,
+                                "solo_game": data.solo_game,
+                                "sportsbook": sportsbook
+                            })
         return team_data
 
     @staticmethod
@@ -72,8 +79,8 @@ class DFSBookBase(BookBase, ABC):
         return name
 
     async def _database_mapper(self, sportsbook_data: list[PlayerData]):
-        unique_data = self._unique_teams(sportsbook_data)
-
+        sportsbook = self.__class__.__name__
+        unique_data = self._unique_teams(sportsbook_data, sportsbook.lower())
         mapped_teams = await self.mapper.controller(unique_data)
 
         # Create a map of the returned RapidFuzz + OpenAI mapping.

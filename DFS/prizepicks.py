@@ -36,6 +36,8 @@ class Prizepicks(DFSBookBase):
         # Pass in league due to the way Prizepicks has there opponent data.
         if league in self.esport_leagues:
             opponent = re.split(r'\bMAPS?\b', opponent, flags=re.IGNORECASE)[0].strip()
+        else:
+            opponent = re.split(r'\b(at|vs)\b|\d', opponent, flags=re.IGNORECASE)[0].strip()
 
         if opponent:
             self.clean_and_normalize_name(opponent)
@@ -101,14 +103,16 @@ class Prizepicks(DFSBookBase):
             else player_information.get("name", "")
 
         league =  player_information.get("league").upper() if player_information.get("league") else None
-        if league:
-            self.LEAGUE_MAPPING.get(league.lower(), league.upper())
+        self.LEAGUE_MAPPING.get(league.lower(), league.upper())
+
 
         projection_id = game_details.get("id")
         start_date = self.cache_time(game_information.get("start_time"))
         team = self.clean_and_normalize_name(player_information.get("team"))
         opponent = self._opponent_extractor(league=league, opponent=game_information.get("description"))
-        future = True if "szn" in game_information.get("description").lower() else False
+        future = True if "szn" in game_information.get("description").lower() or "szn" in league.lower() else False
+        combo = True if "combo" in game_information.get("stat_type").lower() else False
+        live = True if league.lower() == "mlblive" else False
 
         if team and opponent:
             team_key = BookBase._generate_key([team, opponent, start_date])
@@ -147,7 +151,9 @@ class Prizepicks(DFSBookBase):
             ),
             future=future,
             solo_game=True if league in Prizepicks.SOLO_GAMES else False,
-            stats=stats
+            stats=stats,
+            combo=combo,
+            live=live
         )
 
     async def run_book(self):
@@ -162,7 +168,12 @@ class Prizepicks(DFSBookBase):
             if not api_data:
                 self._api_call_log("prizepicks")
                 return
-
+            
+            
+            with open("prizepick_.json", "w") as file:
+                import json
+                json.dump(api_data, file)
+    
             player_info_map, team_info_map = self._map_info(api_data)
             player_data_list = {}
 
@@ -182,26 +193,9 @@ class Prizepicks(DFSBookBase):
                         player_data_list[player_key] = player_data
 
             prizepick_data = list(player_data_list.values())
-            data = self._serialize_data(prizepick_data)
-            import json
-            with open("prizepick_data.json", "w") as file:
-                json.dump(data, file)
+            return await self._database_mapper(prizepick_data)
 
-            # for game_details in api_data.get("data", []):
-            #     player_data = self._extract_data(game_details, player_info_map)
 
-                # if player_data:
-                #     player_key = (
-                #         player_data.player_name,
-                #         player_data.team_a,
-                #         player_data.team_b,
-                #         player_data.start_date,
-                #     )
-                #
-                #     if player_key in player_data_dict:
-                #         player_data_dict[player_key].stats.extend(player_data.stats)
-                #     else:
-                #         player_data_dict[player_key] = player_data
 
 
 if __name__ == "__main__":

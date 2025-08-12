@@ -213,7 +213,7 @@ class Underdog(DFSBookBase):
         stat_details = self._extract_stats(grouped_stats)
 
         return PlayerData(
-            player_name= player_details.get("player_name"),
+            player_name=self.clean_and_normalize_name(player_details.get("player_name")),
             league=league,
             start_date= game_details.get("start_date"),
             solo_game=game_details.get("solo_game"),
