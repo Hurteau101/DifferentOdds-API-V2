@@ -14,7 +14,22 @@ class Betr(DFSBookBase):
             api_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
-                method=self.book_data.method
+                method=self.book_data.method,
+                payload={
+                    "operationName": "AllLeaguesUpcomingEvents",
+                    "query": """query AllLeaguesUpcomingEvents {
+                              getUpcomingEventsV2 {
+                                id
+                                league
+                              }
+                            }""",
+                }
             )
 
+            print(api_data)
 
+
+if __name__ == "__main__":
+    betr = Betr()
+    import asyncio
+    asyncio.run(betr.run_book())

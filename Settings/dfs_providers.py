@@ -30,7 +30,7 @@ DFS_PROVIDERS = [
     DFSProvider(
         name="betr",
         url={
-            "main_url": "https://betr-api.betr.app/graphql",
+            "main_url": "https://api.fantasy.betr.app/graphql",
         },
         method="POST",
     )
