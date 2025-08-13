@@ -104,15 +104,16 @@ class BookBase(ABC):
         url = kwargs.get("url")
         headers = kwargs.get("headers")
         method = kwargs.get("method")
+        proxy = kwargs.get("proxy")
 
         if not url or not method:
             raise ValueError("Both 'url' and 'method' are required for API calls.")
 
         if self.request_type == SportbookRequestType.ASYNC:
-            return await AsyncBook.fetch(session, url, method, headers, kwargs.get("proxy"))
+            return await AsyncBook.fetch(session, url, method, headers, proxy, **kwargs)
         elif self.request_type == SportbookRequestType.SPOOF:
             client_identifier = kwargs.get("client_identifier", "chrome_114")
-            return await Spoof.fetch(url, method, headers, client_identifier, kwargs.get("proxy"))
+            return await Spoof.fetch(url, method, headers, client_identifier, proxy, **kwargs)
         else:
             raise NotImplementedError(f"Request type {self.request_type} is not supported.")
 
@@ -126,11 +127,22 @@ class AsyncBook:
             raise ValueError("Method must be 'get' or 'post'.")
 
         request_method = getattr(session, method)
-        async with request_method(url, headers=headers, proxy=proxy, json=payload, **kwargs) as response:
-            if response.status == 200:
-                return await response.json()
-            else:
-                return None
+
+        if method == "get":
+            async with request_method(url, headers=headers, proxy=proxy, **kwargs) as response:
+                return await AsyncBook._handle_response(response)
+        else:
+            async with request_method(url, headers=headers, proxy=proxy, json=payload, **kwargs) as response:
+                return await AsyncBook._handle_response(response)
+
+    @staticmethod
+    async def _handle_response(response):
+        """Handle the response from the API call."""
+        if response.status == 200:
+            return await response.json()
+        else:
+            return None
+
 
 
 # Spoofing book fetching class
@@ -145,7 +157,11 @@ class Spoof:
                 raise ValueError("Method must be 'get' or 'post'.")
 
             request_method = getattr(session, method_lower)
-            response = request_method(api_url, headers=headers, proxy=proxy, json=payload, **kwargs)
+
+            if method_lower == "get":
+                response = request_method(api_url, headers=headers, proxy=proxy, **kwargs)
+            else:
+                response = request_method(api_url, headers=headers, proxy=proxy, json=payload, **kwargs)
 
             if response.status_code == 200:
                 return response.json()
