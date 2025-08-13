@@ -120,13 +120,13 @@ class BookBase(ABC):
 # Asynchronous book fetching class
 class AsyncBook:
     @staticmethod
-    async def fetch(session, url, method, headers=None, proxy=None, **kwargs):
+    async def fetch(session, url, method, headers=None, proxy=None, payload=None, **kwargs):
         method = method.lower()
         if method not in ["get", "post"]:
             raise ValueError("Method must be 'get' or 'post'.")
 
         request_method = getattr(session, method)
-        async with request_method(url, headers=headers, proxy=proxy, **kwargs) as response:
+        async with request_method(url, headers=headers, proxy=proxy, json=payload, **kwargs) as response:
             if response.status == 200:
                 return await response.json()
             else:
@@ -136,7 +136,7 @@ class AsyncBook:
 # Spoofing book fetching class
 class Spoof:
     @staticmethod
-    async def fetch(api_url, method, headers=None, client_identifier="chrome_114", proxy=None, **kwargs):
+    async def fetch(api_url, method, headers=None, payload=None, client_identifier="chrome_114", proxy=None, **kwargs):
         def _spoof_request():
             session = Session(client_identifier=client_identifier)
             method_lower = method.lower()
@@ -145,7 +145,7 @@ class Spoof:
                 raise ValueError("Method must be 'get' or 'post'.")
 
             request_method = getattr(session, method_lower)
-            response = request_method(api_url, headers=headers, proxy=proxy, **kwargs)
+            response = request_method(api_url, headers=headers, proxy=proxy, json=payload, **kwargs)
 
             if response.status_code == 200:
                 return response.json()
