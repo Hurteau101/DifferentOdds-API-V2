@@ -1,5 +1,7 @@
 import json
 import aiohttp
+
+from Mapper.static_mapper import STAT_TYPES
 from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, OptionalStatInformation
@@ -146,12 +148,14 @@ class Betr(DFSBookBase):
     def _extract_teams(self, data, player_name=None):
         # Extract team names and generate a unique key for the match up
         if data.get("playerStructure") == "TEAM":
-            teams = data.get("name").split("@")
-            team_key = self._generate_key([teams[0].strip(), teams[1].strip(), self.cache_time(data.get("date"))])
+            team_a, team_b = data.get("name").split("@")
+            team_a = self.clean_and_normalize_name(team_a.strip())
+            team_b = self.clean_and_normalize_name(team_b.strip())
+            team_key = self._generate_key([team_a, team_b, self.cache_time(data.get("date"))])
 
             return {
-                "team_a": teams[0].strip(),
-                "team_b": teams[1].strip(),
+                "team_a": team_a,
+                "team_b": team_b,
                 "team_key": team_key,
             }
 
@@ -175,7 +179,7 @@ class Betr(DFSBookBase):
         # Iterate through player list.
         for player in players:
             stats = []
-            player_name = f"{player.get('firstName')} {player.get('lastName')}"
+            player_name = self.clean_and_normalize_name(f"{player.get('firstName')} {player.get('lastName')}")
             player_team = player.get("name") if not solo_game else player_name
 
             # If it's a solo game, we extract team names based on the player name.
@@ -186,7 +190,7 @@ class Betr(DFSBookBase):
             for projection in player.get("projections", []):
                 bet_options = [
                     Stats(
-                        stat_type=projection.get("label"),
+                        stat_type=STAT_TYPES.get(projection.get("label").lower(), projection.get("label").title()),
                         line=projection.get("value"),
                         bet_direction=option_mapper.get(options.get("outcome").lower(), options.get("outcome").title()),
                         regular_line=True if projection.get("type").lower() == "regular" else False,
