@@ -66,7 +66,7 @@ class Drafters(DFSBookBase):
                         player_team=player_team,
                         team_key=team_key
                     ),
-                    future=False,
+                    future=True if "season" in player.get("bid_stats_name").lower() else False,
                     stats=stats,
                     solo_game=False if all([team_a, team_b]) else True,
                 )
@@ -103,8 +103,11 @@ class Drafters(DFSBookBase):
 
             results = [player for sublist in results for player in sublist]
 
-            return await self._database_mapper(results)
-
+            data = await self._database_mapper(results)
+            data = self._serialize_data(data)
+            with open("drafters_data.json", "w") as file:
+                import json
+                json.dump(data, file, indent=4)
 
 if __name__ == "__main__":
     drafters = Drafters()
