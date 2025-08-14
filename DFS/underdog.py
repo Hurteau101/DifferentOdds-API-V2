@@ -9,7 +9,7 @@ import re
 
 class Underdog(DFSBookBase):
     def __init__(self):
-        super().__init__(SportbookRequestType.SPOOF, sportsbook_name="underdog")
+        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="underdog")
         self.stats_list = []
 
     @staticmethod

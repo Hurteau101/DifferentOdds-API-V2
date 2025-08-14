@@ -33,5 +33,25 @@ DFS_PROVIDERS = [
             "main_url": "https://api.fantasy.betr.app/graphql",
         },
         method="POST",
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
+            'Accept': 'application/graphql-response+json, application/graphql+json, application/json, text/event-stream, multipart/mixed',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Referer': 'https://picks.betr.app/',
+            'fantasy-api-version': '11.0',
+            'fantasy-application-version': '3.26.6',
+            'jurisdiction': 'IL',
+            'channel': 'WEB',
+            'authorization': '',
+            'content-type': 'application/json',
+            'Origin': 'https://picks.betr.app',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-site',
+            'Priority': 'u=4',
+            'TE': 'trailers'
+        }
     )
 ]
