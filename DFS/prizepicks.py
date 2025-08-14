@@ -168,11 +168,7 @@ class Prizepicks(DFSBookBase):
             if not api_data:
                 self._api_call_log("prizepicks")
                 return
-            
-            
-            with open("prizepick_.json", "w") as file:
-                import json
-                json.dump(api_data, file)
+
     
             player_info_map, team_info_map = self._map_info(api_data)
             player_data_list = {}
@@ -193,7 +189,7 @@ class Prizepicks(DFSBookBase):
                         player_data_list[player_key] = player_data
 
             prizepick_data = list(player_data_list.values())
-            return self._database_mapper(prizepick_data)
+            return await self._database_mapper(prizepick_data)
 
 
 

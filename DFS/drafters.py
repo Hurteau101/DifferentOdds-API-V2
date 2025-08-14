@@ -96,6 +96,10 @@ class Drafters(DFSBookBase):
 
             self._extract_league_ids(leagues)
 
+            if not self.league_data:
+                self._api_call_log("drafters")
+                return
+
             results = [
                 self._extract_game_data(game_data=game.get("players"))
                 for game in api_data.get("entities")
