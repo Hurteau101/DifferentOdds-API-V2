@@ -1,6 +1,9 @@
+import os
 from dataclasses import dataclass
 from typing import Optional, Dict, List
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # DFSProvider class to represent a DFS provider with its details.
 @dataclass
@@ -53,5 +56,17 @@ DFS_PROVIDERS = [
             'Priority': 'u=4',
             'TE': 'trailers'
         }
+    ),
+    DFSProvider(
+        name="drafters",
+        url={
+            "main_url": "https://node.drafters.com/props-game/get-props-games/",
+            "alternate_url": "https://api.drafters.com/games/list/draft_user?page_type=props"
+        },
+        headers={
+            "Authorization": os.getenv("drafters_auth_token"),
+            "Accept": "application/json",
+        },
+        method="GET",
     )
 ]

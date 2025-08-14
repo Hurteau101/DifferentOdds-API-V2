@@ -1,10 +1,10 @@
+import json
 import os
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from enum import Enum
 import asyncio
 from functools import lru_cache
-
 from tls_client import Session
 from dateutil import parser
 from Settings.logger import FileLogger, ConsoleLogger
@@ -106,12 +106,13 @@ class BookBase(ABC):
         method = kwargs.get("method")
         proxy = kwargs.get("proxy")
         payload = kwargs.get("payload")
+        parse_json = kwargs.get("parse_json", False)
 
         if not url or not method:
             raise ValueError("Both 'url' and 'method' are required for API calls.")
 
         if self.request_type == SportbookRequestType.ASYNC:
-            return await AsyncBook.fetch(session, url, method, headers, proxy, payload)
+            return await AsyncBook.fetch(session, url, method, headers, proxy, payload, parse_json)
         elif self.request_type == SportbookRequestType.SPOOF:
             client_identifier = kwargs.get("client_identifier", "chrome_114")
             return await Spoof.fetch(url, method, headers, client_identifier, proxy, payload)
@@ -122,7 +123,7 @@ class BookBase(ABC):
 # Asynchronous book fetching class
 class AsyncBook:
     @staticmethod
-    async def fetch(session, url, method, headers=None, proxy=None, payload=None):
+    async def fetch(session, url, method, headers=None, proxy=None, payload=None, parse_json=False):
         method = method.lower()
         if method not in ["get", "post"]:
             raise ValueError("Method must be 'get' or 'post'.")
@@ -131,18 +132,25 @@ class AsyncBook:
 
         if method == "get":
             async with request_method(url, headers=headers, proxy=proxy) as response:
-                return await AsyncBook._handle_response(response)
+                return await AsyncBook._handle_response(response, parse_json=parse_json)
         else:
             async with request_method(url, headers=headers, proxy=proxy, json=payload) as response:
-                return await AsyncBook._handle_response(response)
+                return await AsyncBook._handle_response(response, parse_json=parse_json)
 
     @staticmethod
-    async def _handle_response(response):
+    async def _handle_response(response, parse_json):
         """Handle the response from the API call."""
         if response.status == 200:
+            # Some API's return text that needs to be parsed as JSON
+            if parse_json:
+                try:
+                    text = await response.text()
+                    return json.loads(text)
+                except json.JSONDecodeError:
+                    return None
+
             return await response.json()
         else:
-            print(response)
             return None
 
 
