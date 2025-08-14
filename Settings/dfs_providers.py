@@ -1,6 +1,9 @@
+import os
 from dataclasses import dataclass
 from typing import Optional, Dict, List
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # DFSProvider class to represent a DFS provider with its details.
 @dataclass
@@ -53,5 +56,12 @@ DFS_PROVIDERS = [
             'Priority': 'u=4',
             'TE': 'trailers'
         }
+    ),
+    DFSProvider(
+        name="boom",
+        url={
+            "main_url": "https://production-boom-dfs-backend-api.boomfantasy.com/api/v1/contests/multiLine/99708fb7-167a-4314-b69d-e38dc782a63a?questionStatus=available&renderType=multiLine",
+        },
+        method="GET",
     )
 ]
