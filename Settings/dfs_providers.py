@@ -58,9 +58,14 @@ DFS_PROVIDERS = [
         }
     ),
     DFSProvider(
-        name="boom",
+        name="drafters",
         url={
-            "main_url": "https://production-boom-dfs-backend-api.boomfantasy.com/api/v1/contests/multiLine/99708fb7-167a-4314-b69d-e38dc782a63a?questionStatus=available&renderType=multiLine",
+            "main_url": "https://node.drafters.com/props-game/get-props-games/",
+            "alternate_url": "https://api.drafters.com/games/list/draft_user?page_type=props"
+        },
+        headers={
+            "Authorization": os.getenv("drafters_auth_token"),
+            "Accept": "application/json",
         },
         method="GET",
     )
