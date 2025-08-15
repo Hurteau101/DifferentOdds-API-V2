@@ -68,5 +68,15 @@ DFS_PROVIDERS = [
             "Accept": "application/json",
         },
         method="GET",
+    ),
+    DFSProvider(
+        name="boom",
+        url={
+            "main_url": "https://production-boom-dfs-backend-api.boomfantasy.com/api/v1/contests/multiLine/99708fb7-167a-4314-b69d-e38dc782a63a?questionStatus=available&renderType=multiLine"
+        },
+        headers={
+            "Authorization": os.getenv("boom_auth_token"),
+        },
+        method="GET",
     )
 ]

@@ -8,11 +8,13 @@ LEAGUES = {
     "lcs": "LOL",
     'lec': "LOL",
     'lpl': "LOL",
+    "leagueoflegends": "LOL",
     'valorant champions tour': "VAL",
     'valorant': "VAL",
     'eu lcs': "LOL",
     "mlbcombos": "MLB",
-    "ncaaf": "CFB"
+    "ncaaf": "CFB",
+    "ncaafb": "CFB",
 }
 
 STAT_TYPES = {
@@ -144,7 +146,18 @@ STAT_TYPES = {
     "kills_map_1": "map 1 kills",
     "headshots_map_1": "map 1 headshots",
     "game-2-kills": "map 2 kills",
-
+    "1st 2 maps assists": "maps 1-2 assists",
+    "1st 2 maps kills": "maps 1-2 kills",
+    "1st 2 maps headshots": "maps 1-2 headshots",
+    "1st map kills": "map 1 kills",
+    "1st map headshots": "map 1 headshots",
+    "1st map assists": "map 1 assists",
+    "2nd map kills": "map 2 kills",
+    "2nd map headshots": "map 2 headshots",
+    "2nd map assists": "map 2 assists",
+    "1st 3 maps assists": "maps 1-3 assists",
+    "1st 3 maps kills": "maps 1-3 kills",
+    "1st 3 maps headshots": "maps 1-3 headshots",
 }
 
 
