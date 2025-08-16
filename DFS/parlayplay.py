@@ -104,7 +104,6 @@ class Parlayplay(DFSBookBase):
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             api_data = await self.api_caller(
-                dfs_book="parlayplay",
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method
