@@ -98,9 +98,9 @@ class Boom(DFSBookBase):
                 start_date= start_date,
                 future=True if market_type == "full Season" else False,
                 team_data=TeamData(
-                    team_a=team_a,
-                    team_b=team_b,
-                    player_team=team_a,
+                    team_a=self.clean_and_normalize_name(team_a),
+                    team_b=self.clean_and_normalize_name(team_b),
+                    player_team=self.clean_and_normalize_name(team_a),
                     team_key=team_key
                 ),
                 stats=stat_list,

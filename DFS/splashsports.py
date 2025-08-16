@@ -53,9 +53,6 @@ class SplashSports(DFSBookBase):
             solo_game=True if all([team_a, team_b]) else False
         )
 
-
-
-
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             api_data = await self.api_caller(

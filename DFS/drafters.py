@@ -107,11 +107,8 @@ class Drafters(DFSBookBase):
 
             results = [player for sublist in results for player in sublist]
 
-            data = await self._database_mapper(results)
-            data = self._serialize_data(data)
-            with open("drafters_data.json", "w") as file:
-                import json
-                json.dump(data, file, indent=4)
+            return await self._database_mapper(results)
+
 
 if __name__ == "__main__":
     drafters = Drafters()

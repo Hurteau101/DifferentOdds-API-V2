@@ -214,7 +214,7 @@ class Betr(DFSBookBase):
                         team_a=team_names.get("team_a"),
                         team_b=team_names.get("team_b"),
                         team_key=team_names.get("team_key"),
-                        player_team=player_team,
+                        player_team=self.clean_and_normalize_name(player_team),
                     ),
                     future=False,
                     stats=stats,

@@ -1,5 +1,7 @@
 import asyncio
 import re
+
+from Mapper.static_mapper import STAT_TYPES
 from Settings.dfs_model import Stats, PlayerData, TeamData, Discounts, OptionalStatInformation
 from Settings.proxy_manger import ProxyManager
 import aiohttp
@@ -121,7 +123,7 @@ class Prizepicks(DFSBookBase):
 
         stats = [
             Stats(
-                stat_type=stat.get("stat_type"),
+                stat_type=STAT_TYPES.get(stat.get("stat_type"), stat.get("stat_type")).title(),
                 line=stat.get("line"),
                 bet_direction=stat.get("bet_direction"),
                 regular_line=stat.get("regular"),
