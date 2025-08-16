@@ -78,5 +78,12 @@ DFS_PROVIDERS = [
             "Authorization": os.getenv("boom_auth_token"),
         },
         method="GET",
+    ),
+    DFSProvider(
+        name="parlayplay",
+        url={
+            "main_url": "http://45.61.52.251:8000/parlayplay"
+        },
+        method="GET",
     )
 ]

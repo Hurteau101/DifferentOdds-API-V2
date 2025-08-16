@@ -17,6 +17,10 @@ LEAGUES = {
     "ncaafb": "CFB",
 }
 
+MARKET_TYPE_MAPPER = {
+    "fg": "Full"
+}
+
 STAT_TYPES = {
     ################## Baseketball ##################
     "first_qtr_points": "1q points",
@@ -158,6 +162,9 @@ STAT_TYPES = {
     "1st 3 maps assists": "maps 1-3 assists",
     "1st 3 maps kills": "maps 1-3 kills",
     "1st 3 maps headshots": "maps 1-3 headshots",
+    "1st 2 maps player kills": "maps 1-2 kills",
+    "1st 2 maps player headshots": "maps 1-2 headshots",
+    "kills": "maps 1-2 kills"
 }
 
 
