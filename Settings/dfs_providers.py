@@ -85,5 +85,16 @@ DFS_PROVIDERS = [
             "main_url": "http://45.61.52.251:8000/parlayplay"
         },
         method="GET",
+    ),
+    DFSProvider(
+        name="splashsports",
+        url={
+            "main_url": "https://api.splashsports.com/props-service/api/props?limit=1000&offset=0"
+        },
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Authorization": os.getenv("splash_auth_token"),
+        },
+        method="GET",
     )
 ]
