@@ -96,5 +96,27 @@ DFS_PROVIDERS = [
             "Authorization": os.getenv("splash_auth_token"),
         },
         method="GET",
+    ),
+    DFSProvider(
+        name="ownerbox",
+        url={
+            "main_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}",
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'OwnersBox-Client-Type': 'web',
+            'OwnersBox-Client-Version': '1.11.4',
+            'Connection': 'keep-alive',
+            'Referer': 'https://app.ownersbox.com/wfs/player-picks/lobby/MLB',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'TE': 'trailers',
+            'Cookie': f'obauth={os.getenv("ownerbox_auth_token")}'
+        },
+        method="GET",
     )
 ]
