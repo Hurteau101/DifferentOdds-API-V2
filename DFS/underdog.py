@@ -215,7 +215,7 @@ class Underdog(DFSBookBase):
         return PlayerData(
             player_name=self.clean_and_normalize_name(player_details.get("player_name")),
             league=league,
-            start_date= game_details.get("start_date"),
+            start_date=self.cache_time(game_details.get("start_date")),
             solo_game=game_details.get("solo_game"),
             future=True if "szn" in league.lower() else False,
             team_data=TeamData(
