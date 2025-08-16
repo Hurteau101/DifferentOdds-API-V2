@@ -60,7 +60,7 @@ class Ownerbox(DFSBookBase):
 
                 for option in options
             ],
-            solo_game=True if not all([team_a, team_b]) else False
+            solo_game=False if all([team_a, team_b]) else True
         )
 
 

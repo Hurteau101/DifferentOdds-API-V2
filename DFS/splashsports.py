@@ -50,7 +50,7 @@ class SplashSports(DFSBookBase):
 
                 for option in ["over", "under"]
             ],
-            solo_game=True if all([team_a, team_b]) else False
+            solo_game=False if all([team_a, team_b]) else True
         )
 
     async def run_book(self):
