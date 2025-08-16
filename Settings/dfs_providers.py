@@ -118,5 +118,12 @@ DFS_PROVIDERS = [
             'Cookie': f'obauth={os.getenv("ownerbox_auth_token")}'
         },
         method="GET",
+    ),
+    DFSProvider(
+        name="parlaye",
+        url={
+            "main_url": "https://m2efyeevmf.us-east-2.awsapprunner.com/available_picks/get-player-picks/"
+        },
+        method="POST",
     )
 ]
