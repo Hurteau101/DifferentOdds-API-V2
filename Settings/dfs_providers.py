@@ -136,5 +136,17 @@ DFS_PROVIDERS = [
             'Referer': 'https://pick6.draftkings.com/?_gl=1*v93w3x*_gcl_au*ODkyNzA4NDI2LjE3NTUxOTA2OTc.*_ga*MTU4MjI5MzIxLjE3MzgwNDQ1ODU.*_ga_QG8WHJSQMJ*czE3NTUzNTMyMDAkbzI0JGcxJHQxNzU1MzUzMjA2JGo1NCRsMCRoMA..',
         },
         method="GET",
+    ),
+    DFSProvider(
+        name="sleeper",
+        url={
+            "main_url": "https://api.sleeper.app/lines/available?sports[]all&include_preseason=true",  # Main Lines
+            "alternate_url": "https://api.sleeper.app/lines/available_alt?sports[]all&include_preseason=true",# Alternate Lines
+            "alternate_url_2": "https://api.sleeper.app/scores",  # Game Data
+            "alternate_url_3": "https://api.sleeper.app/players/?exclude_injury=true",  # Player Data
+            'alternate_url_4': "https://api.sleeper.app/scores/lines_game_picker",  # Season Data
+        },
+        method="GET",
     )
+
 ]
