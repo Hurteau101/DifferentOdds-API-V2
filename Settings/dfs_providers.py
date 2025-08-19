@@ -147,6 +147,14 @@ DFS_PROVIDERS = [
             'alternate_url_4': "https://api.sleeper.app/scores/lines_game_picker",  # Season Data
         },
         method="GET",
+    ),
+    DFSProvider(
+        name="dabble",
+        url={
+            "main_url": "https://api.dabble.com/competitions/active/", # Leagues
+            "alternate_url": "https://api.dabble.com/competitions/{league_id}/sport-fixtures?exclude[]=markets&exclude[]=selections&exclude[]=prices", # Game Ids
+            "alternate_url_2": "https://api.dabble.com/sportfixtures/details/{game_id}?filter=dfs-enabled",
+        },
+        method="GET",
     )
-
 ]

@@ -15,6 +15,8 @@ LEAGUES = {
     "mlbcombos": "MLB",
     "ncaaf": "CFB",
     "ncaafb": "CFB",
+    "tennis m": "ATP",
+    "tennis w": "WTA",
 }
 
 MARKET_TYPE_MAPPER = {
