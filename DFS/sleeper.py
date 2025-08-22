@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-
+import asyncio
 import aiohttp
 
 from Mapper.static_mapper import STAT_TYPES, LEAGUES

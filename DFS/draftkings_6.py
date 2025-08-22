@@ -1,7 +1,6 @@
 import re
-
 import aiohttp
-
+import asyncio
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, OptionalStatInformation
 from Mapper.static_mapper import STAT_TYPES, LEAGUES

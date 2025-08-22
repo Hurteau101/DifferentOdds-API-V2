@@ -1,7 +1,6 @@
 from datetime import datetime
-
 import aiohttp
-
+import asyncio
 from Settings.book_base import SportbookRequestType
 from Mapper.static_mapper import STAT_TYPES, LEAGUES
 from Settings.dfs_book_base import DFSBookBase
