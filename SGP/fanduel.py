@@ -1,3 +1,4 @@
+import asyncio
 import json
 import aiohttp
 from Redis.redis_manager import RedisManager
@@ -8,14 +9,15 @@ class Fanduel_SGP(SGPBookBase):
     def __init__(self, links):
         super().__init__(SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="fanduel_sgp.log", sportsbook_name="fanduel_sgp", links=links)
         self.VALID_LEAGUES = [
-            "mlb", "nfl", "ncaaf", "sport", "wnba", "tennis", "pga", "ufc", "esports", "nba", "ncaab"
+            # "mlb", "nfl", "ncaaf", "sport", "wnba", "tennis", "pga", "ufc", "esports", "nba", "ncaab"
+            "mlb"
         ]
-
 
     @SGPBookBase.require_link_data
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             mapped_data = await self._map_data()
+
             # Check if mapped_data is empty or contains None marketId
             if not mapped_data or any(data for data in mapped_data if data.get("marketId") is None):
                 return None
@@ -62,6 +64,9 @@ class Fanduel_SGP(SGPBookBase):
         mapped_ids = await redis.fetch_data("fanduel_ids")
         mapped_ids = json.loads(mapped_ids) if mapped_ids else {}
 
+        # with open("data.json", "w") as file:
+        #     json.dump(mapped_ids, file, indent=4)
+
         if not mapped_ids:
             self.file_logger.log(
                 message="No mapped IDs found in Redis",
@@ -70,9 +75,12 @@ class Fanduel_SGP(SGPBookBase):
 
             return None
 
+
+
         return [
             {
-                "marketId": mapped_ids.get(data.get("event_id"), None),
+                "marketId": mapped_ids.get(f"{data.get('event_id')}-{data.get('bet_id')}", None),
+                # "marketId": f"{data.get('event_id')}-{data.get('bet_id')}",
                 "selectionId": int(data.get("bet_id")),
             }
 
@@ -153,7 +161,25 @@ class Fanduel_SGP(SGPBookBase):
                 ), None)
 
                 if external_id:
-                    external_market_ids[external_id] = market_id
+                    for selection in sgp_data.get("runners"):
+                        selection_id = selection.get("selectionId")
+                        if selection_id:
+                            key = f"{external_id}-{selection_id}"
+                            external_market_ids[key] = market_id
+
+
+
+                # selection_id = next((
+                #     sgp.get("selectionId")
+                #     for sgp in sgp_data.get("runners")
+                # ), None)
+                #
+                # if not selection_id or not external_id:
+                #     continue
+                #
+                # key = f"{external_id}-{selection_id}"
+                #
+                # external_market_ids[key] = market_id
 
         return external_market_ids
 
@@ -207,7 +233,7 @@ if __name__ == "__main__":
     import asyncio
 
 
-    run_type = "get"
+    run_type = "store"
 
     if run_type == "store":
         asyncio.run(fanduel.store_fanduel_data())
