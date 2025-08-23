@@ -1,4 +1,5 @@
 from Settings.dfs_providers import DFS_PROVIDERS, DFSProvider
+from Settings.sgp_providers import SGPProvider, SGP_PROVIDERS
 
 
 # This module provides configuration for DFS & Sportsbooks
@@ -10,3 +11,9 @@ class SportsbookConfig:
         except StopIteration:
             raise ValueError(f"DFS provider '{name}' not found.")
 
+    @classmethod
+    def get_sgp_provider(cls, name:str) -> SGPProvider:
+        try:
+            return next(provider for provider in SGP_PROVIDERS if provider.name == name)
+        except StopIteration:
+            raise ValueError(f"Sportsbook provider '{name}' not found.")

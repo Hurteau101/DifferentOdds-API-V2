@@ -71,7 +71,7 @@ class BookBase(ABC):
         return self.convert_time(date_time_str)
 
     @staticmethod
-    def _serialize_data(data):
+    def serialize_data(data):
         """Serialize data to JSON format."""
         return [asdict(player_data) for player_data in data]
 
