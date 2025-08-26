@@ -17,6 +17,17 @@ LEAGUES = {
     "ncaafb": "CFB",
     "tennis m": "ATP",
     "tennis w": "WTA",
+    "l1f": "LIGUE 1",
+    'llg': 'LA LIGA',
+    'sea': 'SERIE A',
+    'bun': 'BUNDESLIGA',
+    'ser a': 'SERIE A',
+    'prem': 'EPL',
+    'ucl': "UEFA CHAMPIONS",
+    "the hundred (women)": "CRICKET",
+    'lck challengers': "LOL",
+    'lck challengers korea': "LOL",
+
 }
 
 MARKET_TYPE_MAPPER = {

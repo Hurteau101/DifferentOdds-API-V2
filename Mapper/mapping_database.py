@@ -165,7 +165,7 @@ class Mapper:
     def __init__(self):
         load_dotenv(dotenv_path=env_path)
         self.db = Database()
-        self.database_teams = self.db.load_teams()
+        # self.database_teams = self.db.load_teams()
         self.client = AsyncOpenAI(api_key=os.getenv("OPEN_AI_KEY"))
         self.file_logger = FileLogger()
 
@@ -183,7 +183,10 @@ class Mapper:
 
 
     async def controller(self, team_data):
-        database_teams = self.database_teams
+        await self.db.ensure_ready()
+        database_teams = await self.db.load_teams()
+
+        # database_teams = self.database_teams
 
         # Run in parallel to find all exact or close matches using RapidFuzz
         args = [(data, database_teams) for data in team_data]
@@ -200,9 +203,9 @@ class Mapper:
 
         # # Bulk update the database with any 'close' RapidFuzz matches.
         if database_teams:
-            self.db.bulk_update_verification_table(database_teams)
+            await self.db.bulk_update_verification_table(database_teams)
 
-        existing_names = self.db.get_all_received_names()
+        existing_names = await self.db.get_all_received_names()
 
         # Any teams unable to match will be passed to OpenAI to try to map.
         teams_to_pass_to_ai = [
@@ -256,7 +259,7 @@ class Mapper:
 
         # Check if the content is None or contains "NULL" or "null" we add to verification table, avoiding any further processing.
         if content is None or any(x in content for x in ["NULL", "null"]):
-            self.db.update_verification_table(
+            await self.db.update_verification_table(
                 received_name=prompt_data.get("team_name").lower(),
                 league=prompt_data.get("league").upper(),
                 original_league=prompt_data.get("league").upper(),
@@ -270,7 +273,7 @@ class Mapper:
             if prompt_data.get("solo_game"):
                 # If any are blank, most likely AI couldn't find the mapping, so we store in not found DB.
                 if normalized_data is None or normalized_data.get("full_name") is None or normalized_data.get("league") is None:
-                    self.db.update_verification_table(
+                    await self.db.update_verification_table(
                         received_name=prompt_data.get("team_name").lower(),
                         league=prompt_data.get("league").upper(),
                         original_league=prompt_data.get("league").upper(),
@@ -281,7 +284,7 @@ class Mapper:
                     return None
             else:
                 if normalized_data is None or normalized_data.get("full_name") is None or normalized_data.get("abbreviation") is None:
-                    self.db.update_verification_table(
+                    await self.db.update_verification_table(
                         received_name=prompt_data.get("team_name").lower(),
                         league=prompt_data.get("league").upper(),
                         original_league=prompt_data.get("league").upper(),
@@ -301,7 +304,7 @@ class Mapper:
             }
 
             # Update the database with the OpenAI matches.
-            self.db.update_verification_table(
+            await self.db.update_verification_table(
                 normalized_name=mapped_data.get("team_name"),
                 received_name=prompt_data.get("team_name").lower(),
                 abbreviation=mapped_data.get("abbreviation").upper() if mapped_data.get("abbreviation") else None,

@@ -64,9 +64,6 @@ class Fanduel_SGP(SGPBookBase):
         mapped_ids = await redis.fetch_data("fanduel_ids")
         mapped_ids = json.loads(mapped_ids) if mapped_ids else {}
 
-        # with open("data.json", "w") as file:
-        #     json.dump(mapped_ids, file, indent=4)
-
         if not mapped_ids:
             self.file_logger.log(
                 message="No mapped IDs found in Redis",
@@ -166,20 +163,6 @@ class Fanduel_SGP(SGPBookBase):
                         if selection_id:
                             key = f"{external_id}-{selection_id}"
                             external_market_ids[key] = market_id
-
-
-
-                # selection_id = next((
-                #     sgp.get("selectionId")
-                #     for sgp in sgp_data.get("runners")
-                # ), None)
-                #
-                # if not selection_id or not external_id:
-                #     continue
-                #
-                # key = f"{external_id}-{selection_id}"
-                #
-                # external_market_ids[key] = market_id
 
         return external_market_ids
 
