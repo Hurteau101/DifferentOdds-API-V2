@@ -44,6 +44,9 @@ class RedisManager:
                     data_to_store = BookBase.serialize_data(data_to_store)
                 elif isinstance(data_to_store, dict):
                     data_to_store = json.dumps(data_to_store)
+                elif isinstance(data_to_store, list):
+                    serialized = BookBase.serialize_data(data_to_store)
+                    data_to_store = json.dumps(serialized, default=str)
 
                 success = await self.redis_client.set(key_name, data_to_store, ex=key_expiration)
 

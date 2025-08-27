@@ -23,13 +23,13 @@ class Books(BaseModel):
     title: str
     book_key: str
 
-class BooksList(BaseModel):
+class BooksListResponse(BaseModel):
     sgp_books: List[Books]
 
 @router.get("/books_list",
             summary="Get SGP Books List",
             description="Retrieve a list of available SGP books.",
-            response_model=BooksList
+            response_model=BooksListResponse
             )
 async def get_sgp_book_list():
     result = SportsbookConfig.get_sgp_names()

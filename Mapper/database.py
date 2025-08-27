@@ -258,7 +258,7 @@ if __name__ == "__main__":
 # env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 #
 # class Database:
-#     def __init__(self):
+#     def __init__.py(self):
 #         load_dotenv(dotenv_path=env_path)
 #         self.conn = self.create_connection()
 #         self.cursor = self.conn.cursor()

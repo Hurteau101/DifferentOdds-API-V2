@@ -1,6 +1,5 @@
 import asyncio
 from collections import defaultdict
-
 import aiohttp
 from Settings.book_base import BookBase, SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
@@ -251,6 +250,7 @@ class Underdog(DFSBookBase):
         return grouped_stats
 
     async def run_book(self):
+        print("RUNNING UNDERDOG")
         async with aiohttp.ClientSession() as session:
             api_data = await self.api_caller(
                 session=session,
@@ -269,6 +269,7 @@ class Underdog(DFSBookBase):
                 data for player in api_data.get("appearances", [])
                 if (data := self._extract_api_data(map_data, player, stats))
             ]
+
 
             return await self._database_mapper(underdog_data)
 
