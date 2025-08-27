@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 import requests
 from dotenv import load_dotenv
 import os
@@ -46,7 +47,10 @@ class SGPTest:
         if not league_filter:
             raise ValueError(f"No data found for league: {default_data.get('league')}")
 
-        game_name = league_filter[0].get("backend_extras").get("event")
+        league_length = len(league_filter)
+        random_game = random.randint(0, league_length - 1)
+
+        game_name = league_filter[random_game].get("backend_extras").get("event")
 
         results = []
 

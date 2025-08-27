@@ -11,9 +11,33 @@ class SportsbookConfig:
         except StopIteration:
             raise ValueError(f"DFS provider '{name}' not found.")
 
+    @staticmethod
+    def get_dfs_names():
+        return {
+            "dfs_books": [
+                {
+                    "title": name.title,
+                    "book_key": name.name
+                }
+                for name in DFS_PROVIDERS]
+        }
+
+
     @classmethod
     def get_sgp_provider(cls, name:str) -> SGPProvider:
         try:
             return next(provider for provider in SGP_PROVIDERS if provider.name == name)
         except StopIteration:
             raise ValueError(f"Sportsbook provider '{name}' not found.")
+
+    @staticmethod
+    def get_sgp_names():
+        return  [
+            {
+                "title": name.title,
+                "book_key": name.name
+            }
+            for name in SGP_PROVIDERS
+        ]
+
+

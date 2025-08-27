@@ -13,7 +13,9 @@ async def get_db(request: Request) -> Database:
 async def get_api_keys(db: Database = Depends(get_db)) -> set[str]:
     # Cache the API keys to reduce database load
     if "api_keys" not in _key_cache:
+
         _key_cache["api_keys"] = set(await db.get_api_keys())
+
     return _key_cache["api_keys"]
 
 # Function to invalidate the cache (e.g., after adding/removing an API key)

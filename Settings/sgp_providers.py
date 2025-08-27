@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class SGPProvider:
+    title: str
     name: str
     url: dict
     method: str
@@ -13,7 +14,8 @@ class SGPProvider:
 
 SGP_PROVIDERS = [
     SGPProvider(
-        name="fanduel_sgp",
+        title="FanDuel Sportsbook",
+        name="fanduel",
         url={
             "league_id_url": "https://api.sportsbook.fanduel.com/sbapi/content-managed-page?page=CUSTOM&customPageId={league}&pbHorizontal=false&_ak=FhMFpcPWXMeyZxOx&timezone=America%2FNew_York",
             "market_id_url": "https://api.sportsbook.fanduel.com/sbapi/event-page?_ak=FhMFpcPWXMeyZxOx&eventId={event_id}&tab=same-game-parlay-&pulseScalingEnable=true&useCombinedTouchdownsVirtualMarket=true&usePulse=true&useQuickBets=true&useQuickBetsNFL=true&useQuickBetsMLB=true",

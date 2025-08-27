@@ -8,6 +8,7 @@ load_dotenv()
 # DFSProvider class to represent a DFS provider with its details.
 @dataclass
 class DFSProvider:
+    title: str
     name: str
     url: dict
     method: str
@@ -17,6 +18,7 @@ class DFSProvider:
 # List of DFS providers with their configurations.
 DFS_PROVIDERS = [
     DFSProvider(
+        title="Underdog Fantasy",
         name="underdog",
         url={
             "main_url": "https://api.underdogfantasy.com/beta/v5/over_under_lines",
@@ -24,6 +26,7 @@ DFS_PROVIDERS = [
         method="GET",
     ),
     DFSProvider(
+        title="PrizePicks",
         name="prizepicks",
         url={
             "main_url": "https://partner-api.prizepicks.com/projections"
@@ -31,6 +34,7 @@ DFS_PROVIDERS = [
         method="GET"
     ),
     DFSProvider(
+        title="Betr",
         name="betr",
         url={
             "main_url": "https://api.fantasy.betr.app/graphql",
@@ -58,6 +62,7 @@ DFS_PROVIDERS = [
         }
     ),
     DFSProvider(
+        title="Drafters",
         name="drafters",
         url={
             "main_url": "https://node.drafters.com/props-game/get-props-games/",
@@ -70,6 +75,7 @@ DFS_PROVIDERS = [
         method="GET",
     ),
     DFSProvider(
+        title="Boom Fantasy",
         name="boom",
         url={
             "main_url": "https://production-boom-dfs-backend-api.boomfantasy.com/api/v1/contests/multiLine/99708fb7-167a-4314-b69d-e38dc782a63a?questionStatus=available&renderType=multiLine"
@@ -80,6 +86,7 @@ DFS_PROVIDERS = [
         method="GET",
     ),
     DFSProvider(
+        title="ParlayPlay",
         name="parlayplay",
         url={
             "main_url": "http://45.61.52.251:8000/parlayplay"
@@ -87,6 +94,7 @@ DFS_PROVIDERS = [
         method="GET",
     ),
     DFSProvider(
+        title="Splash Sports",
         name="splashsports",
         url={
             "main_url": "https://api.splashsports.com/props-service/api/props?limit=1000&offset=0"
@@ -98,6 +106,7 @@ DFS_PROVIDERS = [
         method="GET",
     ),
     DFSProvider(
+        title="Ownerbox",
         name="ownerbox",
         url={
             "main_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}",
@@ -120,6 +129,7 @@ DFS_PROVIDERS = [
         method="GET",
     ),
     DFSProvider(
+        title="Parlaye",
         name="parlaye",
         url={
             "main_url": "https://m2efyeevmf.us-east-2.awsapprunner.com/available_picks/get-player-picks/"
@@ -127,6 +137,7 @@ DFS_PROVIDERS = [
         method="POST",
     ),
     DFSProvider(
+        title="DraftKings Pick 6",
         name="draftkings_6",
         url= {
             "main_url": "https://pick6.draftkings.com/?sport={league}&_data=routes%2F_homeShared",
@@ -138,6 +149,7 @@ DFS_PROVIDERS = [
         method="GET",
     ),
     DFSProvider(
+        title="Sleeper Fantasy",
         name="sleeper",
         url={
             "main_url": "https://api.sleeper.app/lines/available?sports[]all&include_preseason=true",  # Main Lines
@@ -149,6 +161,7 @@ DFS_PROVIDERS = [
         method="GET",
     ),
     DFSProvider(
+        title="Dabble",
         name="dabble",
         url={
             "main_url": "https://api.dabble.com/competitions/active/", # Leagues

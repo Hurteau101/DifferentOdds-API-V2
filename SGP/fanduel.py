@@ -1,5 +1,7 @@
 import asyncio
 import json
+import time
+
 import aiohttp
 from Redis.redis_manager import RedisManager
 from Settings.book_base import SportbookRequestType
@@ -7,7 +9,7 @@ from Settings.sgp_book_base import SGPBookBase
 
 class Fanduel_SGP(SGPBookBase):
     def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="fanduel_sgp.log", sportsbook_name="fanduel_sgp", links=links)
+        super().__init__(SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="fanduel_sgp.log", sportsbook_name="fanduel", links=links)
         self.VALID_LEAGUES = [
             # "mlb", "nfl", "ncaaf", "sport", "wnba", "tennis", "pga", "ufc", "esports", "nba", "ncaab"
             "mlb"
@@ -31,6 +33,8 @@ class Fanduel_SGP(SGPBookBase):
                 headers=self.book_data.headers,
                 payload=payload
             )
+
+            # print(api_data)
 
             if not api_data:
                 return None

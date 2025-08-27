@@ -1,8 +1,6 @@
 import re
 from abc import ABC, abstractmethod
-from collections import Counter
 from Settings.book_base import BookBase
-from Settings.sgp_providers import SGPProvider
 from Settings.sportsbook_config import SportsbookConfig
 
 
