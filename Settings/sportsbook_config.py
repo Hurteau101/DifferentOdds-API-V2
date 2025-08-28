@@ -2,6 +2,11 @@ from Settings.dfs_providers import DFS_PROVIDERS, DFSProvider
 from Settings.sgp_providers import SGPProvider, SGP_PROVIDERS
 
 
+NAMES_MAPPER = {
+    "dfs": DFS_PROVIDERS,
+    "sgp": SGP_PROVIDERS
+}
+
 # This module provides configuration for DFS & Sportsbooks
 class SportsbookConfig:
     @classmethod
@@ -11,16 +16,6 @@ class SportsbookConfig:
         except StopIteration:
             raise ValueError(f"DFS provider '{name}' not found.")
 
-    @staticmethod
-    def get_dfs_names():
-        return {
-            "dfs_books": [
-                {
-                    "title": name.title,
-                    "book_key": name.name
-                }
-                for name in DFS_PROVIDERS]
-        }
 
 
     @classmethod
@@ -31,13 +26,13 @@ class SportsbookConfig:
             raise ValueError(f"Sportsbook provider '{name}' not found.")
 
     @staticmethod
-    def get_sgp_names():
+    def get_book_info(book_type):
         return  [
             {
                 "title": name.title,
                 "book_key": name.name
             }
-            for name in SGP_PROVIDERS
+            for name in NAMES_MAPPER.get(book_type, [])
         ]
 
 

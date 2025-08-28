@@ -13,7 +13,7 @@ BOOK_INITIALIZERS = {
 
 file_logger = create_logging_setup(folder_name="sgp", file_name="sgp_api.log")
 
-router = APIRouter(prefix="/sgp", tags=["sgp"])
+router = APIRouter(prefix="/sgp", tags=["SGP"])
 
 class SGP(BaseModel):
     book_name: str
@@ -32,7 +32,7 @@ class BooksListResponse(BaseModel):
             response_model=BooksListResponse
             )
 async def get_sgp_book_list():
-    result = SportsbookConfig.get_sgp_names()
+    result = SportsbookConfig.get_book_info(book_type="sgp")
     if not result:
         raise HTTPException(status_code=500, detail="No SGP books available. Please contact support.")
 
@@ -56,11 +56,11 @@ async def get_sgp_odds(books: List[SGP]):
            # Single books we want to raise an error, for multiple just return the error in the response due to partial failure
             if single_book:
                 raise HTTPException(status_code=504, detail=f"{book.book_name} timed out")
-            return {"error": f"{book.book_name} timed out"}
+            return None
         except Exception as e:
-            return {"error": f"{book.book_name} failed: {str(e)}"}
+            return None
 
-    sgp_books = [book.get("book_key") for book in SportsbookConfig.get_sgp_names()]
+    sgp_books = [book.get("book_key") for book in SportsbookConfig.get_book_info(book_type="sgp")]
 
     for book in books:
         if book.book_name.lower() not in sgp_books:

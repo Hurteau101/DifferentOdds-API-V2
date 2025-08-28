@@ -23,16 +23,13 @@ class RedisManager:
             max_connections=max_connections
         )
 
-    async def fetch_data(self, key_name):
-        """Fetch data from Redis with a lock to prevent concurrent access issues."""
-        lock = self.redis_client.lock(f"{key_name}_lock", timeout=30, blocking_timeout=10)
+    async def fetch_data(self, key_name: str):
+        """Fetch data from Redis (no lock needed)."""
         try:
-            async with lock:
-                print(f"Fetching data for {key_name}")
-                logging.info(f"Fetching data for {key_name}")
-                return await self.redis_client.get(key_name)
-        except LockError:
-            logging.error(f"Skipping {key_name}. Another process might be using it.")
+            logging.info(f"Fetching data for {key_name}")
+            return await self.redis_client.get(key_name)
+        except Exception as e:
+            logging.error(f"Error fetching {key_name}: {e}")
             return None
 
     async def store_data(self, key_name, data_to_store, timeout=60, blocking_timeout=10, key_expiration=60):
