@@ -3,6 +3,7 @@ import inspect
 import json
 import multiprocessing
 from concurrent.futures.process import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 import textdistance
 from Settings.logger import FileLogger
 from dotenv import load_dotenv
@@ -191,7 +192,13 @@ class Mapper:
         # Run in parallel to find all exact or close matches using RapidFuzz
         args = [(data, database_teams) for data in team_data]
         loop = asyncio.get_running_loop()
-        with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+        # with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+        #     results = await loop.run_in_executor(
+        #         None,
+        #         lambda: list(executor.map(find_matches, args))
+        #     )
+
+        with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
             results = await loop.run_in_executor(
                 None,
                 lambda: list(executor.map(find_matches, args))
