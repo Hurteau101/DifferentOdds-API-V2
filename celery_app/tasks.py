@@ -1,7 +1,7 @@
 import asyncio
 
 from celery.utils.log import get_task_logger
-from . import celery_app
+from celery import shared_task
 from Redis.redis_manager import RedisManager
 from DFS.underdog import Underdog
 from asgiref.sync import async_to_sync
@@ -18,7 +18,7 @@ Books = {
     },
 }
 
-@celery_app.task(name="tasks.run_dfs", ignore_result=True)  # ignore_result avoids backend serialization
+@shared_task(ignore_result=True) # ignore_result avoids backend serialization
 def run_dfs(name: str):
     logger.info(f"Starting DFS book: {name}")
     cls = Books[name]["class"]

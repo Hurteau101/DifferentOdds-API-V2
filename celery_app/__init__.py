@@ -19,6 +19,7 @@ celery_app.conf.update(
 # Expose the Celery app
 app = celery_app
 
+celery_app.autodiscover_tasks(["celery_app"])
 
 ########## RUNNING COMMANDS ##########
 ### LINUX ###

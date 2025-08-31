@@ -6,7 +6,7 @@ beat_schedule = {}
 for book_name, book_info in Books.items():
     if book_info["task"] == "dfs":
         beat_schedule[f"run-{book_name}-every-{book_info['interval']}s"] = {
-            "task": "tasks.run_dfs",
+            "task": "celery_app.tasks.run_dfs",
             "schedule": book_info["interval"],
             "args": (book_name,),
         }
