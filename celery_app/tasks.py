@@ -1,5 +1,4 @@
 import asyncio
-
 from celery.utils.log import get_task_logger
 from celery import shared_task
 from Redis.redis_manager import RedisManager
@@ -8,7 +7,6 @@ from asgiref.sync import async_to_sync
 
 logger = get_task_logger(__name__)
 
-redis_manager = RedisManager(db=0)
 
 Books = {
     "underdog": {
@@ -18,19 +16,34 @@ Books = {
     },
 }
 
-@shared_task(ignore_result=True) # ignore_result avoids backend serialization
+@shared_task(ignore_result=True)
 def run_dfs(name: str):
-    logger.info(f"Starting DFS book: {name}")
-    cls = Books[name]["class"]
-    book = cls()
+    async def _run():
+        redis_manager = RedisManager(db=0)
 
-    data = asyncio.run(book.run_book())
+        lock_key = f"dfs_lock:{name}"
+        lock = redis_manager.redis_client.lock(lock_key, timeout=120, blocking_timeout=1)
 
-    asyncio.run(redis_manager.store_data(f"dfs:{name}", data))
+        if not await lock.acquire(blocking=False):
+            logger.info(f"Skipping DFS book {name}, already running.")
+            return
 
-    logger.info(f"Finished DFS book: {name}")
+        try:
+            logger.info(f"Starting DFS book: {name}")
+            cls = Books[name]["class"]
+            book = cls()
 
-    return None
+            data = await book.run_book()
+            await redis_manager.store_data(f"dfs:{name}", data)
+
+            logger.info(f"Finished DFS book: {name}")
+        finally:
+            try:
+                await lock.release()
+            except Exception:
+                pass
+
+    async_to_sync(_run)()
 
 
 
