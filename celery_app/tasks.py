@@ -1,6 +1,8 @@
 import asyncio
 from celery.utils.log import get_task_logger
 from celery import shared_task
+
+from DFS.prizepicks import Prizepicks
 from Redis.redis_manager import RedisManager
 from DFS.underdog import Underdog
 from asgiref.sync import async_to_sync
@@ -14,6 +16,11 @@ Books = {
         "interval": 15,
         "task": "dfs",
     },
+    "prizepicks": {
+        "class": Prizepicks,
+        "interval": 15,
+        "task": "dfs",
+    }
 }
 
 @shared_task(ignore_result=True)
@@ -44,38 +51,4 @@ def run_dfs(name: str):
                 pass
 
     async_to_sync(_run)()
-
-
-
-
-
-
-
-
-
-
-# @celery_app.task(name="tasks.run_dfs", ignore_result=True)
-# def run_dfs(name: str):
-#     cls = Books[name]["class"]
-#     book = cls()
-#
-#     async def main():
-#         data = await book.run_book()
-#         await redis_manager.store_data(f"dfs:{name}", data)
-#
-#     async_to_sync(main)()
-
-
-
-# @celery_app.task(name="tasks.run_sportsbook")
-# def run_sportsbook(name: str):
-#     """Run Sportsbook-style book."""
-#     cls = Books[name]["class"]
-#     book = cls()
-#     data = book.run_sportsbook()   # Sportsbook-specific method
-#     redis_manager.store_data(f"sportsbook:{name}", data)
-#     return f"{name} (Sportsbook) finished"
-
-
-
 
