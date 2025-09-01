@@ -56,5 +56,5 @@ class PlayerData:
 
 
 class BookData(BaseModel):
-    last_refresh: datetime
+    last_refresh: str | datetime
     data: list[PlayerData]
