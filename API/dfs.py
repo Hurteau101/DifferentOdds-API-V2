@@ -71,14 +71,30 @@ async def get_book_data(
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     # Clean results, replacing exceptions with None
+    # clean_results = {}
+    # for book, result in zip(books, results):
+    #     if isinstance(result, asyncio.TimeoutError):
+    #         clean_results[book] = None
+    #     elif isinstance(result, Exception):
+    #         clean_results[book] = None
+    #     else:
+    #         clean_results[book] = result
+
     clean_results = {}
     for book, result in zip(books, results):
-        if isinstance(result, asyncio.TimeoutError):
-            clean_results[book] = None
-        elif isinstance(result, Exception):
+        if isinstance(result, (asyncio.TimeoutError, Exception)):
             clean_results[book] = None
         else:
-            clean_results[book] = result
+            if isinstance(result, dict) and "payload" in result and "last_refresh" in result:
+                clean_results[book] = {
+                    "data": result["payload"],
+                    "last_refresh": result["last_refresh"]
+                }
+            else:
+                clean_results[book] = {
+                    "data": result,
+                    "last_refresh": None
+                }
 
     # Final Check - if all results are None, raise 500 error
     if all(v is None for v in clean_results.values()):

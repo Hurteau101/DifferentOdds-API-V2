@@ -1,4 +1,6 @@
 import asyncio
+from datetime import datetime, timezone
+
 from celery.utils.log import get_task_logger
 from celery import shared_task
 
@@ -41,6 +43,7 @@ def run_dfs(name: str):
             book = cls()
 
             data = await book.run_book()
+            data["last_refresh"] = datetime.now(timezone.utc).isoformat()
             await redis_manager.store_data(f"dfs:{name}", data)
 
             logger.info(f"Finished DFS book: {name}")
