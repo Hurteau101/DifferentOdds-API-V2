@@ -43,8 +43,13 @@ def run_dfs(name: str):
             book = cls()
 
             data = await book.run_book()
-            data["last_refresh"] = datetime.now(timezone.utc).isoformat()
-            await redis_manager.store_data(f"dfs:{name}", data)
+
+            data_to_store = {
+                "payload": data,
+                "last_refresh": datetime.now(timezone.utc).isoformat()
+            }
+
+            await redis_manager.store_data(f"dfs:{name}", data_to_store)
 
             logger.info(f"Finished DFS book: {name}")
         finally:
