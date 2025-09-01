@@ -1,8 +1,7 @@
 import json
 import zlib
-
 import redis.asyncio as redis
-from orjson import orjson
+import orjson
 from redis.exceptions import LockError, RedisError
 import logging
 from dataclasses import is_dataclass
@@ -21,7 +20,7 @@ class RedisManager:
             host='localhost',
             port=port,
             db=db,
-            decode_responses=True,
+            decode_responses=False,
             max_connections=max_connections
         )
 

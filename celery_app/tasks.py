@@ -56,7 +56,8 @@ def run_dfs(name: str):
                 await redis_manager.delete(f"dfs:{name}")
                 return
 
-            await redis_manager.store_data(f"dfs:{name}", book_data.model_dump_json())
+            # await redis_manager.store_data(f"dfs:{name}", book_data.model_dump_json())
+            await redis_manager.store_data(f"dfs:{name}", book_data.model_dump())
 
             logger.info(f"Finished DFS book: {name}")
         finally:

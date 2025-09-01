@@ -24,6 +24,18 @@ class BooksListResponse(BaseModel):
 class BookParameters(BaseModel):
     book_nams: List[str]
 
+# async def fetch_redis_data(key_name):
+#     redis = RedisManager(db=0)
+#     try:
+#         cached_data = await redis.fetch_data(key_name)
+#         if not cached_data:
+#             return None
+#
+#         return orjson.loads(cached_data)
+#
+#     except Exception as e:
+#         return None
+
 async def fetch_redis_data(key_name):
     redis = RedisManager(db=0)
     try:
@@ -31,9 +43,9 @@ async def fetch_redis_data(key_name):
         if not cached_data:
             return None
 
-        return orjson.loads(cached_data)
+        return cached_data
 
-    except Exception as e:
+    except Exception:
         return None
 
 @router.get("/books_list",
