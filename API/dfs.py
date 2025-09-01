@@ -36,15 +36,22 @@ class BookParameters(BaseModel):
 #     except Exception as e:
 #         return None
 
-async def fetch_redis_data(key_name):
-    redis = RedisManager(db=0)
+# async def fetch_redis_data(key_name):
+#     redis = RedisManager(db=0)
+#     try:
+#         cached_data = await redis.fetch_data(key_name)
+#         if not cached_data:
+#             return None
+#
+#         return cached_data
+#
+#     except Exception:
+#         return None
+
+async def fetch_redis_data(key_name, request):
+    redis: RedisManager = request.app.state.redis
     try:
-        cached_data = await redis.fetch_data(key_name)
-        if not cached_data:
-            return None
-
-        return cached_data
-
+        return await redis.fetch_data(key_name)
     except Exception:
         return None
 
