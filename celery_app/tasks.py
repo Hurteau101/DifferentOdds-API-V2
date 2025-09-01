@@ -1,12 +1,21 @@
 import asyncio
-from datetime import datetime, timezone
+from DFS.prizepicks import Prizepicks
+from DFS.underdog import Underdog
+from DFS.betr import Betr
+from DFS.boom import Boom
+from DFS.dabble import Dabble
+from DFS.drafters import Drafters
+from DFS.draftkings_6 import DraftKingsPickSix
+from DFS.ownerbox import Ownerbox
+from DFS.parlaye import Parlaye
+from DFS.parlayplay import Parlayplay
+from DFS.sleeper import Sleeper
+from DFS.splashsports import SplashSports
 
+from datetime import datetime, timezone
 from celery.utils.log import get_task_logger
 from celery import shared_task
-
-from DFS.prizepicks import Prizepicks
 from Redis.redis_manager import RedisManager
-from DFS.underdog import Underdog
 from asgiref.sync import async_to_sync
 
 from Settings.dfs_model import BookData
@@ -24,7 +33,57 @@ Books = {
         "class": Prizepicks,
         "interval": 15,
         "task": "dfs",
-    }
+    },
+    "betr": {
+        "class": Betr,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "boom": {
+        "class": Boom,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "dabble": {
+        "class": Dabble,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "drafters": {
+        "class": Drafters,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "draftkings_6": {
+        "class": DraftKingsPickSix,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "ownerbox": {
+        "class": Ownerbox,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "parlaye": {
+        "class": Parlaye,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "parlayplay": {
+        "class": Parlayplay,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "sleeper": {
+        "class": Sleeper,
+        "interval": 15,
+        "task": "dfs",
+    },
+    "splashsports": {
+        "class": SplashSports,
+        "interval": 15,
+        "task": "dfs",
+    },
 }
 
 @shared_task(ignore_result=True)
