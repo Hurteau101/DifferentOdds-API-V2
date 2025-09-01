@@ -1,5 +1,7 @@
 import asyncio
 from typing import List, Dict
+from fastapi import Request
+
 import orjson
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -73,6 +75,7 @@ async def get_book_list():
     dependencies=[Depends(get_api_key)]
 )
 async def get_book_data(
+        request: Request,
         books: List[str] = Query(..., description="List of DFS book names to fetch data for"),
 ):
     dfs_books = [book.get("book_key") for book in SportsbookConfig.get_book_info(book_type="dfs")]
@@ -82,7 +85,7 @@ async def get_book_data(
 
     # Fetch data concurrently with timeout
     tasks = [
-        asyncio.wait_for(fetch_redis_data(f"dfs:{book.lower()}"), timeout=TIMEOUT_SECONDS)
+        asyncio.wait_for(fetch_redis_data(f"dfs:{book.lower()}", request), timeout=TIMEOUT_SECONDS)
         for book in books
     ]
 
