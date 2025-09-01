@@ -1,6 +1,7 @@
 import os
 
 from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
 from starlette.responses import RedirectResponse
 
 from Mapper.database import Database
@@ -39,6 +40,7 @@ app = FastAPI(
     version="1.0.0",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     lifespan=lifespan,
+    default_response_class=ORJSONResponse,
     docs_url="/",
 )
 
@@ -46,3 +48,5 @@ app = FastAPI(
 
 app.include_router(dfs.router)
 app.include_router(sgp.router)
+
+
