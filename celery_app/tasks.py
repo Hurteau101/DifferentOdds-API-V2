@@ -9,6 +9,8 @@ from Redis.redis_manager import RedisManager
 from DFS.underdog import Underdog
 from asgiref.sync import async_to_sync
 
+from Settings.dfs_model import BookData
+
 logger = get_task_logger(__name__)
 
 
@@ -44,12 +46,17 @@ def run_dfs(name: str):
 
             data = await book.run_book()
 
-            data_to_store = {
-                "payload": data,
-                "last_refresh": datetime.now(timezone.utc).isoformat()
-            }
+            book_data = BookData(
+                last_refresh=datetime.now(timezone.utc),
+                data=data,
+            )
 
-            await redis_manager.store_data(f"dfs:{name}", data_to_store)
+            # Back up incase no data is found, and the original data is stale and not caught earlier on.
+            if book_data.data is None or len(book_data.data) == 0:
+                await redis_manager.delete(f"dfs:{name}")
+                return
+
+            await redis_manager.store_data(f"dfs:{name}", book_data.model_dump_json())
 
             logger.info(f"Finished DFS book: {name}")
         finally:

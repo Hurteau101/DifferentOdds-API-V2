@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Dict, List, Optional, TypedDict
+from pydantic import BaseModel
+
 
 class Odds(TypedDict, total=False):
     american_odds: float # Books Using this: (PrizePicks, Underdog, ParlayPlay)
@@ -52,3 +55,6 @@ class PlayerData:
     live: Optional[bool] = False
 
 
+class BookData(BaseModel):
+    last_refresh: datetime
+    data: list[PlayerData]

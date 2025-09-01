@@ -62,6 +62,14 @@ class RedisManager:
         except RedisError as e:
             logging.error(f"Redis error for {key_name}: {e}")
 
+    async def delete(self, key_name: str):
+        """Delete a key from Redis."""
+        try:
+            await self.redis_client.delete(key_name)
+            return
+        except RedisError as e:
+            return
+
     # async def store_data(self, key_name, data_to_store, timeout=60, blocking_timeout=10, key_expiration=60):
     #     """Store data in Redis with a lock to prevent concurrent access issues."""
     #     lock = self.redis_client.lock(f"{key_name}_lock", timeout=timeout, blocking_timeout=blocking_timeout)
