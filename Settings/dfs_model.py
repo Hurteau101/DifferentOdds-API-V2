@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, TypedDict
+from typing import Dict, List, Optional
 from pydantic import BaseModel
-
+from typing_extensions import TypedDict
 
 class Odds(TypedDict, total=False):
     american_odds: float # Books Using this: (PrizePicks, Underdog, ParlayPlay)
