@@ -9,10 +9,11 @@ for book_name, book_info in Books.items():
             "task": "celery_app.tasks.run_dfs",
             "schedule": book_info["interval"],
             "args": (book_name,),
+            "options": {"queue": "books", "expires": book_info["interval"] + 5},
         }
 
+celery_app.conf.task_default_queue = "books"
 celery_app.conf.beat_schedule = beat_schedule
-
 
 
 # celery -A celery_app.beat_schedule beat --loglevel=INFO
