@@ -110,7 +110,7 @@ def run_dfs(name: str):
 
             book_data = BookData(
                 last_refresh=datetime.now(timezone.utc),
-                data=data if data else None,
+                data=data if data else [],
             )
 
             # Back up incase no data is found, and the original data is stale and not caught earlier on.
