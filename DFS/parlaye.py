@@ -51,7 +51,7 @@ class Parlaye(DFSBookBase):
                     regular_line=True,
                     optional_stats=OptionalStatInformation(
                         odds=Odds(
-                            american_odds=odds_mapper.get(option).get("american_odds"),
+                            american_odds=float(odds_mapper.get(option).get("american_odds")),
                             points=odds_mapper.get(option).get("points")
                         )
 

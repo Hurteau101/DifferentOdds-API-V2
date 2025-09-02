@@ -86,6 +86,9 @@ Books = {
     },
 }
 
+
+### COMMENT OUT BOOKS 1 BY 1 FOR TESTING TO SEE WHERE IS BREAKING
+
 @shared_task(ignore_result=True)
 def run_dfs(name: str):
     async def _run():
@@ -107,7 +110,7 @@ def run_dfs(name: str):
 
             book_data = BookData(
                 last_refresh=datetime.now(timezone.utc),
-                data=data,
+                data=data if data else None,
             )
 
             # Back up incase no data is found, and the original data is stale and not caught earlier on.
