@@ -79,11 +79,12 @@ Books = {
         "interval": 15,
         "task": "dfs",
     },
-    "splashsports": {
-        "class": SplashSports,
-        "interval": 15,
-        "task": "dfs",
-    },
+    # Disabled until working fix can be found - VPN Issue.
+    # "splashsports": {
+    #     "class": SplashSports,
+    #     "interval": 15,
+    #     "task": "dfs",
+    # },
 }
 
 

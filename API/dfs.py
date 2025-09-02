@@ -19,6 +19,7 @@ file_logger = create_logging_setup(folder_name="dfs", file_name="dfs_api.log")
 class Books(BaseModel):
     title: str
     book_key: str
+    status: str
 
 class BooksListResponse(BaseModel):
     dfs_books: List[Books]

@@ -13,6 +13,7 @@ class DFSProvider:
     url: dict
     method: str
     headers: Optional[Dict] = None
+    active: Optional[bool] = False
     # payload_list: Optional[List[Dict]] = None
 
 # List of DFS providers with their configurations.
@@ -24,6 +25,7 @@ DFS_PROVIDERS = [
             "main_url": "https://api.underdogfantasy.com/beta/v5/over_under_lines",
         },
         method="GET",
+        active=True
     ),
     DFSProvider(
         title="PrizePicks",
@@ -31,7 +33,8 @@ DFS_PROVIDERS = [
         url={
             "main_url": "https://partner-api.prizepicks.com/projections"
         },
-        method="GET"
+        method="GET",
+        active=True
     ),
     DFSProvider(
         title="Betr",
@@ -59,7 +62,8 @@ DFS_PROVIDERS = [
             'Sec-Fetch-Site': 'same-site',
             'Priority': 'u=4',
             'TE': 'trailers'
-        }
+        },
+        active=True
     ),
     DFSProvider(
         title="Drafters",
@@ -73,6 +77,7 @@ DFS_PROVIDERS = [
             "Accept": "application/json",
         },
         method="GET",
+        active=True
     ),
     DFSProvider(
         title="Boom Fantasy",
@@ -84,6 +89,7 @@ DFS_PROVIDERS = [
             "Authorization": os.getenv("boom_auth_token"),
         },
         method="GET",
+        active=True
     ),
     DFSProvider(
         title="ParlayPlay",
@@ -92,6 +98,7 @@ DFS_PROVIDERS = [
             "main_url": "http://45.61.52.251:8000/parlayplay"
         },
         method="GET",
+        active=True
     ),
     DFSProvider(
         title="Splash Sports",
@@ -104,6 +111,7 @@ DFS_PROVIDERS = [
             "Authorization": os.getenv("splash_auth_token"),
         },
         method="GET",
+        active=False
     ),
     DFSProvider(
         title="Ownerbox",
@@ -127,6 +135,7 @@ DFS_PROVIDERS = [
             'Cookie': f'obauth={os.getenv("ownerbox_auth_token")}'
         },
         method="GET",
+        active=True
     ),
     DFSProvider(
         title="Parlaye",
@@ -135,6 +144,7 @@ DFS_PROVIDERS = [
             "main_url": "https://m2efyeevmf.us-east-2.awsapprunner.com/available_picks/get-player-picks/"
         },
         method="POST",
+        active=True
     ),
     DFSProvider(
         title="DraftKings Pick 6",
@@ -147,6 +157,7 @@ DFS_PROVIDERS = [
             'Referer': 'https://pick6.draftkings.com/?_gl=1*v93w3x*_gcl_au*ODkyNzA4NDI2LjE3NTUxOTA2OTc.*_ga*MTU4MjI5MzIxLjE3MzgwNDQ1ODU.*_ga_QG8WHJSQMJ*czE3NTUzNTMyMDAkbzI0JGcxJHQxNzU1MzUzMjA2JGo1NCRsMCRoMA..',
         },
         method="GET",
+        active=True
     ),
     DFSProvider(
         title="Sleeper Fantasy",
@@ -159,6 +170,7 @@ DFS_PROVIDERS = [
             'alternate_url_4': "https://api.sleeper.app/scores/lines_game_picker",  # Season Data
         },
         method="GET",
+        active=True
     ),
     DFSProvider(
         title="Dabble",
@@ -169,5 +181,6 @@ DFS_PROVIDERS = [
             "alternate_url_2": "https://api.dabble.com/sportfixtures/details/{game_id}?filter=dfs-enabled",
         },
         method="GET",
+        active=True
     )
 ]

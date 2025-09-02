@@ -12,10 +12,20 @@ from  Settings.dfs_model import PlayerData
 from Mapper.mapping_database import Mapper
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
 
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, ".."))
+
 class DFSBookBase(BookBase, ABC):
     """Base class for DFS books, inheriting from BookBase."""
-    def __init__(self, request_type, sportsbook_name: str, log_directory="DFS Logs", log_name=None):
+    def __init__(self, request_type, sportsbook_name: str, log_directory=None, log_name=None):
         self.book_data = SportsbookConfig.get_dfs_provider(sportsbook_name)
+
+        if log_directory is None:
+            # Put logs inside DFS/DFS Logs/
+            log_directory = os.path.join(PROJECT_ROOT, "DFS", "DFS Logs")
+
+        os.makedirs(log_directory, exist_ok=True)
+
         super().__init__(request_type, log_directory=log_directory, log_name=log_name)
         self.mapper = Mapper()
         self.LEAGUE_MAPPING = LEAGUES

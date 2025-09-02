@@ -30,7 +30,8 @@ class SportsbookConfig:
         return  [
             {
                 "title": name.title,
-                "book_key": name.name
+                "book_key": name.name,
+                "status": "Online" if name.active else "Offline"
             }
             for name in NAMES_MAPPER.get(book_type, [])
         ]
