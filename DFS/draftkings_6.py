@@ -96,11 +96,30 @@ class DraftKingsPickSix(DFSBookBase):
             "solo_game": False
         }
 
+    def _confirm_league_details(self, game_details, player_details):
+        league = game_details.get("competitionSummary").get("leagueAbbreviation")
+        if league:
+            return league
+
+        else:
+            league = game_details.get("competitionSummary")
+            for side in ("homeTeam", "awayTeam"):
+                urls = league.get(side, {}).get("imageUrls", {})
+                if urls:
+                    # take the first URL we find
+                    url = next(iter(urls.values()))
+                    match = re.search(r'(?<=/images/)[^/]+', url, re.IGNORECASE)
+                    if match:
+                        return match.group(0).upper()
+            return "N/A"
+
+
     def _extract_game_data(self, game_details):
         player_details = next((
             {
                 "player_name": player_details.get("displayName"),
-                "league": game_details.get("competitionSummary").get("leagueAbbreviation"),
+                # "league": game_details.get("competitionSummary").get("leagueAbbreviation"),
+                "league": self._confirm_league_details(game_details, player_details),
                 **self._extract_team_data(game_details, player_details.get("displayName")),
                 "total_competition_time": game_details.get("competitionSummary").get("totalCompetitionTime")
 
@@ -115,7 +134,7 @@ class DraftKingsPickSix(DFSBookBase):
         if not player_details:
             return None
 
-        pick_group_id = game_details.get("pickGroupId")
+        # pick_group_id = game_details.get("pickGroupId")
 
         # Draftking uses More or Less, so this maps it to over and under.
         direction_mapper = {
@@ -130,33 +149,37 @@ class DraftKingsPickSix(DFSBookBase):
             stat_type = game_details.get("pickable").get("marketCategory").get("marketName")
             stat_type = STAT_TYPES.get(stat_type.lower(), stat_type).title()
 
-        return PlayerData(
-            player_name=self.clean_and_normalize_name(player_details.get("player_name")),
-            league=LEAGUES.get(player_details.get("league").lower(), player_details.get("league").upper()),
-            start_date=player_details.get("start_date"),
-            team_data=TeamData(
-                team_a=player_details.get("team_a"),
-                team_b=player_details.get("team_b"),
-                team_key=player_details.get("team_key"),
-                player_team=player_details.get("player_team"),
-            ),
-            stats=[
-                Stats(
-                    stat_type=stat_type,
-                    line=game_details.get("activeMarket").get("targetValue"),
-                    bet_direction=direction_mapper.get(str(stat.get("statLinePropositionId"))),
-                    regular_line=True if stat.get("standingsMultiplier") == 1 else False,
-                    optional_stats=OptionalStatInformation(
-                        multiplier=stat.get("standingsMultiplier")
+        try:
+            return PlayerData(
+                player_name=self.clean_and_normalize_name(player_details.get("player_name")),
+                league=LEAGUES.get(player_details.get("league").lower(), player_details.get("league").upper()),
+                start_date=player_details.get("start_date"),
+                team_data=TeamData(
+                    team_a=player_details.get("team_a"),
+                    team_b=player_details.get("team_b"),
+                    team_key=player_details.get("team_key"),
+                    player_team=player_details.get("player_team"),
+                ),
+                stats=[
+                    Stats(
+                        stat_type=stat_type,
+                        line=game_details.get("activeMarket").get("targetValue"),
+                        bet_direction=direction_mapper.get(str(stat.get("statLinePropositionId"))),
+                        regular_line=True if stat.get("standingsMultiplier") == 1 else False,
+                        optional_stats=OptionalStatInformation(
+                            multiplier=stat.get("standingsMultiplier")
+                        )
                     )
-                )
 
-                for stat in game_details.get("activeMarket").get("activeSelections")
+                    for stat in game_details.get("activeMarket").get("activeSelections")
 
-            ],
-            future=True if "szn" in player_details.get("league").lower() else False,
-            solo_game=player_details.get("solo_game")
-        )
+                ],
+                future=True if "szn" in player_details.get("league").lower() else False,
+                solo_game=player_details.get("solo_game")
+            )
+        except:
+            # print(game_details)
+            pass
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
