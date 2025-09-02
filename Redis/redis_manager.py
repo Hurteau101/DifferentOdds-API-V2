@@ -97,3 +97,11 @@ class RedisManager:
     async def close(self):
         """Close the Redis connection."""
         await self.redis_client.close()
+
+    async def delete(self, key_name: str):
+        """Delete a key from Redis."""
+        try:
+            await self.redis_client.delete(key_name)
+            return
+        except (LockError, RedisError) as e:
+            return
