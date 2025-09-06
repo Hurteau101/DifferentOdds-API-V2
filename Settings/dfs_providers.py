@@ -22,7 +22,7 @@ DFS_PROVIDERS = [
         title="Underdog Fantasy",
         name="underdog",
         url={
-            "main_url": "https://api.underdogfantasy.com/beta/v5/over_under_lines",
+            "main_url": "https://api.underdogfantasy.com/beta/v6/over_under_lines",
         },
         method="GET",
         active=True
