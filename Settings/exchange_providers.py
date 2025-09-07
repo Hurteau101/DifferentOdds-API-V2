@@ -16,8 +16,7 @@ EXCHANGE_PROVIDERS = [
         url={
             "sports_url": "https://api.elections.kalshi.com/trade-api/v2/series?",
             "markets_url": "https://api.elections.kalshi.com/trade-api/v2/markets?",
-            # "events_url": "https://api.elections.kalshi.com/trade-api/v2/events?",
-            # "event_url": "https://api.elections.kalshi.com/trade-api/v2/events/{event_ticker}",
+            "title_url": "https://api.elections.kalshi.com/trade-api/v2/events?"
         },
         method="GET",
     )
