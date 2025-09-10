@@ -124,7 +124,7 @@ class BookBase(ABC):
 # Asynchronous book fetching class
 class AsyncBook:
     @staticmethod
-    async def fetch(session, url, method, headers=None, proxy=None, payload=None, parse_json=False, params=None):
+    async def fetch(session, url, method, headers=None, proxy=None, payload=None, parse_json=False, params=None, data=None):
         method = method.lower()
         if method not in ["get", "post"]:
             raise ValueError("Method must be 'get' or 'post'.")
@@ -152,6 +152,8 @@ class AsyncBook:
 
             return await response.json()
         else:
+            print(response.status)
+            print(await response.text())
             return None
 
 

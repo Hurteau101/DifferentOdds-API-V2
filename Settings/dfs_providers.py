@@ -182,5 +182,17 @@ DFS_PROVIDERS = [
         },
         method="GET",
         active=True
+    ),
+    DFSProvider(
+        title="Chalkboard",
+        name="chalkboard",
+        url={
+            "main_url": "https://firestore.googleapis.com/v1/projects/taild-262305/databases/(default)/documents:runQuery"
+        },
+        headers={
+            'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImUzZWU3ZTAyOGUzODg1YTM0NWNlMDcwNTVmODQ2ODYyMjU1YTcwNDYiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vdGFpbGQtMjYyMzA1IiwiYXVkIjoidGFpbGQtMjYyMzA1IiwiYXV0aF90aW1lIjoxNzU3NDI4MDUzLCJ1c2VyX2lkIjoidFp5eVd2djNQQ1Ewdk4xTnNTcnE5elhXZVlHMyIsInN1YiI6InRaeXlXdnYzUENRMHZOMU5zU3JxOXpYV2VZRzMiLCJpYXQiOjE3NTc0NTU4NDksImV4cCI6MTc1NzQ1OTQ0OSwiZW1haWwiOiJ0NzY4MTk5MkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsidDc2ODE5OTJAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.F_9k7Z3f-YzsVY3R5OT3_vae0qpv7pdTAriux_69QboPAHQIihXM59olc_WGeqoPzn1-eb4oQdPPICx_y4hvuyuzJgqpPgAa-In-sOBkuv_s9ie6ZKVuM3fPD1I9mOYCojld_2a11qnf-n2Y9paaC-AMFKUpwFbFwnBL55AmYD_z2zVaIJcrL9p_hVitaLPrc_H6SCGB2fRaliW7C-1uYivDfFGWHxb7ES1feHXk_ekAIPuEl0vde_NtHk_wMuztifMBJw9_05JLWIPg18KfwSOHzghiFfoqA_TjjVYyW7SiCvpOOC61EE8eevAhiwDv--OHz2jQDFtqjJ-eVMeSYg'
+        },
+        method="POST",
+        active=True
     )
 ]
