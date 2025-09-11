@@ -11,3 +11,5 @@ API/API Logs/dfs
 API/API Logs/sgp
 DFS/DFS Logs
 SGP/SGP Logs
+*.log
+Settings/auth_tokens.json

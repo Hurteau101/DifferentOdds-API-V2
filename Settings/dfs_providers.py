@@ -190,9 +190,33 @@ DFS_PROVIDERS = [
             "main_url": "https://firestore.googleapis.com/v1/projects/taild-262305/databases/(default)/documents:runQuery"
         },
         headers={
-            'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImUzZWU3ZTAyOGUzODg1YTM0NWNlMDcwNTVmODQ2ODYyMjU1YTcwNDYiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vdGFpbGQtMjYyMzA1IiwiYXVkIjoidGFpbGQtMjYyMzA1IiwiYXV0aF90aW1lIjoxNzU3NDI4MDUzLCJ1c2VyX2lkIjoidFp5eVd2djNQQ1Ewdk4xTnNTcnE5elhXZVlHMyIsInN1YiI6InRaeXlXdnYzUENRMHZOMU5zU3JxOXpYV2VZRzMiLCJpYXQiOjE3NTc0NTU4NDksImV4cCI6MTc1NzQ1OTQ0OSwiZW1haWwiOiJ0NzY4MTk5MkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsidDc2ODE5OTJAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.F_9k7Z3f-YzsVY3R5OT3_vae0qpv7pdTAriux_69QboPAHQIihXM59olc_WGeqoPzn1-eb4oQdPPICx_y4hvuyuzJgqpPgAa-In-sOBkuv_s9ie6ZKVuM3fPD1I9mOYCojld_2a11qnf-n2Y9paaC-AMFKUpwFbFwnBL55AmYD_z2zVaIJcrL9p_hVitaLPrc_H6SCGB2fRaliW7C-1uYivDfFGWHxb7ES1feHXk_ekAIPuEl0vde_NtHk_wMuztifMBJw9_05JLWIPg18KfwSOHzghiFfoqA_TjjVYyW7SiCvpOOC61EE8eevAhiwDv--OHz2jQDFtqjJ-eVMeSYg'
+            'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImUzZWU3ZTAyOGUzODg1YTM0NWNlMDcwNTVmODQ2ODYyMjU1YTcwNDYiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vdGFpbGQtMjYyMzA1IiwiYXVkIjoidGFpbGQtMjYyMzA1IiwiYXV0aF90aW1lIjoxNzU3NDI4MDUzLCJ1c2VyX2lkIjoidFp5eVd2djNQQ1Ewdk4xTnNTcnE5elhXZVlHMyIsInN1YiI6InRaeXlXdnYzUENRMHZOMU5zU3JxOXpYV2VZRzMiLCJpYXQiOjE3NTc1NTI5NTgsImV4cCI6MTc1NzU1NjU1OCwiZW1haWwiOiJ0NzY4MTk5MkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsidDc2ODE5OTJAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.BFr4IndpFbdRbvzRvrZXMdffqY273FdpVjgJWcc8896Iayx3iFPLEbsPmYP3Ijv1ebGoS0oHuALS-12gU2Y8YFNWy3c9YiB7STgBaDicJZ57ohL9_Wb78G10qL9Jfs-if3cc_F90XP4c8Qw0SPHAVvNwjBY_9RhQ5jev7JvGS51iP9RBLZ-D1gpXUOey9CgKV-tErzLBGBnNLVFoPyFOyRdYH5YQ-XmIqSiJliOGij8yzZ0qW-BW3A1VYUgC1fy_NXebmLqEaZyMbscUxWDLlUpvo3M9w3XZGmNZoMnIithuh_8uDLz-JQuNPaJBacWm5tofI-9R_X7PG7s4VOvKIw'
         },
         method="POST",
+        active=True
+    ),
+    DFSProvider(
+        title="FanDuel Picks",
+        name="fanduel_picks",
+        url={
+            "main_url": "https://picks.fanduel.com/lobby?sport={league}&_data=routes%2Flobby%2B%2F_route",
+            "stat_url": "https://picks.fanduel.com/api/game-group-props?gameGroupId={game_id}&marketIds=&_data=routes%2Fapi%2B%2Fgame-group-props%2B%2F_resource"
+        },
+        headers={
+            'Host': 'picks.fanduel.com',
+            'Sec-Fetch-Site': 'same-origin',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Mode': 'cors',
+            'Accept': '*/*',
+            'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 17_7_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 AppInfo (appDomain/picks; version/3.1.0; platform/ios)',
+            'Referer': 'https://picks.fanduel.com/signin',
+            'Sec-Fetch-Dest': 'empty',
+            'Accept-Language': 'en-CA,en-US;q=0.9,en;q=0.8',
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache',
+            'Content-Type': 'application/json',
+        },
+        method="GET",
         active=True
     )
 ]
