@@ -70,7 +70,7 @@ class RedisManager:
     #     except RedisError as e:
     #         logging.error(f"Redis error for {key_name}: {e}")
 
-    async def store_data(self, key_name, data_to_store, timeout=60, blocking_timeout=10):
+    async def store_data(self, key_name, data_to_store, timeout=60, blocking_timeout=10, key_expiration=None):
         """Store data in Redis as raw JSON bytes (fast, no compression)."""
         lock = self.redis_client.lock(
             f"{key_name}_lock",
@@ -85,7 +85,10 @@ class RedisManager:
                 # Serialize to bytes with orjson
                 data_bytes = orjson.dumps(data_to_store)
 
-                success = await self.redis_client.set(key_name, data_bytes)
+                if key_expiration is not None:
+                    success = await self.redis_client.set(key_name, data_bytes, ex=key_expiration)
+                else:
+                    success = await self.redis_client.set(key_name, data_bytes)
 
                 if success:
                     logging.info(f"Stored data for {key_name} successfully.")

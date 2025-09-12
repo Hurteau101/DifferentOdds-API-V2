@@ -3,6 +3,8 @@ import json
 import time
 
 import aiohttp
+from orjson import orjson
+
 from Redis.redis_manager import RedisManager
 from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase
@@ -66,7 +68,11 @@ class Fanduel_SGP(SGPBookBase):
         """ Map the marketID from the links to the actual marketId using Redis. Due to links being external market IDs"""
         redis = RedisManager(db=self.redis_db)
         mapped_ids = await redis.fetch_data("fanduel_ids")
-        mapped_ids = json.loads(mapped_ids) if mapped_ids else {}
+
+        if isinstance(mapped_ids, bytes):
+            mapped_ids = orjson.loads(mapped_ids)
+        if isinstance(mapped_ids, str):
+            mapped_ids = json.loads(mapped_ids)
 
         if not mapped_ids:
             self.file_logger.log(

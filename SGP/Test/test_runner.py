@@ -30,7 +30,7 @@ class SGPTest:
         if not self.api_key:
             raise ValueError("API key is not set. Please set the bettorodds_api_key in your .env file.")
 
-        url = f"https://app.keepbetting.co/api/internal_odds?sportsbook={book_name}"
+        url = f"https://api.eternity7.dev/api/internal_odds?sportsbook={book_name}"
         response = requests.get(url, params={"auth_token": self.api_key})
         if response.status_code == 200:
             return response.json()
