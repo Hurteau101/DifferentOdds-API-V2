@@ -4,17 +4,20 @@ import random
 import requests
 from dotenv import load_dotenv
 import os
+
+from SGP.betmgm import BetMGM_SGP
 from SGP.fanduel import Fanduel_SGP
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
 
 DEFAULT_CONDITIONS = {
-    "league": "MLB",
-    "market_types": ["moneyline", "total runs"],
+    "league": "NFL",
+    "market_types": ["moneyline", "total points"],
 }
 
 INITIALIZATION = {
     "fanduel": Fanduel_SGP,
+    "betmgm": BetMGM_SGP,
 }
 
 
@@ -166,8 +169,11 @@ if __name__ == "__main__":
     # asyncio.run(test_instance.run_test())
     ############################################
 
+    # book_data = [
+    #     {"book_name": "Fanduel", "links": []}
+    # ]
     book_data = [
-        {"book_name": "Fanduel", "links": []}
+        {"book_name": "betmgm", "links": []}
     ]
 
     test_instance = SGPTest(book_data)

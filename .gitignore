@@ -13,3 +13,4 @@ DFS/DFS Logs
 SGP/SGP Logs
 *.log
 Settings/auth_tokens.json
+DFS/t.py

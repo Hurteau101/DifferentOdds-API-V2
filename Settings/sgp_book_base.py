@@ -1,5 +1,10 @@
+import json
 import re
 from abc import ABC, abstractmethod
+
+from orjson import orjson
+
+from Redis.redis_manager import RedisManager
 from Settings.book_base import BookBase
 from Settings.sportsbook_config import SportsbookConfig
 
@@ -17,6 +22,25 @@ class SGPBookBase(BookBase, ABC):
     async def run_book(self):
         """Run the SGP book logic."""
         pass
+
+    async def _returned_mapped_redis_data(self, sportsbook_name):
+        redis = RedisManager(db=self.redis_db)
+        mapped_ids = await redis.fetch_data(sportsbook_name)
+
+        if isinstance(mapped_ids, bytes):
+            mapped_ids = orjson.loads(mapped_ids)
+        if isinstance(mapped_ids, str):
+            mapped_ids = json.loads(mapped_ids)
+
+        if not mapped_ids:
+            self.file_logger.log(
+                message="No mapped IDs found in Redis",
+                level="ERROR",
+            )
+
+            return None
+
+        return mapped_ids
 
 
     @staticmethod

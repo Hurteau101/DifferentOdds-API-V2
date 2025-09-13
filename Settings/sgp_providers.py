@@ -36,5 +36,25 @@ SGP_PROVIDERS = [
             "event_id_regex": r"marketId=([\d.]+)&",
         },
         method="GET",
+    ),
+    SGPProvider(
+        title="BetMGM Sportsbook",
+        name="betmgm",
+        url={
+            "market_id_url": "https://www.on.betmgm.ca/cds-api/bettingoffer/fixtures?x-bwin-accessid=MzViOTU5Y2EtNzgyMy00ZTBmLThkNDctYjRlYjgwNjMwZDQy&lang=en-us&country=CA&userCountry=CA&subdivision=CA-Alberta&fixtureTypes=Standard&state=Latest&offerMapping=All&offerCategories=Gridable&fixtureCategories=Gridable,NonGridable,Other&sportIds={league_id}&regionIds=&competitionIds=&conferenceIds=",
+            # "market_id_url": "https://www.on.betmgm.ca/cds-api/bettingoffer/fixture-view?x-bwin-accessid=MzViOTU5Y2EtNzgyMy00ZTBmLThkNDctYjRlYjgwNjMwZDQy&lang=en-us&country=CA&userCountry=CA&subdivision=CA-Alberta&offerMapping=All&scoreboardMode=Full&fixtureIds=17551703&state=Latest&includePrecreatedBetBuilder=true&supportVirtual=true&isBettingInsightsEnabled=true&useRegionalisedConfiguration=true&statisticsModes=Pitchers&useMarketGroupsV2=true",
+            "sgp_url": "https://www.on.betmgm.ca/cds-api/bettingoffer/picks?x-bwin-accessid=MzViOTU5Y2EtNzgyMy00ZTBmLThkNDctYjRlYjgwNjMwZDQy&lang=en-us&country=CA&userCountry=CA&subdivision=CA-Alberta"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0',
+            'Referer': 'https://www.on.betmgm.ca/en/sports',
+            'Content-Type': 'application/json',
+            'Origin': 'https://www.on.betmgm.ca',
+        },
+        regex={
+            "event_id_regex": r"options=([\d]+)",
+            "bet_id_regex": r"--(\d+)",
+        },
+        method="GET",
     )
 ]
