@@ -9,5 +9,7 @@
 ##### This is for Exchange Cache
 
 ### Redis Database - `2`
-##### This is for Fanduel Mapped IDs
+##### This is for SGP Cached Mapped IDs
 
+### Redis Database - `3`
+##### This is for Auth Tokens
