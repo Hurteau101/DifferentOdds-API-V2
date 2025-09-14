@@ -74,4 +74,17 @@ SGP_PROVIDERS = [
         },
         method="WS"
     ),
+    SGPProvider(
+        title="Kambi Provider",
+        name="kambi",
+        url={
+            "main_url": "https://eu1.offering-api.kambicdn.com/offering/v2018/rsicaon/onDemandPricing/event/{event_id}/outcome/{bet_ids}.json?lang=en_CA&market=CA-ON&client_id=2&channel_id=1"
+        },
+        regex={
+            "bet_id_regex": r"single\|(\d+)\|",
+            "event_id_regex": r"event/(\d+)?",
+        },
+        method="GET"
+    )
+
 ]

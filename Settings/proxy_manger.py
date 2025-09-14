@@ -12,9 +12,12 @@ from Settings.logger import FileLogger
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 
 class ProxyManager:
-    def __init__(self, api_caller_func):
+    def __init__(self, api_caller_func, proxies=None):
         load_dotenv(dotenv_path=env_path)
-        self.proxy_list = os.getenv("PROXIES").split(",") if os.getenv("PROXIES") else ""
+        if not proxies:
+            self.proxy_list = os.getenv("PROXIES").split(",") if os.getenv("PROXIES") else ""
+        else:
+            self.proxy_list = proxies
         self.proxy_amount = len(self.proxy_list)
         self.proxy_pool = cycle(self.proxy_list)
 

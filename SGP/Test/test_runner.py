@@ -6,7 +6,9 @@ from dotenv import load_dotenv
 import os
 
 from SGP.betmgm import BetMGM_SGP
+from SGP.fanactics import Fanatics_SGP
 from SGP.fanduel import Fanduel_SGP
+from SGP.kambi import Kambi_SGP
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
 
@@ -16,8 +18,10 @@ DEFAULT_CONDITIONS = {
 }
 
 INITIALIZATION = {
-    "fanduel": Fanduel_SGP,
-    "betmgm": BetMGM_SGP,
+    # "fanduel": Fanduel_SGP,
+    # "betmgm": BetMGM_SGP,
+    # "fanatics": Fanatics_SGP
+    "kambi": Kambi_SGP
 }
 
 
@@ -68,7 +72,7 @@ class SGPTest:
             if match:
                 results.append({
                     "market": market,
-                    "link": match.get("backend_extras", {}).get("betlink"),
+                    "link": match.get("backend_extras", {}).get("betlink") if match.get("backend_extras", {}).get("betlink") else match.get("backend_extras", {}).get("internal_betlink"),
                     "event": game_name,
                     "book": match.get("SportsBook"),
                     "bet_info": match.get("Bet Info")
@@ -173,7 +177,7 @@ if __name__ == "__main__":
     #     {"book_name": "Fanduel", "links": []}
     # ]
     book_data = [
-        {"book_name": "betmgm", "links": []}
+        {"book_name": "kambi", "links": []}
     ]
 
     test_instance = SGPTest(book_data)
