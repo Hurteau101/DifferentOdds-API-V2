@@ -7,7 +7,7 @@ from itertools import chain
 
 class BetMGM_SGP(SGPBookBase):
     def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="fanduel_sgp.log", sportsbook_name="betmgm", links=links)
+        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="betmgm_sgp.log", sportsbook_name="betmgm", links=links)
         self.VALID_LEAGUE_IDS = [
             23, # Baseball
             11, # Football
