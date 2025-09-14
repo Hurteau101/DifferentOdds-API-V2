@@ -100,6 +100,18 @@ SGP_PROVIDERS = [
             'x-api-features': '{EnableFullSGPDrivenFlow:true}'
         },
         method="POST"
+    ),
+    SGPProvider(
+        title="HardRock",
+        name="hardrock",
+        url={
+            "main_url": "wss://api.hardrocksportsbook.com/websocket"
+        },
+        regex={
+            "bet_id_regex": r"betslip/(.+)",
+            "event_id_regex": r"betslip/(.+)", # Use event_id same as bet_id as hardrock does not provide event_id separately
+        },
+        method="WS"
     )
 
 ]
