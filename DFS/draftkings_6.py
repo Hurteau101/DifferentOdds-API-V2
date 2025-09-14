@@ -1,6 +1,9 @@
+import os
 import re
 import aiohttp
 import asyncio
+
+from Redis.redis_manager import RedisManager
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, OptionalStatInformation
 from Mapper.static_mapper import STAT_TYPES, LEAGUES
@@ -12,6 +15,7 @@ class DraftKingsPickSix(DFSBookBase):
     def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="draftkings_6")
         self.URL_PART = "&_data=routes%2F_homeShared"
+        self.redis = RedisManager(db=4)
 
 
     def _extract_leagues(self, league_data):
@@ -50,7 +54,7 @@ class DraftKingsPickSix(DFSBookBase):
                 "url_addon": f"https://pick6.draftkings.com{league.get('destination')}{self.URL_PART}"
             }
 
-            for league in league_data.get("carouselLinks", []).get("sportLeagueKeyToLinks").get("21-125").get("rightAttachedLinks", [])
+            for league in league_data.get("carouselLinks", []).get("sportLeagueKeyToLinks", {}).get("21-125", {}).get("rightAttachedLinks", [])
         ]
 
     # Generate URLs for each league, using the main URL for regular leagues and a unique URL for special leagues.
@@ -70,7 +74,10 @@ class DraftKingsPickSix(DFSBookBase):
         if "." in start_date:
             start_date = start_date.split(".")[0]
 
-        player_team = self.clean_and_normalize_name(f'{team_details.get("team").get("name")} {team_details.get("team").get("name")}')
+        player_team_city = team_details.get("team").get("city")
+        player_team = self.clean_and_normalize_name(f'{team_details.get("team").get("name")}')
+        if player_team_city:
+            player_team = self.clean_and_normalize_name(f'{player_team_city} {player_team}')
 
         if team_details.get("competitionSummary").get("matchupDisplay").get("displayType").lower() != "team-vs-team":
             team_key = self._generate_key([player_name, start_date])
@@ -83,13 +90,28 @@ class DraftKingsPickSix(DFSBookBase):
                 "solo_game": True
             }
 
-        team_a = f'{team_details.get("competitionSummary").get("homeTeam").get("name")} {team_details.get("competitionSummary").get("homeTeam").get("city")}'
-        team_b = f'{team_details.get("competitionSummary").get("awayTeam").get("name")} {team_details.get("competitionSummary").get("awayTeam").get("city")}'
+        home_city = team_details.get("competitionSummary").get("homeTeam").get("city")
+        away_city = team_details.get("competitionSummary").get("awayTeam").get("city")
+
+        team_a = f'{team_details.get("competitionSummary").get("homeTeam").get("name")}'
+        team_b = f'{team_details.get("competitionSummary").get("awayTeam").get("name")}'
+
+        team_a_abbreviation = team_details.get("competitionSummary").get("homeTeam").get("abbreviation")
+        team_b_abbreviation = team_details.get("competitionSummary").get("awayTeam").get("abbreviation")
+
         team_key = self._generate_key([team_a, team_b, start_date])
+
+        if home_city:
+            team_a = f'{home_city} {team_a}'
+
+        if away_city:
+            team_b = f'{away_city} {team_b}'
 
         return {
             "team_a": self.clean_and_normalize_name(team_a),
             "team_b": self.clean_and_normalize_name(team_b),
+            "team_a_abbreviation": team_a_abbreviation,
+            "team_b_abbreviation": team_b_abbreviation,
             "player_team": player_team,
             "team_key": team_key,
             "start_date": self.cache_time(start_date),
@@ -149,37 +171,72 @@ class DraftKingsPickSix(DFSBookBase):
             stat_type = game_details.get("pickable").get("marketCategory").get("marketName")
             stat_type = STAT_TYPES.get(stat_type.lower(), stat_type).title()
 
-        try:
-            return PlayerData(
-                player_name=self.clean_and_normalize_name(player_details.get("player_name")),
-                league=LEAGUES.get(player_details.get("league").lower(), player_details.get("league").upper()),
-                start_date=player_details.get("start_date"),
-                team_data=TeamData(
-                    team_a=player_details.get("team_a"),
-                    team_b=player_details.get("team_b"),
-                    team_key=player_details.get("team_key"),
-                    player_team=player_details.get("player_team"),
-                ),
-                stats=[
-                    Stats(
-                        stat_type=stat_type,
-                        line=game_details.get("activeMarket").get("targetValue"),
-                        bet_direction=direction_mapper.get(str(stat.get("statLinePropositionId"))),
-                        regular_line=True if stat.get("standingsMultiplier") == 1 else False,
-                        optional_stats=OptionalStatInformation(
-                            multiplier=stat.get("standingsMultiplier")
-                        )
+        return PlayerData(
+            player_name=self.clean_and_normalize_name(player_details.get("player_name")),
+            league=LEAGUES.get(player_details.get("league").lower(), player_details.get("league").upper()),
+            start_date=player_details.get("start_date"),
+            team_data=TeamData(
+                team_a=player_details.get("team_a"),
+                team_a_abbreviation=player_details.get("team_a_abbreviation"),
+                team_b=player_details.get("team_b"),
+                team_b_abbreviation=player_details.get("team_b_abbreviation"),
+                team_key=player_details.get("team_key"),
+                player_team=player_details.get("player_team"),
+            ),
+            stats=[
+                Stats(
+                    stat_type=stat_type,
+                    line=game_details.get("activeMarket").get("targetValue"),
+                    bet_direction=direction_mapper.get(str(stat.get("statLinePropositionId"))),
+                    regular_line=True if stat.get("standingsMultiplier") == 1 else False,
+                    optional_stats=OptionalStatInformation(
+                        multiplier=stat.get("standingsMultiplier")
+                    )
+                )
+
+                for stat in game_details.get("activeMarket").get("activeSelections")
+
+            ],
+            future=True if "szn" in player_details.get("league").lower() else False,
+            solo_game=player_details.get("solo_game")
+        )
+
+    async def _additional_mapping(self, player_data):
+        # Additional mapping, due to DK using first initial and last name format.
+        mapping_leagues = ["NFL"]
+        mapped_data = await self.redis.fetch_data("draftkings_unique_mapper_6")
+        non_mapped_players = []
+
+
+        for player in player_data:
+            no_match = True
+
+            if player.league in mapping_leagues:
+                player_key = f"{player.player_name}"
+                matched_player = mapped_data.get(player_key)
+                if matched_player:
+                    player.player_name = f"{matched_player.get('first_name')} {matched_player.get('last_name')}"
+                    no_match = False
+
+                if no_match:
+                    # Used for tracking players that don't have a mapping, so we can add them to the static mapper.
+                    non_mapped_players.append(player)
+
+        if non_mapped_players:
+            log_path = os.path.join("DFS Logs", "Mapping Logs")
+            os.makedirs(log_path, exist_ok=True)
+            log_file = os.path.join(log_path, "draftkings_6_no_mapping.log")
+
+            with open(log_file, "w") as file:
+                for player in non_mapped_players:
+                    file.write(
+                        f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - "
+                        f"No mapping found for {player.player_name} in league {player.league}\n"
                     )
 
-                    for stat in game_details.get("activeMarket").get("activeSelections")
+        await self.redis.close()
+        return player_data
 
-                ],
-                future=True if "szn" in player_details.get("league").lower() else False,
-                solo_game=player_details.get("solo_game")
-            )
-        except:
-            # print(game_details)
-            pass
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
@@ -191,6 +248,7 @@ class DraftKingsPickSix(DFSBookBase):
             )
 
             leagues = self._extract_leagues(api_league_data)
+
             unique_leagues = self._extract_unique_leagues(api_league_data)
             if unique_leagues:
                 leagues.extend(unique_leagues)
@@ -229,8 +287,12 @@ class DraftKingsPickSix(DFSBookBase):
                     else:
                         player_data_list[player_key] = player_data
 
+            picksix_data = await self._additional_mapping(list(player_data_list.values()))
+            serialize = self.serialize_data(picksix_data)
+            import json
+            with open("draftkings_6.json", "w") as file:
+                json.dump(serialize, file, indent=4, default=str)
 
-            picksix_data = list(player_data_list.values())
             return await self._database_mapper(picksix_data)
 
 if __name__ == "__main__":

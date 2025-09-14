@@ -13,3 +13,6 @@
 
 ### Redis Database - `3`
 ##### This is for Auth Tokens
+
+### Redis Database - `4`
+##### This is for DFS Mapping
