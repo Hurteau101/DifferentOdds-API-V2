@@ -141,7 +141,7 @@ class AsyncBook:
     @staticmethod
     async def _handle_response(response, parse_json):
         """Handle the response from the API call."""
-        if response.status == 200:
+        if response.status in [200, 201]:
             # Some API's return text that needs to be parsed as JSON
             if parse_json:
                 try:
@@ -152,8 +152,6 @@ class AsyncBook:
 
             return await response.json()
         else:
-            print(response.status)
-            print(await response.text())
             return None
 
 

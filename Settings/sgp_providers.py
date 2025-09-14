@@ -112,6 +112,18 @@ SGP_PROVIDERS = [
             "event_id_regex": r"betslip/(.+)", # Use event_id same as bet_id as hardrock does not provide event_id separately
         },
         method="WS"
+    ),
+    SGPProvider(
+        title="Novig",
+        name="novig",
+        url={
+            "main_url": "https://api.novig.us/nbx/v1/parlay/request/unauthenticated"
+        },
+        regex={
+            "bet_id_regex": r"events/([^/]+)",
+            "event_id_regex": r"events/([^/]+)", # Use event_id same as bet_id as novig does not provide event_id separately
+        },
+        method="POST"
     )
 
 ]
