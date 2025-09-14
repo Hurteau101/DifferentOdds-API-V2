@@ -85,6 +85,21 @@ SGP_PROVIDERS = [
             "event_id_regex": r"event/(\d+)?",
         },
         method="GET"
+    ),
+    SGPProvider(
+        title="DraftKings",
+        name="draftkings",
+        url={
+            "main_url": "https://gaming-ca-on.draftkings.com/api/wager/v1/calculateBets"
+        },
+        regex={
+            "bet_id_regex": r"outcomes=([^\s]+)",
+            "event_id_regex": r"event/(\d+)?",
+        },
+        headers={
+            'x-api-features': '{EnableFullSGPDrivenFlow:true}'
+        },
+        method="POST"
     )
 
 ]

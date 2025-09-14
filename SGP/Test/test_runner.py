@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import os
 
 from SGP.betmgm import BetMGM_SGP
+from SGP.draftkings import Draftkings_SGP
 from SGP.fanactics import Fanatics_SGP
 from SGP.fanduel import Fanduel_SGP
 from SGP.kambi import Kambi_SGP
@@ -21,7 +22,8 @@ INITIALIZATION = {
     # "fanduel": Fanduel_SGP,
     # "betmgm": BetMGM_SGP,
     # "fanatics": Fanatics_SGP
-    "kambi": Kambi_SGP
+    # "kambi": Kambi_SGP
+    "draftkings": Draftkings_SGP,
 }
 
 
@@ -177,7 +179,7 @@ if __name__ == "__main__":
     #     {"book_name": "Fanduel", "links": []}
     # ]
     book_data = [
-        {"book_name": "kambi", "links": []}
+        {"book_name": "draftkings", "links": []}
     ]
 
     test_instance = SGPTest(book_data)
