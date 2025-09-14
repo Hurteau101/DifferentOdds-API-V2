@@ -55,5 +55,23 @@ SGP_PROVIDERS = [
             "bet_id_regex": r"--(\d+)",
         },
         method="GET",
-    )
+    ),
+    SGPProvider(
+        title="Fanatics Sportsbook",
+        name="fanatics",
+        url={
+            "main_url": "wss://sportsbook.1.betfanatics.com/sportsbook-streaming-ws"
+        },
+        headers={
+            "Accept-Encoding": "gzip,deflate",
+            "Accept-Charset": "UTF-8",
+            "Accept": "*/*",
+            "User-Agent": "ktor-client",
+        },
+        regex={
+            "bet_id_regex": r'"selectionId":"(\d+)"',
+            "event_id_regex": r'"eventId":"(\d+)"',
+        },
+        method="WS"
+    ),
 ]

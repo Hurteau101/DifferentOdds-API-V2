@@ -3,7 +3,7 @@ import re
 from abc import ABC, abstractmethod
 
 from orjson import orjson
-
+import urllib.parse
 from Redis.redis_manager import RedisManager
 from Settings.book_base import BookBase
 from Settings.sportsbook_config import SportsbookConfig
@@ -11,9 +11,9 @@ from Settings.sportsbook_config import SportsbookConfig
 
 class SGPBookBase(BookBase, ABC):
     """Base class for SGP books, inheriting from SportsbookBase."""
-    def __init__(self, request_type, sportsbook_name: str, links, log_directory="SGP Logs", log_name=None):
+    def __init__(self, request_type, sportsbook_name: str, links, log_directory="SGP Logs", log_name=None, decode_url=False):
         self.book_data = SportsbookConfig.get_sgp_provider(sportsbook_name)
-        self.link_data = self._extract_link_details(links)
+        self.link_data = self._extract_link_details(links, decode_url=decode_url)
         self.redis_db = 2
         super().__init__(request_type, log_directory=log_directory, log_name=log_name)
 
@@ -52,16 +52,20 @@ class SGPBookBase(BookBase, ABC):
             return await func(self)
         return wrapper
 
-    def _extract_link_details(self, links):
+    def _extract_link_details(self, links, decode_url):
         """ Extract bet_id and event_id from the provided links."""
         link_data = []
 
         for link in links:
+            if decode_url:
+                link = urllib.parse.unquote(link)
+
             if not link:
                 return None
 
             bet_id = re.search(self.book_data.regex.get("bet_id_regex"), link)
             event_id = re.search(self.book_data.regex.get("event_id_regex"), link)
+
             if bet_id and event_id:
                 bet_id = bet_id.group(1)
 
