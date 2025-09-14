@@ -212,7 +212,7 @@ class DraftKingsPickSix(DFSBookBase):
             no_match = True
 
             if player.league in mapping_leagues:
-                player_key = f"{player.player_name}"
+                player_key = f"{player.player_name} - {player.team_data.player_team}"
                 matched_player = mapped_data.get(player_key)
                 if matched_player:
                     player.player_name = f"{matched_player.get('first_name')} {matched_player.get('last_name')}"
@@ -288,11 +288,6 @@ class DraftKingsPickSix(DFSBookBase):
                         player_data_list[player_key] = player_data
 
             picksix_data = await self._additional_mapping(list(player_data_list.values()))
-            serialize = self.serialize_data(picksix_data)
-            import json
-            with open("draftkings_6.json", "w") as file:
-                json.dump(serialize, file, indent=4, default=str)
-
             return await self._database_mapper(picksix_data)
 
 if __name__ == "__main__":

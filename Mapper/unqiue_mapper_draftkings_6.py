@@ -18,15 +18,10 @@ class DraftKingsUniqueMapper6:
 
         player_dict = {}
 
-        interation_count = 0
+        interation_count = 1
 
         def loop_pagination(next_cursor=None):
             nonlocal interation_count
-            print(next_cursor)
-
-            if interation_count == 5:
-                time.sleep(60)
-                interation_count = 0
 
             url = f"https://api.balldontlie.io/nfl/v1/players?per_page=100{f'&cursor={next_cursor}' if next_cursor else ''}"
             response = requests.get(url, headers=headers)
@@ -37,7 +32,7 @@ class DraftKingsUniqueMapper6:
                     first_name = player.get("first_name", "").strip()
                     last_name = player.get("last_name", "").strip()
                     team_abbreviation = player.get("team", {}).get("abbreviation", "").strip()
-                    key_name = f"{first_name[0]}. {last_name}"
+                    key_name = f"{first_name[0]}. {last_name} - {team_abbreviation}"
                     player_dict[key_name] = {
                         "first_name": first_name,
                         "last_name": last_name,
@@ -46,8 +41,13 @@ class DraftKingsUniqueMapper6:
                     }
 
                 if next_cursor:
-                    interation_count += 1
                     print("The next cursor is:", next_cursor)
+                    # Pause for 60 seconds after every 5 iterations to respect rate limits
+                    if interation_count == 5:
+                        time.sleep(60)
+                        interation_count = 0
+
+                    interation_count += 1
                     loop_pagination(next_cursor)
 
         loop_pagination()
