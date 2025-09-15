@@ -12,6 +12,7 @@ from SGP.fanduel import Fanduel_SGP
 from SGP.hardrock import Hardrock_SGP
 from SGP.kambi import Kambi_SGP
 from SGP.novig import Novig_SGP
+from SGP.onyx import Onyx_SGP
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
 
@@ -27,7 +28,7 @@ INITIALIZATION = {
     # "kambi": Kambi_SGP
     # "draftkings": Draftkings_SGP,
     # "hardrock": Hardrock_SGP
-    "novig": Novig_SGP
+    "onyxodds": Onyx_SGP
 }
 
 
@@ -184,7 +185,7 @@ if __name__ == "__main__":
     #     {"book_name": "Fanduel", "links": []}
     # ]
     book_data = [
-        {"book_name": "novig", "links": []}
+        {"book_name": "onyxodds", "links": []}
     ]
 
     test_instance = SGPTest(book_data)

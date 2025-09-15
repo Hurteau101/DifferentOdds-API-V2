@@ -129,11 +129,13 @@ SGP_PROVIDERS = [
         title="Onyx Odds",
         name="onyx",
         url={
-            "store_url": "https://api.onyxodds.com/api/odds/mainLines"
+            "store_url": "https://api.onyxodds.com/api/odds/mainLines",
+            "market_url": "https://api.onyxodds.com/api/odds/gameMainLines/{game_id}",
+            "main_url": "https://api.onyxodds.com/api/odds/parlayPrice"
         },
         regex={
-            "bet_id_regex": r"events/([^/]+)",
-            "event_id_regex": r"events/([^/]+)",
+            "bet_id_regex": r"selection=([\w-]+)",
+            "event_id_regex": r"selection=([\w-]+)", # Use event_id same as bet_id as don't need event_id
         },
         method="POST"
     )
