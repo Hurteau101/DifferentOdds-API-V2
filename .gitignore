@@ -14,7 +14,9 @@ SGP/SGP Logs
 *.log
 Settings/auth_tokens.json
 DFS/t.py
+SGP/t.py
 DFS/chalkboard.py
-Internal Docs/
+Internal_Docs/
 Settings/Auth_Automation/caesars_sgp_auth.py
+Settings/Auth_Automation/Logs/
 SGP/Test/SGP Logs/

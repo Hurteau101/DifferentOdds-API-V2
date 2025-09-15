@@ -124,6 +124,18 @@ SGP_PROVIDERS = [
             "event_id_regex": r"events/([^/]+)", # Use event_id same as bet_id as novig does not provide event_id separately
         },
         method="POST"
+    ),
+    SGPProvider(
+        title="Onyx Odds",
+        name="onyx",
+        url={
+            "store_url": "https://api.onyxodds.com/api/odds/mainLines"
+        },
+        regex={
+            "bet_id_regex": r"events/([^/]+)",
+            "event_id_regex": r"events/([^/]+)",
+        },
+        method="POST"
     )
 
 ]
