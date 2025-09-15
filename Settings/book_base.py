@@ -93,6 +93,11 @@ class BookBase(ABC):
 
         return None
 
+    @staticmethod
+    def create_json(data, file_name):
+        """Create a JSON file from the provided data."""
+        with open(file_name, "w") as json_file:
+            json.dump(data, json_file, indent=2)
 
     @abstractmethod
     async def run_book(self):
