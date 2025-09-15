@@ -6,6 +6,7 @@ import requests
 from celery.bin.result import result
 from dotenv import load_dotenv
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
+from Redis.redis_manager import RedisManager
 from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from datetime import datetime, timedelta
@@ -13,80 +14,11 @@ from Settings.dfs_model import PlayerData, TeamData, Stats, OptionalStatInformat
 
 
 class FanDuelPicks(DFSBookBase):
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    relative_path = os.path.join(BASE_DIR, "..", "Settings", "auth_tokens.json")
     VALID_LEAGUES = ["NFL", "MLB"]
     def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="fanduel_picks")
         load_dotenv()
-        self._check_token()
-
-
-    def _check_token(self):
-        # Load existing token data
-        with open(FanDuelPicks.relative_path, "r") as f:
-            token_data = json.load(f)
-
-        if not token_data.get("fanduel_picks"):
-            self.file_logger.log(
-                message=f"No auth token found for FanDuel Picks. Please set the token in auth_tokens.json",
-                level="ERROR",
-            )
-
-        auth_token = token_data.get("fanduel_picks", {}).get("auth_token")
-        auth_expiry = token_data.get("fanduel_picks", {}).get("expiry")
-
-        # Check if token is missing or expired and generate a new one if needed
-        if not auth_token or self._check_auth_expiration(auth_expiry):
-            new_auth = self._generate_new_auth()
-            token_data["fanduel_picks"] = new_auth
-            with open(FanDuelPicks.relative_path, "w") as f:
-                json.dump(token_data, f, indent=4, default=str)
-
-    def _check_auth_expiration(self, expiry):
-        # If expiry is None or empty, consider it expired
-        if not expiry:
-            return True
-
-        # Convert the expiry string to a datetime object and compare with current time. If current time is greater, it's expired.
-        auth_expiry = datetime.fromisoformat(expiry)
-        date_now = datetime.now()
-        return date_now >= auth_expiry
-
-    def _generate_new_auth(self):
-        url = "https://api.fanduel.com/sessions"
-        headers = {
-            'X-Installation-id': '4F447867-D1A7-458E-8566-733351B5BB58',
-            'Authorization': 'Basic ODc2YmQzOTE3ZWE3NjYwMjZhNjg5YzY2MTE5OGQxMmU6',
-            'Origin': 'https://account.picks.fanduel.com',
-            'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 17_7_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 AppInfo (appDomain/picks; version/3.1.0; platform/ios)',
-            'Referer': 'https://account.picks.fanduel.com/',
-            'x-px-context': '_px3=99705c3762b3d26c2f7e4516c14c73b857d17593e997f68a14635d27a78c5103:3ThPM+kI8SNJ0Tcl6TLwv64UqGl9vfZAb0DpdSnx0tLUtOc1ge6wpgSE7SEtRun/u1tLods2UuMnfZhZmqkkKQ==:1000:ml+mfrodK+i+NvDYjFoiQniMV4AeS19X8pjfRuMg0wRsv0P3DnlDz1hhfRTcXRqfSUL5oYb4QuhGOZ5Kb7MHufC0F2nyOdcqkfICIjmJm6BJR+HfGuvHfSNbfrdavrh/oO4qY36e2Pm+wOt4qlHCUFWneW/bIatzEz+kivxE9c9UtQ9yBIUVaJoA2bCnY9GiDbweJONTWpqfk9gAjK3ae8v6+meYAPFUt28JB6dPh3k=;pxcts=6e9a5a65-8e5c-11f0-bebf-b69a35fb55c1',
-            'Content-Type': 'application/json'
-        }
-
-        payload = {
-            "email": os.getenv("FANDUEL_PICK_EMAIL"),
-            "password": os.getenv("FANDUEL_PICK_PASSWORD"),
-            "product": os.getenv("FANDUEL_PICK_PRODUCT"),
-        }
-
-        # Make the POST request to generate a new auth token - Using httpx for HTTP/2 support
-        with httpx.Client(http2=True) as client:  # HTTP/2 enabled
-            response = client.post(url, headers=headers, json=payload)
-            if response.status_code == 201:
-                data = response.json()
-
-                auth_token = next((
-                    auth_data.get("id")
-                    for auth_data in data.get("sessions", [])
-                ), None)
-
-                if auth_token:
-                    return{
-                        "auth_token": auth_token,
-                        "expiry": (datetime.now() + timedelta(hours=23)).isoformat()
-                    }
+        self.redis = RedisManager(db=5)
 
     def _extract_data(self, raw_data, league):
         player_data = raw_data.get("prop").get("competitor", {})
@@ -162,13 +94,13 @@ class FanDuelPicks(DFSBookBase):
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            with open(FanDuelPicks.relative_path, "r") as f:
-                token_data = json.load(f)
 
-            auth_token = token_data.get("fanduel_picks", {}).get("auth_token")
+            auth_token = await self.redis.fetch_data("fanduel_picks_auth_token")
+            await self.redis.close()
+
             if not auth_token:
                 self.file_logger.log(
-                    message=f"No auth token found for FanDuel Picks. Please set the token in auth_tokens.json",
+                    message=f"No auth token found for FanDuel Picks",
                     additional="run_book caller",
                     level="ERROR",
                 )
@@ -242,6 +174,7 @@ class FanDuelPicks(DFSBookBase):
                             player_data_list[player_key] = player_data
 
             fanduel_picks_data = list(player_data_list.values())
+            print(fanduel_picks_data)
             return await self._database_mapper(fanduel_picks_data)
 
 

@@ -10,7 +10,7 @@ load_dotenv()
 EMAIL = os.getenv("ONYX_EMAIL")
 PASSWORD = os.getenv("ONYX_PASSWORD")
 
-async def get_onyx_auth_token():
+async def generate_onyx_auth_token():
     """Automates the login process to Onyx Odds and retrieves the session token."""
     redis = RedisManager(db=5)
 
@@ -64,4 +64,4 @@ async def get_onyx_auth_token():
         #             )
 
 if __name__ == "__main__":
-    asyncio.run(get_onyx_auth_token())
+    asyncio.run(generate_onyx_auth_token())
