@@ -1,5 +1,5 @@
 from xmlrpc.client import Boolean
-
+import asyncio
 import aiohttp
 from Settings.book_base import SportbookRequestType
 from Settings.exchange_book_base import ExchangeBookBase
@@ -207,14 +207,11 @@ class Kalashi(ExchangeBookBase):
             event_details = await asyncio.gather(*event_results)
             flatted_events = [event for sublist in event_details for event in sublist]
 
-            with open("kalashi_markets.json", "w") as f:
-                import json
-                json.dump(flatted_events, f, indent=4, default=str)
+            return flatted_events
 
 
 
 
 if __name__ == "__main__":
-    import asyncio
     kalashi = Kalashi()
     asyncio.run(kalashi.run_book())

@@ -1,5 +1,5 @@
 import aiohttp
-
+import asyncio
 from Redis.redis_manager import RedisManager
 from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase
@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
 
     betmgm = BetMGM_SGP(links)
-    import asyncio
+    # import asyncio
 
     run_type = ""
 
