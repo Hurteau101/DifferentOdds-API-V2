@@ -67,7 +67,7 @@ class Onyx_SGP(SGPBookBase):
             for game_id in api_data.get("data").keys()
         )
 
-    async def _extract_mapped_ids(self, api_data, game_id):
+    def _extract_mapped_ids(self, api_data, game_id):
         markets = api_data.get(game_id, {}).get("markets")
         if not markets:
             return {}
@@ -130,7 +130,7 @@ class Onyx_SGP(SGPBookBase):
             all_mapped_ids = {}
             for api_data, game_id in zip(results, game_ids):
                 if api_data:
-                    mapped_ids = await self._extract_mapped_ids(api_data, game_id)
+                    mapped_ids = self._extract_mapped_ids(api_data, game_id)
                     all_mapped_ids.update(mapped_ids)
 
             if all_mapped_ids:
