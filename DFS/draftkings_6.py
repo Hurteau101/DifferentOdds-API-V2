@@ -267,7 +267,8 @@ class DraftKingsPickSix(DFSBookBase):
             ]
 
             results = await asyncio.gather(*tasks)
-            merged_data = [item for res in results for key, item in res.get("pickableIdToPickableMap").items()]
+
+            merged_data = [item for res in results for key, item in res.get("pickableIdToPickableMap", {}).items()]
 
             player_data_list = {}
 

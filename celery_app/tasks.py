@@ -25,6 +25,7 @@ from SGP.fanduel import Fanduel_SGP
 from SGP.onyx import Onyx_SGP
 from Settings.Auth_Automation.fanduel_picks_auth import generate_fanduel_picks_auth_token
 from Settings.Auth_Automation.onyx_sgp_auth import generate_onyx_auth_token
+from Settings.Auth_Automation.ownerbox_auth import generate_ownerbox_auth_token
 from Settings.dfs_model import BookData
 
 logger = get_task_logger(__name__)
@@ -119,6 +120,10 @@ def refresh_auths():
             await generate_fanduel_picks_auth_token()
         except Exception as e:
             logger.error(f"Error generating Fanduel Picks auth token: {e}")
+        try:
+            await generate_ownerbox_auth_token()
+        except Exception as e:
+            logger.error(f"Error generating Ownerbox auth token: {e}")
 
     async_to_sync(_run)()
 

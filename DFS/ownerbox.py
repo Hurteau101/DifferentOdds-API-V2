@@ -1,6 +1,7 @@
 from datetime import datetime
 import aiohttp
 import asyncio
+from Redis.redis_manager import RedisManager
 from Settings.book_base import SportbookRequestType
 from Mapper.static_mapper import STAT_TYPES, LEAGUES
 from Settings.dfs_book_base import DFSBookBase
@@ -13,14 +14,13 @@ class Ownerbox(DFSBookBase):
         self.LEAGUES = [
             "MLB", "NFL", "PGA", "NBA", "NHL"
         ]
+        self.redis = RedisManager(db=5)
 
     def _generate_urls(self):
         return [
             self.book_data.url.get("main_url").format(league=league)
             for league in self.LEAGUES
         ]
-
-
 
     def _extract_game_data(self, game_data):
         team_a = game_data.get("game", {}).get("homeTeam", {}).get("alias")
@@ -66,18 +66,27 @@ class Ownerbox(DFSBookBase):
     async def run_book(self):
         links = self._generate_urls()
         async with aiohttp.ClientSession() as session:
+            # 'Cookie': f'obauth={os.getenv("ownerbox_auth_token")}'
+            auth_token = await self.redis.fetch_data("ownerbox_auth_token")
+            await self.redis.close()
+
+            headers = {
+                **self.book_data.headers,
+                'Cookie': f'obauth={auth_token}'
+            }
+
             tasks = [
                 self.api_caller(
                     session=session,
                     url=link,
                     method=self.book_data.method,
-                    headers=self.book_data.headers,
+                    headers=headers
                 )
                 for link in links
             ]
 
             results = await asyncio.gather(*tasks)
-            merged_data = [item for res in results for item in res.get("data", [])]
+            merged_data = [item for res in results if res for item in res.get("data", [])]
             if not merged_data:
                 self._api_call_log("ownerbox")
                 return

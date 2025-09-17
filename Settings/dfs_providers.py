@@ -132,7 +132,6 @@ DFS_PROVIDERS = [
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
             'TE': 'trailers',
-            'Cookie': f'obauth={os.getenv("ownerbox_auth_token")}'
         },
         method="GET",
         active=True

@@ -1,7 +1,6 @@
 import re
-
 import aiohttp
-
+import asyncio
 from Mapper.static_mapper import LEAGUES, MARKET_TYPE_MAPPER, STAT_TYPES
 from Settings.dfs_book_base import DFSBookBase
 from Settings.book_base import SportbookRequestType
@@ -51,7 +50,12 @@ class Parlayplay(DFSBookBase):
         if re.search("r(szn|season)", league, re.IGNORECASE):
             return True
 
-        return True if player.get("match").get("league").get("leagueDescription").lower() in ["szn", "season"] else False
+        league_description = player.get("match", {}).get("league", {}).get("leagueDescription")
+
+        if not league_description:
+            return False
+
+        return True if league_description.lower() in ["szn", "season"] else False
 
     # Check if it's a solo sport
     def _check_solo_sport(self, player):
