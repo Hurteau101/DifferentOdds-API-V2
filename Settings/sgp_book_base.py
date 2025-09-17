@@ -26,6 +26,7 @@ class SGPBookBase(BookBase, ABC):
     async def _returned_mapped_redis_data(self, sportsbook_name):
         redis = RedisManager(db=self.redis_db)
         mapped_ids = await redis.fetch_data(sportsbook_name)
+        await redis.close()
 
         if isinstance(mapped_ids, bytes):
             mapped_ids = orjson.loads(mapped_ids)
