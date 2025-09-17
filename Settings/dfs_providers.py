@@ -189,9 +189,6 @@ DFS_PROVIDERS = [
         url={
             "main_url": "https://firestore.googleapis.com/v1/projects/taild-262305/databases/(default)/documents:runQuery"
         },
-        headers={
-            'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImUzZWU3ZTAyOGUzODg1YTM0NWNlMDcwNTVmODQ2ODYyMjU1YTcwNDYiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vdGFpbGQtMjYyMzA1IiwiYXVkIjoidGFpbGQtMjYyMzA1IiwiYXV0aF90aW1lIjoxNzU3NDI4MDUzLCJ1c2VyX2lkIjoidFp5eVd2djNQQ1Ewdk4xTnNTcnE5elhXZVlHMyIsInN1YiI6InRaeXlXdnYzUENRMHZOMU5zU3JxOXpYV2VZRzMiLCJpYXQiOjE3NTc2MzYyMjEsImV4cCI6MTc1NzYzOTgyMSwiZW1haWwiOiJ0NzY4MTk5MkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsidDc2ODE5OTJAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.NC7hcNcjLTgvFEsYPnQjzsW63EbNKIicyGZyjJ4xmBICcy51X1tKtJpmeSLtyLnSHfN7MwdVeiYXYxrSBBQzQ0m_6fpot21igxebR2WfonnuzJS5tIJ_udPHSFdLoGARX3WrNSGRyCb3AW2u6nHvZ5juRKknNJtG847334-YUjhJTScvhH-j4ZUoIHtH2SizqUzzUH9dzBOkqOhn8pz8GsY-i4w4iUTcLrboGPRWgndD4V8-FGFDEpcYSlKznQDfGR405mP_iDE45G2UitXzc8N5pjjkvicNDs2cU6iwovW6X3PStGiNF-OeX3_ytlmZ3eNiLe_Ackr_U2dfptYMWg'
-        },
         method="POST",
         active=True
     ),
