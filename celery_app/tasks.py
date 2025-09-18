@@ -95,17 +95,17 @@ DFS_Books = {
     # },
 }
 
-EXCHANGE_BOOKS = {
-    "kalashi" :{
-        "class": Kalashi,
-        "interval": 15,
-        "task": "exchange",
-    }
-}
+# EXCHANGE_BOOKS = {
+#     "kalashi" :{
+#         "class": Kalashi,
+#         "interval": 15,
+#         "task": "exchange",
+#     }
+# }
 
 BOOKS = {
     "dfs": DFS_Books,
-    "exchange": EXCHANGE_BOOKS,
+    "exchange": None,
 }
 
 ### COMMENT OUT BOOKS 1 BY 1 FOR TESTING TO SEE WHERE IS BREAKING
