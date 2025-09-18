@@ -1,4 +1,6 @@
 import asyncio
+
+from DFS.fanduel_picks import FanDuelPicks
 from DFS.prizepicks import Prizepicks
 from DFS.underdog import Underdog
 from DFS.betr import Betr
@@ -87,6 +89,11 @@ DFS_Books = {
         "interval": 15,
         "task": "dfs",
     },
+    "fanduel_picks": {
+        "class": FanDuelPicks,
+        "interval": 15,
+        "task": "dfs",
+    }
     # Disabled until working fix can be found - VPN Issue.
     # "splashsports": {
     #     "class": SplashSports,
