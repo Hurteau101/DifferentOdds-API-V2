@@ -10,6 +10,7 @@ class SGPProvider:
     method: str
     headers: Optional[Dict] = None
     regex: Optional[Dict] = None
+    active: Optional[bool] = False
 
 
 SGP_PROVIDERS = [
@@ -36,6 +37,7 @@ SGP_PROVIDERS = [
             "event_id_regex": r"marketId=([\d.]+)&",
         },
         method="GET",
+        active=True,
     ),
     SGPProvider(
         title="BetMGM Sportsbook",
@@ -55,6 +57,7 @@ SGP_PROVIDERS = [
             "bet_id_regex": r"--(\d+)",
         },
         method="GET",
+        active=True,
     ),
     SGPProvider(
         title="Fanatics Sportsbook",
@@ -72,7 +75,8 @@ SGP_PROVIDERS = [
             "bet_id_regex": r'"selectionId":"(\d+)"',
             "event_id_regex": r'"eventId":"(\d+)"',
         },
-        method="WS"
+        method="WS",
+        active=True,
     ),
     SGPProvider(
         title="Kambi Provider",
@@ -84,7 +88,8 @@ SGP_PROVIDERS = [
             "bet_id_regex": r"single\|(\d+)\|",
             "event_id_regex": r"event/(\d+)?",
         },
-        method="GET"
+        method="GET",
+        active=True,
     ),
     SGPProvider(
         title="DraftKings",
@@ -99,7 +104,8 @@ SGP_PROVIDERS = [
         headers={
             'x-api-features': '{EnableFullSGPDrivenFlow:true}'
         },
-        method="POST"
+        method="POST",
+        active=True,
     ),
     SGPProvider(
         title="HardRock",
@@ -111,7 +117,8 @@ SGP_PROVIDERS = [
             "bet_id_regex": r"betslip/(.+)",
             "event_id_regex": r"betslip/(.+)", # Use event_id same as bet_id as hardrock does not provide event_id separately
         },
-        method="WS"
+        method="WS",
+        active=True,
     ),
     SGPProvider(
         title="Novig",
@@ -123,7 +130,8 @@ SGP_PROVIDERS = [
             "bet_id_regex": r"events/([^/]+)",
             "event_id_regex": r"events/([^/]+)", # Use event_id same as bet_id as novig does not provide event_id separately
         },
-        method="POST"
+        method="POST",
+        active=True,
     ),
     SGPProvider(
         title="Onyx Odds",
@@ -137,7 +145,8 @@ SGP_PROVIDERS = [
             "bet_id_regex": r"selection=([\w-]+)",
             "event_id_regex": r"selection=([\w-]+)", # Use event_id same as bet_id as don't need event_id
         },
-        method="POST"
+        method="POST",
+        active=True,
     )
 
 ]

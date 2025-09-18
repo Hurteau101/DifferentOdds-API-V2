@@ -35,7 +35,6 @@ async def generate_ownerbox_auth_token():
 
         if obauth_cookie:
             auth_token = obauth_cookie["value"]
-            print(auth_token)
 
             if auth_token:
                 await redis.store_data(

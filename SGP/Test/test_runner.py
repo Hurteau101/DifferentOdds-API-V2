@@ -24,10 +24,10 @@ DEFAULT_CONDITIONS = {
 INITIALIZATION = {
     # "fanduel": Fanduel_SGP,
     # "betmgm": BetMGM_SGP,
-    # "fanatics": Fanatics_SGP
-    # "kambi": Kambi_SGP
+    # "fanatics": Fanatics_SGP,
+    # "kambi": Kambi_SGP,
     # "draftkings": Draftkings_SGP,
-    # "hardrock": Hardrock_SGP
+    # "hardrock": Hardrock_SGP,
     "onyxodds": Onyx_SGP
 }
 
@@ -115,7 +115,7 @@ class SGPTest:
         return books
 
 
-    async def run_test(self, json_name="test_data.json", json_path=None, indent=2):
+    async def run_test(self, json_name="test_data2.json", json_path=None, indent=2):
         if not self.book_data:
             raise ValueError("No book data provided for testing.")
 
@@ -186,6 +186,12 @@ if __name__ == "__main__":
     # ]
     book_data = [
         {"book_name": "onyxodds", "links": []}
+        # {"book_name": "kambi", "links": []},
+        # {"book_name": "draftkings", "links": []},
+        # {"book_name": "betmgm", "links": []},
+        # {"book_name": "fanatics", "links": []},
+        # {"book_name": "fanduel", "links": []}
+        # {"book_name": "hardrock", "links": []}
     ]
 
     test_instance = SGPTest(book_data)

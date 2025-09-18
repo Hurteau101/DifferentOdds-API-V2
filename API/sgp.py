@@ -4,11 +4,23 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from API.setup import create_logging_setup
 from API.security import get_api_key
+from SGP.betmgm import BetMGM_SGP
+from SGP.draftkings import Draftkings_SGP
+from SGP.fanactics import Fanatics_SGP
 from SGP.fanduel import Fanduel_SGP
+from SGP.hardrock import Hardrock_SGP
+from SGP.kambi import Kambi_SGP
+from SGP.onyx import Onyx_SGP
 from Settings.sportsbook_config import SportsbookConfig
 
 BOOK_INITIALIZERS = {
     "fanduel": Fanduel_SGP,
+    "betmgm": BetMGM_SGP,
+    "fanatics": Fanatics_SGP,
+    "kambi": Kambi_SGP,
+    "draftkings": Draftkings_SGP,
+    "hardrock": Hardrock_SGP,
+    "onyx": Onyx_SGP
 }
 
 file_logger = create_logging_setup(folder_name="sgp", file_name="sgp_api.log")
@@ -22,6 +34,7 @@ class SGP(BaseModel):
 class Books(BaseModel):
     title: str
     book_key: str
+    status: str
 
 class BooksListResponse(BaseModel):
     sgp_books: List[Books]
@@ -41,24 +54,27 @@ async def get_sgp_book_list():
 @router.post("/get_odds",
                 summary="Get SGP Odds",
                 description="Fetch SGP odds from specified sportsbooks.",
-                dependencies=[Depends(get_api_key)]
+                # dependencies=[Depends(get_api_key)]
              )
 async def get_sgp_odds(books: List[SGP]):
     # Create instance of each sportsbook and run concurrently
     async def fetch_sgp_odds(book, timeout=15, single_book=False):
-        book_class = BOOK_INITIALIZERS[book.book_name.lower()]
-        book_instance = book_class(links=book.links)
-        try:
-            return await asyncio.wait_for(book_instance.run_book(), timeout=timeout)
-        except asyncio.TimeoutError:
-            file_logger.log(message=f"{book.book_name} timed out", level="ERROR")
+        book_class = BOOK_INITIALIZERS.get(book.book_name.lower())
+        if book_class:
+            book_instance = book_class(links=book.links)
+            try:
+                return await asyncio.wait_for(book_instance.run_book(), timeout=timeout)
+            except asyncio.TimeoutError:
+                file_logger.log(message=f"{book.book_name} timed out", level="ERROR")
 
-           # Single books we want to raise an error, for multiple just return the error in the response due to partial failure
-            if single_book:
-                raise HTTPException(status_code=504, detail=f"{book.book_name} timed out")
-            return None
-        except Exception as e:
-            return None
+               # Single books we want to raise an error, for multiple just return the error in the response due to partial failure
+                if single_book:
+                    raise HTTPException(status_code=504, detail=f"{book.book_name} timed out")
+                return None
+            except Exception as e:
+                return None
+
+        return None
 
     sgp_books = [book.get("book_key") for book in SportsbookConfig.get_book_info(book_type="sgp")]
 

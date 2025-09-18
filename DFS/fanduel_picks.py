@@ -174,7 +174,6 @@ class FanDuelPicks(DFSBookBase):
                             player_data_list[player_key] = player_data
 
             fanduel_picks_data = list(player_data_list.values())
-            print(fanduel_picks_data)
             return await self._database_mapper(fanduel_picks_data)
 
 
