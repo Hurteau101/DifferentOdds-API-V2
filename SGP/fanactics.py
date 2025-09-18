@@ -10,7 +10,7 @@ class Fanatics_SGP(SGPBookBase):
 
     @SGPBookBase.require_link_data
     async def run_book(self):
-        async with websockets.connect(self.book_data.url.get("main_url"), extra_headers=self.book_data.headers) as websocket:
+        async with websockets.connect(self.book_data.url.get("main_url"), additional_headers=self.book_data.headers) as websocket:
             payload = {
                 "BetslipBuilderRequest": {
                     "channel": "AMELCO_TN_MASTER",
