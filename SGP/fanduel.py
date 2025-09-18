@@ -66,6 +66,7 @@ class Fanduel_SGP(SGPBookBase):
     async def _map_data(self):
         """ Map the marketID from the links to the actual marketId using Redis. Due to links being external market IDs"""
         mapped_ids = await self._returned_mapped_redis_data("fanduel_ids")
+        print(mapped_ids)
         if isinstance(mapped_ids, bytes):
             mapped_ids = orjson.loads(mapped_ids)
         if isinstance(mapped_ids, str):
