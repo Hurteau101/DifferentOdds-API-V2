@@ -11,7 +11,7 @@ from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from datetime import datetime, timedelta
 from Settings.dfs_model import PlayerData, TeamData, Stats, OptionalStatInformation
-
+import asyncio
 
 class FanDuelPicks(DFSBookBase):
     VALID_LEAGUES = ["NFL", "MLB"]

@@ -112,7 +112,7 @@ DFS_Books = {
 
 BOOKS = {
     "dfs": DFS_Books,
-    "exchange": None,
+    "exchange": {},
 }
 
 ### COMMENT OUT BOOKS 1 BY 1 FOR TESTING TO SEE WHERE IS BREAKING
