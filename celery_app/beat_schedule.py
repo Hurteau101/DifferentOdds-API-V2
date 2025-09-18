@@ -14,11 +14,12 @@ for run_book_type, books in BOOKS.items():
         else:
             continue
 
+
         beat_schedule[f"run-{run_book_type}-{book_name}-every-{book_info['interval']}s"] = {
             "task": "celery_app.tasks.run_book",
             "schedule": book_info["interval"],
             "args": (book_name, redis_db, run_book_type),
-            "options": {"queue": queue, "expires": book_info["interval"] + 5},
+            "options": {"queue": queue},  # removed "expires"
         }
 
 
