@@ -38,7 +38,12 @@ async def main():
         Underdog()
     ]
 
-    await asyncio.gather(*(run_with_print(book) for book in books))
+    batch_size = 4
+    for i in range(0, len(books), batch_size):
+        batch = books[i:i+batch_size]
+        await asyncio.gather(*(run_with_print(book) for book in batch))
+
+    # await asyncio.gather(*(run_with_print(book) for book in books))
 
 
 if __name__ == "__main__":

@@ -15,7 +15,20 @@ if sys.platform.startswith("win"):
 
 
 class Database:
-    def __init__(self, min_size=1, max_size = 3, timeout = 30):
+    _instance = None   # singleton instance
+
+    def __new__(cls, *args, **kwargs):
+        """Ensure only one instance of Database exists."""
+        if cls._instance is None:
+            cls._instance = super(Database, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, min_size=3, max_size = 15, timeout = 30):
+        if hasattr(self, "_initialized") and self._initialized:
+            return
+        else:
+            self._initialized = True
+
         load_dotenv(dotenv_path=env_path)
         db_url = os.getenv("DATABASE_URL")
         if not db_url:
@@ -43,8 +56,6 @@ class Database:
         if not fernet_key:
             raise RuntimeError("FERNET_KEY not set in environment")
         self.cipher_suite = Fernet(fernet_key.encode())
-
-
 
     async def ensure_ready(self):
         if self._ready:
