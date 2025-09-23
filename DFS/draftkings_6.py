@@ -1,162 +1,195 @@
-import os
 import re
 import aiohttp
-import asyncio
-
-from Redis.redis_manager import RedisManager
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, OptionalStatInformation
 from Mapper.static_mapper import STAT_TYPES, LEAGUES
-from datetime import datetime
 from Settings.book_base import SportbookRequestType
 
 
 class DraftKingsPickSix(DFSBookBase):
     def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="draftkings_6")
-        self.URL_PART = "&_data=routes%2F_homeShared"
-        self.redis = RedisManager(db=4)
 
+    def _extract_leagues(self, api_data):
+        leagues = []
+        for data in api_data.get("carouselPills", []):
+            # Custom has a unique route to call.
+            if data.get("carouselPillType") == "Custom":
+                # Destination holds a part of the URL param we need for custom leagues.
+                destination = data.get("customPillData", {}).get("destination", "N/A")
+                match = re.search(r"^/events/([^/]+)/", destination)
+                if match:
+                    league = match.group(1)
+                    leagues.append({
+                        "league": f"CUSTOM_{league}",
+                        "unique_route": destination,
+                        "custom": True
+                    })
+            elif data.get("sportLeaguePillData", {}).get("hasPicksAvailable"):
+                leagues.append({
+                    "league": data.get("sportLeaguePillData", {}).get("leagueAbbreviation"),
+                    "custom": False
+                })
 
-    def _extract_leagues(self, league_data):
-        return [
-            {
-                "league": league.get("league", {}).get("leagueAbbreviation").replace(" ", "+"),
-                "unique": False,
+        return leagues
+
+    def _map_card_data(self, api_data):
+        return {
+            data.get("pickableId"): {
+                "name_id": next(entity["dkId"] for entity in data.get("entities", [])),
+                "stat_id": data.get("marketCategoryId"),
+                "game_id": next(compid for entity in data.get("entities", []) for compid in entity.get("compIds", [])),
             }
-            for league in league_data.get("sportLeagues", {})
-        ]
+            for data in api_data.get("pickCardsByPickGroup", {}).get("pickCards", [])
+            if data.get("entities")
+        }
 
-    # Extract the league name from the image url, as the unique names don't have a specific league.
-    def _get_league_name(self, league_data):
-        # Gather all possible links with league names.
-        candidates = [
-            league_data.get("homeTeam", {}).get("imageUrl"),
-            league_data.get("awayTeam", {}).get("imageUrl"),
-            league_data.get("imageUrl"),
-        ]
-
-        # Use regex to find the league name in the image URL. Filter out None values first to avoid errors.
-        for url in filter(None, candidates):
-            match = re.search(r'(?<=/images/)[^/]+', url)
-            if match:
-                return match.group(0)
-
-        # Fall back if no league's can be found in the image URLs.
-        return league_data.get("name")
-
-    # Extract unique leagues from the API data, which are leagues that are not in the regular league section.
-    def _extract_unique_leagues(self, league_data):
-        return [
-            {
-                "league": self._get_league_name(league),
-                "unique": True,
-                "url_addon": f"https://pick6.draftkings.com{league.get('destination')}{self.URL_PART}"
+    def _map_game_data(self, api_data):
+        return {
+            data.get("competitionId"): {
+                "league": data.get("sport"),
+                "start_time": data.get("startTime"),
+                "solo_game": True if data.get("matchupDisplay", {}).get("displayType") == "head-to-head" else False,
+                "home_team": data.get("homeTeam", {}),
+                "away_team": data.get("awayTeam", {}),
             }
-
-            for league in league_data.get("carouselLinks", []).get("sportLeagueKeyToLinks", {}).get("21-125", {}).get("rightAttachedLinks", [])
-        ]
-
-    # Generate URLs for each league, using the main URL for regular leagues and a unique URL for special leagues.
-    def _generate_urls(self, league_data):
-        return [
-            self.book_data.url.get("main_url").format(league=league.get("league"))
-            if not league.get("unique") else league.get("url_addon")
-
-            for league in league_data
-        ]
+            for data in api_data
+        }
 
 
-    def _extract_team_data(self, team_details, player_name):
-        start_date = team_details.get("competitionSummary").get("startTime")
+    def _extract_pick_card_data(self, name_mapping, card_mapping, stat_mapping, game_mapping, market_data):
+        """Extract all the player data from the pick card data."""
+        if market_data.get("isUnpickable"):
+            return None
 
-        # We check if there is . in time as they use milliseconds in some of the times.
-        if "." in start_date:
-            start_date = start_date.split(".")[0]
+        mapping_ids = card_mapping.get(market_data.get("pickableId"))
+        player_details = name_mapping.get(str(mapping_ids.get("name_id")))
+        stat_details = stat_mapping.get(str(mapping_ids.get("stat_id")))
+        game_details = game_mapping.get(mapping_ids.get("game_id"))
 
-        player_team_city = team_details.get("team").get("city")
-        player_team = self.clean_and_normalize_name(f'{team_details.get("team").get("name")}')
-        if player_team_city:
-            player_team = self.clean_and_normalize_name(f'{player_team_city} {player_team}')
+        if any([not player_details, not stat_details, not game_details]):
+            return None
 
-        if team_details.get("competitionSummary").get("matchupDisplay").get("displayType").lower() != "team-vs-team":
-            team_key = self._generate_key([player_name, start_date])
+        player_name = player_details.get("fullName")
+
+        if not game_details.get("solo_game"):
+            team_a = f"{game_details.get('home_team', {}).get('name', {}) or ''} {game_details.get('home_team', {}).get('city') or ''}"
+            team_b = f"{game_details.get('away_team', {}).get('name', {}) or ''} {game_details.get('away_team', {}).get('city') or ''}"
+            team_a_abbreviation = game_details.get("home_team", {}).get("abbreviation")
+            team_b_abbreviation = game_details.get("away_team", {}).get("abbreviation")
+
+            team_key = self._generate_key([team_a, team_b, self.cache_time(game_details.get("start_time"))])
+        else:
+            team_a = None
+            team_b = None
+            team_a_abbreviation = None
+            team_b_abbreviation = None
+            team_key = self._generate_key([player_name, self.cache_time(game_details.get("start_time"))])
+
+        direction_mapper = {
+            "1": "over",
+            "2": "under",
+        }
+
+        return PlayerData(
+            player_name=self.clean_and_normalize_name(player_details.get("fullName")),
+            league=LEAGUES.get(game_details.get("league").lower(), game_details.get("league")),
+            start_date=self.cache_time(game_details.get("start_time")),
+            team_data=TeamData(
+                team_a=team_a,
+                team_b=team_b,
+                team_key=team_key,
+                player_team=player_name,
+                team_a_abbreviation=team_a_abbreviation,
+                team_b_abbreviation=team_b_abbreviation,
+            ),
+            stats=[
+                Stats(
+                    stat_type=STAT_TYPES.get(stat_details.get("name").lower(), stat_details.get("name")).title(),
+                    line=market.get("targetValue"),
+                    bet_direction=direction_mapper.get(str(selection.get("statLinePropositionId"))),
+                    regular_line=True if selection.get("standingsMultiplier") == 1 else False,
+                    optional_stats=OptionalStatInformation(
+                        multiplier=selection.get("standingsMultiplier")
+                    )
+                )
+                for market in market_data.get("activeMarkets", [])
+                for selection in market.get("activeSelections", [])
+            ],
+            future=True if "szn" in game_details.get("league").lower() else False,
+            solo_game=game_details.get("solo_game")
+        )
+
+    def _extract_pickable_id_data(self, market_data):
+        """Extract all the player data from the pickable id data."""
+        def extract_team_data(team_details, player_name):
+            start_date = team_details.get("competitionSummary").get("startTime")
+
+            # We check if there is . in time as they use milliseconds in some of the times.
+            if "." in start_date:
+                start_date = start_date.split(".")[0]
+
+            player_team_city = team_details.get("team").get("city")
+            player_team = self.clean_and_normalize_name(f'{team_details.get("team").get("name")}')
+            if player_team_city:
+                player_team = self.clean_and_normalize_name(f'{player_team_city} {player_team}')
+
+            if team_details.get("competitionSummary").get("matchupDisplay").get(
+                    "displayType").lower() != "team-vs-team":
+                team_key = self._generate_key([player_name, start_date])
+                return {
+                    "team_a": None,
+                    "team_b": None,
+                    "player_team": player_team,
+                    "team_key": team_key,
+                    "start_date": self.cache_time(start_date),
+                    "solo_game": True
+                }
+
+            home_city = team_details.get("competitionSummary").get("homeTeam").get("city")
+            away_city = team_details.get("competitionSummary").get("awayTeam").get("city")
+
+            team_a = f'{team_details.get("competitionSummary").get("homeTeam").get("name")}'
+            team_b = f'{team_details.get("competitionSummary").get("awayTeam").get("name")}'
+
+            team_a_abbreviation = team_details.get("competitionSummary").get("homeTeam").get("abbreviation")
+            team_b_abbreviation = team_details.get("competitionSummary").get("awayTeam").get("abbreviation")
+
+            team_key = self._generate_key([team_a, team_b, start_date])
+
+            if home_city:
+                team_a = f'{home_city} {team_a}'
+
+            if away_city:
+                team_b = f'{away_city} {team_b}'
+
             return {
-                "team_a": None,
-                "team_b": None,
+                "team_a": self.clean_and_normalize_name(team_a),
+                "team_b": self.clean_and_normalize_name(team_b),
+                "team_a_abbreviation": team_a_abbreviation,
+                "team_b_abbreviation": team_b_abbreviation,
                 "player_team": player_team,
                 "team_key": team_key,
                 "start_date": self.cache_time(start_date),
-                "solo_game": True
+                "solo_game": False
             }
 
-        home_city = team_details.get("competitionSummary").get("homeTeam").get("city")
-        away_city = team_details.get("competitionSummary").get("awayTeam").get("city")
-
-        team_a = f'{team_details.get("competitionSummary").get("homeTeam").get("name")}'
-        team_b = f'{team_details.get("competitionSummary").get("awayTeam").get("name")}'
-
-        team_a_abbreviation = team_details.get("competitionSummary").get("homeTeam").get("abbreviation")
-        team_b_abbreviation = team_details.get("competitionSummary").get("awayTeam").get("abbreviation")
-
-        team_key = self._generate_key([team_a, team_b, start_date])
-
-        if home_city:
-            team_a = f'{home_city} {team_a}'
-
-        if away_city:
-            team_b = f'{away_city} {team_b}'
-
-        return {
-            "team_a": self.clean_and_normalize_name(team_a),
-            "team_b": self.clean_and_normalize_name(team_b),
-            "team_a_abbreviation": team_a_abbreviation,
-            "team_b_abbreviation": team_b_abbreviation,
-            "player_team": player_team,
-            "team_key": team_key,
-            "start_date": self.cache_time(start_date),
-            "solo_game": False
-        }
-
-    def _confirm_league_details(self, game_details, player_details):
-        league = game_details.get("competitionSummary").get("leagueAbbreviation")
-        if league:
-            return league
-
-        else:
-            league = game_details.get("competitionSummary")
-            for side in ("homeTeam", "awayTeam"):
-                urls = league.get(side, {}).get("imageUrls", {})
-                if urls:
-                    # take the first URL we find
-                    url = next(iter(urls.values()))
-                    match = re.search(r'(?<=/images/)[^/]+', url, re.IGNORECASE)
-                    if match:
-                        return match.group(0).upper()
-            return "N/A"
-
-
-    def _extract_game_data(self, game_details):
         player_details = next((
             {
                 "player_name": player_details.get("displayName"),
-                # "league": game_details.get("competitionSummary").get("leagueAbbreviation"),
-                "league": self._confirm_league_details(game_details, player_details),
-                **self._extract_team_data(game_details, player_details.get("displayName")),
+                "league": game_details.get("competitionSummary").get("leagueAbbreviation"),
+                **extract_team_data(game_details, player_details.get("displayName")),
                 "total_competition_time": game_details.get("competitionSummary").get("totalCompetitionTime")
 
             }
 
-            for player_details in game_details.get("pickable").get("pickableEntities", [])
+            for player_details in market_data.get("pickable").get("pickableEntities", [])
             for game_details in player_details.get("pickableCompetitions")
             if not game_details.get("competitionSummary").get("isLive")
         ), None)
 
-
         if not player_details:
             return None
-
-        # pick_group_id = game_details.get("pickGroupId")
 
         # Draftking uses More or Less, so this maps it to over and under.
         direction_mapper = {
@@ -166,9 +199,10 @@ class DraftKingsPickSix(DFSBookBase):
 
         # Check in place as Esports, you need to know the maps for the stat type, so we add this check to ensure its added.
         if not player_details.get("solo_game") and player_details.get("total_competition_time"):
-            stat_type = STAT_TYPES.get(player_details.get("total_competition_time").lower(), player_details.get("total_competition_time")).title()
+            stat_type = STAT_TYPES.get(player_details.get("total_competition_time").lower(),
+                                       player_details.get("total_competition_time")).title()
         else:
-            stat_type = game_details.get("pickable").get("marketCategory").get("marketName")
+            stat_type = market_data.get("pickable").get("marketCategory").get("marketName")
             stat_type = STAT_TYPES.get(stat_type.lower(), stat_type).title()
 
         return PlayerData(
@@ -186,7 +220,7 @@ class DraftKingsPickSix(DFSBookBase):
             stats=[
                 Stats(
                     stat_type=stat_type,
-                    line=game_details.get("activeMarket").get("targetValue"),
+                    line=market_data.get("activeMarket").get("targetValue"),
                     bet_direction=direction_mapper.get(str(stat.get("statLinePropositionId"))),
                     regular_line=True if stat.get("standingsMultiplier") == 1 else False,
                     optional_stats=OptionalStatInformation(
@@ -194,101 +228,99 @@ class DraftKingsPickSix(DFSBookBase):
                     )
                 )
 
-                for stat in game_details.get("activeMarket").get("activeSelections")
+                for stat in market_data.get("activeMarket").get("activeSelections")
 
             ],
             future=True if "szn" in player_details.get("league").lower() else False,
             solo_game=player_details.get("solo_game")
         )
 
-    async def _additional_mapping(self, player_data):
-        # Additional mapping, due to DK using first initial and last name format.
-        mapping_leagues = ["NFL"]
-        mapped_data = await self.redis.fetch_data("draftkings_unique_mapper_6")
-        non_mapped_players = []
+    def _merge_player_data(self, player_data_list, player_data):
+        """Merge player_data into player_data_list"""
+        if not player_data:
+            return
 
+        player_key = (
+            player_data.player_name,
+            player_data.team_data.team_a,
+            player_data.team_data.team_b,
+            player_data.start_date,
+        )
 
-        for player in player_data:
-            no_match = True
-
-            if player.league in mapping_leagues:
-                player_key = f"{player.player_name} - {player.team_data.player_team}"
-                matched_player = mapped_data.get(player_key)
-                if matched_player:
-                    player.player_name = f"{matched_player.get('first_name')} {matched_player.get('last_name')}"
-                    no_match = False
-
-                if no_match:
-                    # Used for tracking players that don't have a mapping, so we can add them to the static mapper.
-                    non_mapped_players.append(player)
-
-        if non_mapped_players:
-            log_path = os.path.join("DFS Logs", "Mapping Logs")
-            os.makedirs(log_path, exist_ok=True)
-            log_file = os.path.join(log_path, "draftkings_6_no_mapping.log")
-
-            with open(log_file, "w") as file:
-                for player in non_mapped_players:
-                    file.write(
-                        f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - "
-                        f"No mapping found for {player.player_name} in league {player.league}\n"
-                    )
-
-        await self.redis.close()
-        return player_data
-
+        if player_key in player_data_list:
+            player_data_list[player_key].stats.extend(player_data.stats)
+        else:
+            player_data_list[player_key] = player_data
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             api_league_data = await self.api_caller(
                 session=session,
-                url=self.book_data.url.get("alternate_url"),
+                url=self.book_data.url.get("leagues_url"),
                 method="get",
                 headers=self.book_data.headers,
             )
 
+            if not api_league_data:
+                self.file_logger.log(
+                    message="Couldn't map leagues for DraftKings Pick 6",
+                )
+                return
+
             leagues = self._extract_leagues(api_league_data)
-
-            unique_leagues = self._extract_unique_leagues(api_league_data)
-            if unique_leagues:
-                leagues.extend(unique_leagues)
-
-            urls = self._generate_urls(leagues)
 
             tasks = [
                 self.api_caller(
                     session=session,
-                    url=link,
-                    method=self.book_data.method,
+                    url=self.book_data.url.get("main_url").format(league=league.get("league")) if not league.get("custom") else
+                    self.book_data.url.get("unique_url").format(event=league.get("unique_route")),
+                    method="get",
                     headers=self.book_data.headers,
                 )
 
-                for link in urls
+                for league in leagues
             ]
 
             results = await asyncio.gather(*tasks)
+            if not results:
+                self._api_call_log("draftkings_6")
+                return
 
-            merged_data = [item for res in results for key, item in res.get("pickableIdToPickableMap", {}).items()]
+            merged_data = [result for result in results]
 
             player_data_list = {}
 
             for game_details in merged_data:
-                self._extract_game_data(game_details)
-                player_data = self._extract_game_data(game_details)
-                if player_data:
-                    player_key = (
-                        player_data.player_name,
-                        player_data.team_data.team_a,
-                        player_data.team_data.team_b,
-                        player_data.start_date,
-                    )
+                has_pick_card = game_details.get("pickCardData")
+                has_pickable_id = game_details.get("pickableIdToPickableMap")
+                game_map = self._map_game_data(game_details.get("allCompetitions"))
 
-                    if player_key in player_data_list:
-                        player_data_list[player_key].stats.extend(player_data.stats)
-                    else:
-                        player_data_list[player_key] = player_data
+                if has_pick_card:
+                    # Holds the map to all the player names.
+                    name_map = has_pick_card.get("pickCardsByPickGroup", {}).get("entityInfoByDkId")
 
-            picksix_data = await self._additional_mapping(list(player_data_list.values()))
+                    # Grabs the pickableId and maps to the dkId (aka player id)
+                    card_map = self._map_card_data(has_pick_card)
+
+                    # Holds the stat map
+                    stat_map = has_pick_card.get("pickCardsByPickGroup", {}).get("marketPillByCategoryId")
+
+                    # Pass in the name map and card map to map specific player details as well as market details.
+                    for game_data in has_pick_card.get("activePickables", {}):
+                        player_data = self._extract_pick_card_data(name_mapping=name_map, card_mapping=card_map,
+                                                                   stat_mapping=stat_map, game_mapping=game_map,
+                                                                   market_data=game_data)
+
+                        self._merge_player_data(player_data_list, player_data)
+
+                elif has_pickable_id:
+                    for game_data in game_details.get("pickableIdToPickableMap", {}).values():
+                        player_data = self._extract_pickable_id_data(game_data)
+                        self._merge_player_data(player_data_list, player_data)
+                else:
+                    continue
+
+            picksix_data = list(player_data_list.values())
             return await self._database_mapper(picksix_data)
 
 if __name__ == "__main__":

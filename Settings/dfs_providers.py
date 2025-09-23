@@ -150,7 +150,8 @@ DFS_PROVIDERS = [
         name="draftkings_6",
         url= {
             "main_url": "https://pick6.draftkings.com/?sport={league}&_data=routes%2F_homeShared",
-            "alternate_url": "https://pick6.draftkings.com/?_data=routes%2F_homeShared"
+            "leagues_url": "https://pick6.draftkings.com/?_data=routes%2F_homeShared",
+            "unique_url": "https://pick6.draftkings.com/{event}?_data=routes%2F_homeShared"
         },
         headers={
             'Referer': 'https://pick6.draftkings.com/?_gl=1*v93w3x*_gcl_au*ODkyNzA4NDI2LjE3NTUxOTA2OTc.*_ga*MTU4MjI5MzIxLjE3MzgwNDQ1ODU.*_ga_QG8WHJSQMJ*czE3NTUzNTMyMDAkbzI0JGcxJHQxNzU1MzUzMjA2JGo1NCRsMCRoMA..',
