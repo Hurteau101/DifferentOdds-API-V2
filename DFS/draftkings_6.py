@@ -4,7 +4,7 @@ from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, OptionalStatInformation
 from Mapper.static_mapper import STAT_TYPES, LEAGUES
 from Settings.book_base import SportbookRequestType
-
+import asyncio
 
 class DraftKingsPickSix(DFSBookBase):
     def __init__(self):
@@ -324,6 +324,5 @@ class DraftKingsPickSix(DFSBookBase):
             return await self._database_mapper(picksix_data)
 
 if __name__ == "__main__":
-    import asyncio
     draftkings = DraftKingsPickSix()
     asyncio.run(draftkings.run_book())
