@@ -26,15 +26,6 @@ app = celery_app
 celery_app.autodiscover_tasks(["celery_app"])
 
 
-@worker_process_init.connect
-def reinit_db_pool(**kwargs):
-    """
-    Ensure every forked Celery worker process has its own fresh DB pool.
-    """
-    db = Database()
-    asyncio.run(db.ensure_ready())
-
-
 ########## RUNNING COMMANDS ##########
 ### LINUX ###
 # celery -A celery_app.beat_schedule beat --loglevel=INFO
