@@ -23,7 +23,7 @@ class Database:
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, min_size=3, max_size=15, timeout=30):
+    def __init__(self, min_size=3, max_size=50, timeout=30):
         if self._initialized:
             return
         self._initialized = True
