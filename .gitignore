@@ -21,3 +21,5 @@ Settings/Auth_Automation/caesars_sgp_auth.py
 Settings/Auth_Automation/Logs/
 SGP/Test/SGP Logs/
 .idea/
+Future_Implementation/
+API/static/

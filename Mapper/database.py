@@ -18,16 +18,16 @@ class Database:
     _instance = None   # singleton instance
 
     def __new__(cls, *args, **kwargs):
-        """Ensure only one instance of Database exists."""
         if cls._instance is None:
-            cls._instance = super(Database, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, min_size=3, max_size = 15, timeout = 30):
-        if hasattr(self, "_initialized") and self._initialized:
+    def __init__(self, min_size=3, max_size=15, timeout=30):
+        if self._initialized:
             return
-        else:
-            self._initialized = True
+        self._initialized = True
+
 
         load_dotenv(dotenv_path=env_path)
         db_url = os.getenv("DATABASE_URL")

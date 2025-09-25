@@ -51,7 +51,7 @@ async def get_sgp_book_list():
 
     return {"sgp_books": result}
 
-@router.post("/get_odds",
+@router.post("/odds",
                 summary="Get SGP Odds",
                 description="Fetch SGP odds from specified sportsbooks.",
                 # dependencies=[Depends(get_api_key)]

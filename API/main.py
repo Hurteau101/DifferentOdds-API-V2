@@ -1,25 +1,21 @@
 import os
-
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import RedirectResponse
-
+from starlette.staticfiles import StaticFiles
 from Mapper.database import Database
 from Redis.redis_manager import RedisManager
 from Settings.logger import FileLogger
 from . import dfs
 from . import sgp
 from contextlib import asynccontextmanager
+from fastapi.responses import FileResponse
+from pathlib import Path
 
-# Establish a lifespan for the app to manage startup and shutdown events
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     app.state.db = Database()
-#     await app.state.db.ensure_ready()
-#     try:
-#         yield
-#     finally:
-#         await app.state.db.pool.close()
+
+BASE_DIR = Path(__file__).resolve().parent
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,15 +32,24 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Different Odds API",
-    description="This API acts like a middleware to fetch sports betting odds. It retrieves data from various sportsbooks and serves it in a unified format.",
-    version="1.0.0",
+    description=(
+        "An API for accessing and aggregating sports data from multiple sportsbooks. "
+        "For detailed usage instructions, see the [documentation](/docs/api). "
+        "\n\n**Note:** Some endpoints may return large datasets. For the best experience, we recommend using Postman or another API client."
+    ),
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     lifespan=lifespan,
+    version="V2.0.0",
     default_response_class=ORJSONResponse,
     docs_url="/",
 )
 
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=1)
 
+
+@app.get("/docs/api", include_in_schema=False)
+async def custom_docs():
+    return FileResponse(BASE_DIR / "static" / "api_docs.html")
 
 app.include_router(dfs.router)
 app.include_router(sgp.router)
