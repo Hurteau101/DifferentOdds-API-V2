@@ -2,6 +2,9 @@ import os
 import random
 import string
 
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import text
+
 from dotenv import load_dotenv
 from psycopg_pool import AsyncConnectionPool
 from cryptography.fernet import Fernet
@@ -23,7 +26,7 @@ class Database:
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, min_size=3, max_size=10, timeout=30):
+    def __init__(self, pool_size=5, max_overflow=10, timeout=30):
         if self._initialized:
             return
         self._initialized = True
@@ -33,35 +36,32 @@ class Database:
         db_url = os.getenv("DATABASE_URL")
         if not db_url:
             db_url = (
-                f"dbname={os.getenv('DB_NAME')} "
-                f"user={os.getenv('DB_USER')} "
-                f"password={os.getenv('DB_PASS')} "
-                f"host={os.getenv('DB_HOST')} "
-                f"port={os.getenv('DB_PORT')}"
+                f"postgresql+psycopg://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}@"
+                f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
             )
-
-        self.pool = AsyncConnectionPool(
-            conninfo=db_url,
-            min_size=min_size,
-            max_size=max_size,
-            timeout=timeout,
-            num_workers=3,
-            max_lifetime=3600,
-            open=False
+        self.engine = create_async_engine(
+            db_url,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_timeout=timeout,
+            pool_recycle=3600,
+            echo=False,
         )
-
-        self._ready = False
 
         fernet_key = os.getenv("FERNET_KEY")
         if not fernet_key:
             raise RuntimeError("FERNET_KEY not set in environment")
         self.cipher_suite = Fernet(fernet_key.encode())
 
-    async def ensure_ready(self):
-        if self._ready:
-            return
-        await self.pool.open()
-        self._ready = True
+
+    async def _exec(self, sql, params=None, fetch=False, many=False):
+        async with self.engine.begin() as conn:
+            if many:
+                await conn.execute(text(sql), params)
+            else:
+                result = await conn.execute(text(sql), params or {})
+                if fetch:
+                    return result.fetchall()
 
     async def create_api_table(self):
         sql = """
@@ -73,30 +73,20 @@ class Database:
           created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql)
-                await conn.commit()
+        await self._exec(sql)
 
     async def create_api_key(self, client: str):
         api_key = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))
         encrypted_key = self.cipher_suite.encrypt(api_key.encode()).decode()
 
-        sql = "INSERT INTO api_keys (client, api_key) VALUES (%s, %s)"
-        async with self.pool.connection() as conn:
-            await conn.execute(sql, (client, encrypted_key))
-            await conn.commit()
-
+        sql = "INSERT INTO api_keys (client, api_key) VALUES (:client, :api_key)"
+        await self._exec(sql, {"client": client, "api_key": encrypted_key})
         return api_key
 
     async def get_api_keys(self):
         sql = "SELECT api_key from api_keys"
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql)
-                rows = await cur.fetchall()
-                return [self.cipher_suite.decrypt(row[0].encode()).decode() for row in rows]
-
+        rows = await self._exec(sql, fetch=True)
+        return [self.cipher_suite.decrypt(row[0].encode()).decode() for row in rows]
 
 
     async def create_mapping_database(self):
@@ -125,19 +115,12 @@ class Database:
           created_date    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql)
-                await conn.commit()
+        await self._exec(sql)
 
 
     async def load_teams(self):
         sql = "SELECT normalized_name, received_name, abbreviation, league, base_league FROM teams"
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql)
-                rows = await cur.fetchall()
-                return rows
+        return await self._exec(sql, fetch=True)
 
     async def get_all_received_names(self):
         sql = """
@@ -145,19 +128,13 @@ class Database:
             UNION
             SELECT received_name FROM verification_table
         """
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql)
-                results = await cur.fetchall()
+        results = await self._exec(sql, fetch=True)
         return set(row[0].lower() for row in results)
 
 
     async def get_verification_received_names(self):
         sql = "SELECT received_name FROM verification_table"
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql)
-                results = await cur.fetchall()
+        results = await self._exec(sql, fetch=True)
         return set(row[0].lower() for row in results)
 
     async def get_all_received_names_and_leagues(self):
@@ -166,10 +143,7 @@ class Database:
             UNION
             SELECT received_name, league FROM verification_table
         """
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql)
-                results = await cur.fetchall()
+        results = await self._exec(sql, fetch=True)
         return set((row[0].lower(), row[1].upper()) for row in results)
 
     async def update_verification_table(
@@ -178,25 +152,36 @@ class Database:
             normalized_name=None, abbreviation=None
     ):
         check_query = """
-             SELECT 1 FROM verification_table
-             WHERE LOWER(received_name) = %s AND UPPER(league) = %s
-             LIMIT 1
-         """
-        insert_qury = """
-             INSERT INTO verification_table
-             (normalized_name, received_name, abbreviation, league, source, sportsbook, original_league)
-             VALUES (%s, %s, %s, %s, %s, %s, %s)
-         """
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(check_query, (received_name.lower(), league.upper()))
-                if await cur.fetchone():
-                    return
-                await cur.execute(
-                    insert_qury,
-                    (normalized_name, received_name, abbreviation, league, source, sportsbook, original_league),
-                )
-                await conn.commit()
+                      SELECT 1 \
+                      FROM verification_table
+                      WHERE LOWER(received_name) = :received_name
+                        AND UPPER(league) = :league LIMIT 1 \
+                      """
+
+        result = await self._exec(
+            check_query,
+            {"received_name": received_name.lower(), "league": league.upper()},
+            fetch=True,
+        )
+        if result:
+            return
+
+        insert_query = """
+                       INSERT INTO verification_table
+                       (normalized_name, received_name, abbreviation, league, source, sportsbook, original_league)
+                       VALUES (:normalized_name, :received_name, :abbreviation, :league, :source, :sportsbook, \
+                               :original_league) \
+                       """
+
+        await self._exec(insert_query, {
+            "normalized_name": normalized_name,
+            "received_name": received_name,
+            "abbreviation": abbreviation,
+            "league": league,
+            "source": source,
+            "sportsbook": sportsbook,
+            "original_league": original_league,
+        })
 
     async def bulk_update_verification_table(self, data):
         existing = await self.get_all_received_names_and_leagues()
@@ -220,20 +205,17 @@ class Database:
         if not rows:
             return
         insert_query = """
-            INSERT INTO verification_table
-            (normalized_name, received_name, abbreviation, league, source, sportsbook, original_league)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-        async with self.pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.executemany(insert_query, rows)
-                await conn.commit()
-
+                       INSERT INTO verification_table
+                       (normalized_name, received_name, abbreviation, league, source, sportsbook, original_league)
+                       VALUES (:normalized_name, :received_name, :abbreviation, :league, :source, :sportsbook, \
+                               :original_league) \
+                       """
+        for params in rows:
+            await self._exec(insert_query, params)
 
 if __name__ == "__main__":
     async def main(create_api_key=False, client_name=None, extract_api_keys=False):
         db = Database()
-        await db.ensure_ready()
 
         if create_api_key and client_name:
             api_key = await db.create_api_key(client_name)
@@ -246,7 +228,6 @@ if __name__ == "__main__":
                 print(key)
 
     asyncio.run(main(extract_api_keys=True))
-
 
 
 

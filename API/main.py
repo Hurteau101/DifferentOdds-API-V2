@@ -20,14 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.db = Database()
-    await app.state.db.ensure_ready()
 
     # Create shared RedisManager
     app.state.redis = RedisManager(db=0)
     try:
         yield
     finally:
-        await app.state.db.pool.close()
+        await app.state.db.engine.dispose()
         await app.state.redis.close()
 
 app = FastAPI(

@@ -184,7 +184,6 @@ class Mapper:
 
 
     async def controller(self, team_data):
-        await self.db.ensure_ready()
         database_teams = await self.db.load_teams()
 
         # database_teams = self.database_teams
