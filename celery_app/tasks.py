@@ -36,62 +36,62 @@ logger = get_task_logger(__name__)
 DFS_Books = {
     "underdog": {
         "class": Underdog,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "prizepicks": {
         "class": Prizepicks,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "betr": {
         "class": Betr,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "boom": {
         "class": Boom,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "dabble": {
         "class": Dabble,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "drafters": {
         "class": Drafters,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "draftkings_6": {
         "class": DraftKingsPickSix,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "ownerbox": {
         "class": Ownerbox,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "parlaye": {
         "class": Parlaye,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "parlayplay": {
         "class": Parlayplay,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "sleeper": {
         "class": Sleeper,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     },
     "fanduel_picks": {
         "class": FanDuelPicks,
-        "interval": 15,
+        "interval": 45,
         "task": "dfs",
     }
     # Disabled until working fix can be found - VPN Issue.
