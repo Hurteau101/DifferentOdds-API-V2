@@ -53,7 +53,6 @@ class Database:
             raise RuntimeError("FERNET_KEY not set in environment")
         self.cipher_suite = Fernet(fernet_key.encode())
 
-
     async def _exec(self, sql, params=None, fetch=False, many=False):
         async with self.engine.begin() as conn:
             if many:
@@ -193,25 +192,27 @@ class Database:
             league = row['league'].upper()
             if (received.lower(), league) in existing:
                 continue
-            rows.append((
-                row['team_name'],
-                received,
-                (row['abbreviation'].upper() if row.get('abbreviation') else None),
-                league,
-                row.get('source', 'unknown'),
-                row.get('sportsbook', 'unknown'),
-                row.get('original_league', league).upper(),
-            ))
+
+            rows.append({
+                "normalized_name": row['team_name'],
+                "received_name": received,
+                "abbreviation": (row['abbreviation'].upper() if row.get('abbreviation') else None),
+                "league": league,
+                "source": row.get('source', 'unknown'),
+                "sportsbook": row.get('sportsbook', 'unknown'),
+                "original_league": row.get('original_league', league).upper(),
+            })
+
         if not rows:
             return
+
         insert_query = """
-                       INSERT INTO verification_table
-                       (normalized_name, received_name, abbreviation, league, source, sportsbook, original_league)
-                       VALUES (:normalized_name, :received_name, :abbreviation, :league, :source, :sportsbook, \
-                               :original_league) \
-                       """
-        for params in rows:
-            await self._exec(insert_query, params)
+            INSERT INTO verification_table
+            (normalized_name, received_name, abbreviation, league, source, sportsbook, original_league)
+            VALUES (:normalized_name, :received_name, :abbreviation, :league, :source, :sportsbook, :original_league)
+        """
+
+        await self._exec(insert_query, rows, many=True)
 
 if __name__ == "__main__":
     async def main(create_api_key=False, client_name=None, extract_api_keys=False):
