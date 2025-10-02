@@ -194,6 +194,8 @@ def run_book(name, redis_db, run_book_type):
             await redis_manager.store_data(f"{run_book_type}:{name}", book_data.model_dump())
 
             logger.info(f"Finished {run_book_type} book: {name}")
+        except Exception as e:
+            logger.error(f"Error in {run_book_type} book {name}: {e}", exc_info=True)
         finally:
             try:
                 await lock.release()

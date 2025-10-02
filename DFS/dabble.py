@@ -128,8 +128,6 @@ class Dabble(DFSBookBase):
                 method=self.book_data.method,
             )
 
-            print(league_data)
-
             if not league_data:
                 self.file_logger.log(
                     message="Couldn't map leagues for Dabble",
@@ -182,8 +180,6 @@ class Dabble(DFSBookBase):
                 for game_details in game_data_list
                 for player in self._extract_game_data(game_details, league_data)
             ]
-
-            print(player_list)
 
             return await self._database_mapper(player_list)
 
