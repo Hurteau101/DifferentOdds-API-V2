@@ -120,8 +120,8 @@ class BookBase(ABC):
         if self.request_type == SportbookRequestType.ASYNC:
             return await AsyncBook.fetch(session, url, method, headers, proxy, payload, parse_json, params)
         elif self.request_type == SportbookRequestType.SPOOF:
-            client_identifier = kwargs.get("client_identifier", "chrome_114")
-            return await Spoof.fetch(url, method, headers, client_identifier, proxy, payload, params)
+            client_identifier = kwargs.get("client_identifier", "chrome_127")
+            return await Spoof.fetch(api_url=url, method=method, headers=headers, client_identifier=client_identifier, proxy=proxy, payload=payload, params=params)
         else:
             raise NotImplementedError(f"Request type {self.request_type} is not supported.")
 
@@ -166,7 +166,7 @@ class Spoof:
     @staticmethod
     async def fetch(api_url, method, headers=None, payload=None, client_identifier="chrome_114", proxy=None, params=None):
         def _spoof_request():
-            session = Session(client_identifier=client_identifier)
+            session = Session(client_identifier=client_identifier, random_tls_extension_order=True)
             method_lower = method.lower()
 
             if method_lower not in ["get", "post"]:

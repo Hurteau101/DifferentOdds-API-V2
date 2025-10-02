@@ -8,7 +8,7 @@ import asyncio
 
 class Dabble(DFSBookBase):
     def __init__(self):
-        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="dabble")
+        super().__init__(SportbookRequestType.SPOOF, sportsbook_name="dabble")
 
     def _extract_teams(self, game_data, player_data, start_time):
         def team_splitter(team_name):
@@ -128,6 +128,12 @@ class Dabble(DFSBookBase):
                 method=self.book_data.method,
             )
 
+            if not league_data:
+                self.file_logger.log(
+                    message="Couldn't map leagues for Dabble",
+                )
+                return None
+
             league_ids = [
                 league.get("id")
                 for league in league_data.get("data").get("activeCompetitions")
@@ -179,7 +185,6 @@ class Dabble(DFSBookBase):
 
 
 if __name__ == "__main__":
-    import asyncio
     dabble = Dabble()
     data = asyncio.run(dabble.run_book())
 
