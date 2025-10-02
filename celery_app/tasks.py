@@ -34,66 +34,66 @@ logger = get_task_logger(__name__)
 
 
 DFS_Books = {
-    "underdog": {
-        "class": Underdog,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "prizepicks": {
-        "class": Prizepicks,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "betr": {
-        "class": Betr,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "boom": {
-        "class": Boom,
-        "interval": 45,
-        "task": "dfs",
-    },
+    # "underdog": {
+    #     "class": Underdog,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
+    # "prizepicks": {
+    #     "class": Prizepicks,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
+    # "betr": {
+    #     "class": Betr,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
+    # "boom": {
+    #     "class": Boom,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
     "dabble": {
         "class": Dabble,
         "interval": 45,
         "task": "dfs",
     },
-    "drafters": {
-        "class": Drafters,
-        "interval": 45,
-        "task": "dfs",
-    },
+    # "drafters": {
+    #     "class": Drafters,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
     # "draftkings_6": {
     #     "class": DraftKingsPickSix,
     #     "interval": 45,
     #     "task": "dfs",
     # },
-    "ownerbox": {
-        "class": Ownerbox,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "parlaye": {
-        "class": Parlaye,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "parlayplay": {
-        "class": Parlayplay,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "sleeper": {
-        "class": Sleeper,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "fanduel_picks": {
-        "class": FanDuelPicks,
-        "interval": 45,
-        "task": "dfs",
-    }
+    # "ownerbox": {
+    #     "class": Ownerbox,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
+    # "parlaye": {
+    #     "class": Parlaye,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
+    # "parlayplay": {
+    #     "class": Parlayplay,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
+    # "sleeper": {
+    #     "class": Sleeper,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # },
+    # "fanduel_picks": {
+    #     "class": FanDuelPicks,
+    #     "interval": 45,
+    #     "task": "dfs",
+    # }
     # Disabled until working fix can be found - VPN Issue.
     # "splashsports": {
     #     "class": SplashSports,
