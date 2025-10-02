@@ -186,6 +186,7 @@ def run_book(name, redis_db, run_book_type):
 
             # Back up incase no data is found, and the original data is stale and not caught earlier on.
             if book_data.data is None or len(book_data.data) == 0:
+                logger.warning(f"No data found for {run_book_type} book {name}, deleting existing data.")
                 await redis_manager.delete(f"{run_book_type}:{name}")
                 return
 
@@ -196,8 +197,8 @@ def run_book(name, redis_db, run_book_type):
         finally:
             try:
                 await lock.release()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"Error releasing lock for {run_book_type} book {name}: {e}")
 
     async_to_sync(_run)()
 #
