@@ -221,7 +221,9 @@ DFS_PROVIDERS = [
         name="epicks",
         url={
             "league_url": "https://sportsdata.prod.epickfantasy.com/api/sports-leagues-mix/ui?state_or_territory=CA&mode=DUEL",
-            "main_url": "https://sportsdata.prod.epickfantasy.com/api/projections/ui?state_or_territory=CA&league={league}&mode=DUEL"
+            "main_url": "https://sportsdata.prod.epickfantasy.com/api/projections/ui?state_or_territory=CA&league={league}&mode=DUEL&dependencies=Event%2CPlayer%2CTeam%2CProp",
+            # "main_url": "https://sportsdata.prod.epickfantasy.com/api/projections/ui?state_or_territory=CA&league={league}&dependencies=Event,Player,Team,Prop&mode=DUEL",
+            "stat_url": "https://sportsdata.prod.epickfantasy.com/api/props/ui?state_or_territory=CA&mode=DUEL&limit=1000"
         },
         method="GET",
         active=True

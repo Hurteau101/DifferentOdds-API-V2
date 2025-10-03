@@ -12,6 +12,7 @@ from DFS.ownerbox import Ownerbox
 from DFS.parlaye import Parlaye
 from DFS.parlayplay import Parlayplay
 from DFS.sleeper import Sleeper
+from DFS.epicks import Epicks
 from DFS.splashsports import SplashSports
 
 from datetime import datetime, timezone
@@ -91,6 +92,11 @@ DFS_Books = {
     },
     "fanduel_picks": {
         "class": FanDuelPicks,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "epicks": {
+        "class": Epicks,
         "interval": 45,
         "task": "dfs",
     }
