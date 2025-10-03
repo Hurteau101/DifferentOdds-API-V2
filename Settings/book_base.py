@@ -120,8 +120,8 @@ class BookBase(ABC):
         if self.request_type == SportbookRequestType.ASYNC:
             return await AsyncBook.fetch(session, url, method, headers, proxy, payload, parse_json, params)
         elif self.request_type == SportbookRequestType.SPOOF:
-            client_identifier = kwargs.get("client_identifier", "chrome_127")
-            return await Spoof.fetch(api_url=url, method=method, headers=headers, client_identifier=client_identifier, proxy=proxy, payload=payload, params=params)
+            impersonate = kwargs.get("impersonate", "chrome120")
+            return await Spoof.fetch(api_url=url, method=method, headers=headers, impersonate=impersonate, proxy=proxy, payload=payload, params=params)
         else:
             raise NotImplementedError(f"Request type {self.request_type} is not supported.")
 
@@ -159,29 +159,79 @@ class AsyncBook:
         else:
             return None
 
+from curl_cffi import AsyncSession
 
-
-# Spoofing book fetching class
 class Spoof:
     @staticmethod
-    async def fetch(api_url, method, headers=None, payload=None, client_identifier="chrome_114", proxy=None, params=None):
-        def _spoof_request():
-            session = Session(client_identifier=client_identifier, random_tls_extension_order=True)
-            method_lower = method.lower()
+    async def fetch(
+            api_url,
+            method,
+            headers=None,
+            payload=None,
+            impersonate="chrome120",  # can be "chrome", "firefox", "safari", etc.
+            proxy=None,
+            params=None,
+            timeout=30,
+    ):
+        method_lower = method.lower()
+        if method_lower not in ["get", "post"]:
+            raise ValueError("Method must be 'get' or 'post'.")
 
-            if method_lower not in ["get", "post"]:
-                raise ValueError("Method must be 'get' or 'post'.")
+        try:
+            async with AsyncSession() as session:
+                if method_lower == "get":
+                    resp = await session.get(
+                        api_url,
+                        headers=headers,
+                        params=params,
+                        impersonate=impersonate,
+                        proxy=proxy,
+                        timeout=timeout,
+                    )
+                else:
+                    resp = await session.post(
+                        api_url,
+                        headers=headers,
+                        json=payload,
+                        impersonate=impersonate,
+                        proxy=proxy,
+                        timeout=timeout,
+                    )
 
-            request_method = getattr(session, method_lower)
+                if resp.status_code == 200:
+                    try:
+                        return resp.json()
+                    except Exception:
+                        return resp.text
+                else:
+                    print(f"[Spoof] Non-200 status: {resp.status_code}")
+                    return None
 
-            if method_lower == "get":
-                response = request_method(api_url, headers=headers, proxy=proxy, params=params)
-            else:
-                response = request_method(api_url, headers=headers, proxy=proxy, json=payload)
+        except Exception as e:
+            print(f"[Spoof] Request error: {e}")
+            return None
 
-            if response.status_code == 200:
-                return response.json()
-            else:
-                return None
-
-        return await asyncio.to_thread(_spoof_request)
+# # Spoofing book fetching class
+# class Spoof:
+#     @staticmethod
+#     async def fetch(api_url, method, headers=None, payload=None, client_identifier="chrome_114", proxy=None, params=None):
+#         def _spoof_request():
+#             session = Session(client_identifier=client_identifier, random_tls_extension_order=True)
+#             method_lower = method.lower()
+#
+#             if method_lower not in ["get", "post"]:
+#                 raise ValueError("Method must be 'get' or 'post'.")
+#
+#             request_method = getattr(session, method_lower)
+#
+#             if method_lower == "get":
+#                 response = request_method(api_url, headers=headers, proxy=proxy, params=params)
+#             else:
+#                 response = request_method(api_url, headers=headers, proxy=proxy, json=payload)
+#
+#             if response.status_code == 200:
+#                 return response.json()
+#             else:
+#                 return None
+#
+#         return await asyncio.to_thread(_spoof_request)

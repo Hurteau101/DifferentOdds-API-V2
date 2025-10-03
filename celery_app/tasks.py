@@ -34,66 +34,66 @@ logger = get_task_logger(__name__)
 
 
 DFS_Books = {
-    # "underdog": {
-    #     "class": Underdog,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "prizepicks": {
-    #     "class": Prizepicks,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "betr": {
-    #     "class": Betr,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "boom": {
-    #     "class": Boom,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
+    "underdog": {
+        "class": Underdog,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "prizepicks": {
+        "class": Prizepicks,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "betr": {
+        "class": Betr,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "boom": {
+        "class": Boom,
+        "interval": 45,
+        "task": "dfs",
+    },
     "dabble": {
         "class": Dabble,
         "interval": 45,
         "task": "dfs",
     },
-    # "drafters": {
-    #     "class": Drafters,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "draftkings_6": {
-    #     "class": DraftKingsPickSix,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "ownerbox": {
-    #     "class": Ownerbox,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "parlaye": {
-    #     "class": Parlaye,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "parlayplay": {
-    #     "class": Parlayplay,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "sleeper": {
-    #     "class": Sleeper,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
-    # "fanduel_picks": {
-    #     "class": FanDuelPicks,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # }
+    "drafters": {
+        "class": Drafters,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "draftkings_6": {
+        "class": DraftKingsPickSix,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "ownerbox": {
+        "class": Ownerbox,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "parlaye": {
+        "class": Parlaye,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "parlayplay": {
+        "class": Parlayplay,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "sleeper": {
+        "class": Sleeper,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "fanduel_picks": {
+        "class": FanDuelPicks,
+        "interval": 45,
+        "task": "dfs",
+    }
     # Disabled until working fix can be found - VPN Issue.
     # "splashsports": {
     #     "class": SplashSports,
@@ -178,20 +178,18 @@ def run_book(name, redis_db, run_book_type):
             book = cls()
 
             data = await book.run_book()
+            if data:
+                book_data = BookData(
+                    last_refresh=datetime.now(timezone.utc),
+                    data=data if data else [],
+                )
 
-            book_data = BookData(
-                last_refresh=datetime.now(timezone.utc),
-                data=data if data else [],
-            )
-
-            # Back up incase no data is found, and the original data is stale and not caught earlier on.
-            if book_data.data is None or len(book_data.data) == 0:
+                # await redis_manager.store_data(f"dfs:{name}", book_data.model_dump_json())
+                await redis_manager.store_data(f"{run_book_type}:{name}", book_data.model_dump(), key_expiration=300)
+            else:
                 logger.warning(f"No data found for {run_book_type} book {name}, deleting existing data.")
                 await redis_manager.delete(f"{run_book_type}:{name}")
                 return
-
-            # await redis_manager.store_data(f"dfs:{name}", book_data.model_dump_json())
-            await redis_manager.store_data(f"{run_book_type}:{name}", book_data.model_dump())
 
             logger.info(f"Finished {run_book_type} book: {name}")
         except Exception as e:
