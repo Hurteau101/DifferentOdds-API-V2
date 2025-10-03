@@ -65,11 +65,11 @@ DFS_Books = {
         "interval": 45,
         "task": "dfs",
     },
-    # "draftkings_6": {
-    #     "class": DraftKingsPickSix,
-    #     "interval": 45,
-    #     "task": "dfs",
-    # },
+    "draftkings_6": {
+        "class": DraftKingsPickSix,
+        "interval": 45,
+        "task": "dfs",
+    },
     "ownerbox": {
         "class": Ownerbox,
         "interval": 45,

@@ -149,12 +149,15 @@ DFS_PROVIDERS = [
         title="DraftKings Pick 6",
         name="draftkings_6",
         url= {
-            "main_url": "https://pick6.draftkings.com/?sport={league}&_data=routes%2F_homeShared",
-            "leagues_url": "https://pick6.draftkings.com/?_data=routes%2F_homeShared",
-            "unique_url": "https://pick6.draftkings.com/{event}?_data=routes%2F_homeShared"
+            "league_list_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/main?showLive=false&appname=psxandroid&version=253542100&format=json",
+            "league_ids_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_key}?appname=psxandroid&version=253542100&format=json",
+            "game_data_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/pickables?appname=psxandroid&version=253542100&format=json",
+            "markets_url": "https://api.draftkings.com/sites/US-PSX/pick6-pickables/v1/pickablemarkets/active/pickgroup?pickGroupId={league_id}&appname=psxandroid&version=253542100&format=json"
         },
         headers={
-            'Referer': 'https://pick6.draftkings.com/?_gl=1*v93w3x*_gcl_au*ODkyNzA4NDI2LjE3NTUxOTA2OTc.*_ga*MTU4MjI5MzIxLjE3MzgwNDQ1ODU.*_ga_QG8WHJSQMJ*czE3NTUzNTMyMDAkbzI0JGcxJHQxNzU1MzUzMjA2JGo1NCRsMCRoMA..',
+            'accept': 'application/json',
+            'user-agent': 'psxandroid/3.0.253542100 null',
+            'accept-encoding': 'gzip',
         },
         method="GET",
         active=True
