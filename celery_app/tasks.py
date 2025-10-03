@@ -186,10 +186,10 @@ def run_book(name, redis_db, run_book_type):
 
                 # await redis_manager.store_data(f"dfs:{name}", book_data.model_dump_json())
                 await redis_manager.store_data(f"{run_book_type}:{name}", book_data.model_dump(), key_expiration=300)
-            else:
-                logger.warning(f"No data found for {run_book_type} book {name}, deleting existing data.")
-                await redis_manager.delete(f"{run_book_type}:{name}")
-                return
+            # else:
+            #     logger.warning(f"No data found for {run_book_type} book {name}, deleting existing data.")
+            #     await redis_manager.delete(f"{run_book_type}:{name}")
+            #     return
 
             logger.info(f"Finished {run_book_type} book: {name}")
         except Exception as e:

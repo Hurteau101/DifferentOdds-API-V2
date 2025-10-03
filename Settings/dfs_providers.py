@@ -215,5 +215,15 @@ DFS_PROVIDERS = [
         },
         method="GET",
         active=True
+    ),
+    DFSProvider(
+        title="Epick Fantasy",
+        name="epicks",
+        url={
+            "league_url": "https://sportsdata.prod.epickfantasy.com/api/sports-leagues-mix/ui?state_or_territory=CA&mode=DUEL",
+            "main_url": "https://sportsdata.prod.epickfantasy.com/api/projections/ui?state_or_territory=CA&league={league}&mode=DUEL"
+        },
+        method="GET",
+        active=True
     )
 ]
