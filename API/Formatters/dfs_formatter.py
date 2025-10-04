@@ -13,6 +13,7 @@ class GameFormatter(BaseFormatter):
                 games[book] = {}
 
             if not extra_data:
+                games[book] = None
                 continue
 
             for entry in extra_data.get("data", []):
