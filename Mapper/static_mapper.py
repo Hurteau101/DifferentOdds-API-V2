@@ -8,6 +8,7 @@ LEAGUES = {
     "lcs": "LOL",
     'lec': "LOL",
     'lpl': "LOL",
+    'r6 esports': 'R6',
     "leagueoflegends": "LOL",
     'valorant champions tour': "VAL",
     'valorant': "VAL",
@@ -29,6 +30,8 @@ LEAGUES = {
     "the hundred (women)": "CRICKET",
     'lck challengers': "LOL",
     'lck challengers korea': "LOL",
+    "nbap": "NBA",
+    "cfb2h": "CFB",
 
 }
 

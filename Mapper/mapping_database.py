@@ -64,7 +64,7 @@ def find_matches(args):
         match = process.extractOne(received_name.lower(), name_dict.keys(), scorer=fuzz.ratio, score_cutoff=90)
         if match:
             matched_str, score, _ = match
-            if 90 <= score < 100:
+            if 95 <= score <= 100:
                 matched_teams = name_dict[matched_str]
                 for matched_team in matched_teams:
                     base_league = matched_team[4].split(",") if matched_team[4] else []
@@ -114,7 +114,7 @@ def textdistance_match(received_name, name_sources, league_upper, sportsbook):
     for name_dict in name_sources:
         for team_name in name_dict.keys():
             score = textdistance.cosine.similarity(received_name.lower(), team_name)
-            if score > 0.90:
+            if score > 0.95:
                 matched_teams = name_dict[team_name]
                 for matched_team in matched_teams:
 
@@ -137,7 +137,7 @@ def textdistance_match(received_name, name_sources, league_upper, sportsbook):
                     }
 
             score = textdistance.jaro_winkler.similarity(received_name.lower(), team_name)
-            if score > 0.90:
+            if score > 0.95:
                 matched_teams = name_dict[team_name]
                 for matched_team in matched_teams:
 
