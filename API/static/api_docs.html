@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Different Odds API Documentation</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-copy/1.0.5/highlightjs-copy.min.css" />
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-copy/1.0.5/highlightjs-copy.min.js"></script>
+      <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+      <style>
+         html { scroll-behavior: smooth; }
+         /* Custom scrollbar */
+         ::-webkit-scrollbar { width: 8px; }
+         ::-webkit-scrollbar-track { background: #f1f1f1; }
+         ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+         ::-webkit-scrollbar-thumb:hover { background: #555; }
+         .badge { color:#fff; padding:0.25rem 0.75rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; }
+         .badge-get { background-color:#16a34a; }
+         .badge-post { background-color:#2563eb; }
+         .badge-put { background-color:#d97706; }
+         .badge-delete { background-color:#dc2626; }
+         .endpoint-span { background-color:#f3f4f6; padding:0.25rem 0.75rem; border-radius:0.375rem; font-size:0.875rem; font-family:ui-monospace,monospace; }
+      </style>
+   </head>
+   <body class="bg-gray-50 font-sans">
+      <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+         <!-- Sidebar -->
+         <aside id="sidebar"
+            class="fixed inset-y-0 left-0 z-40 w-80 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 -translate-x-full">
+            <div class="h-full flex flex-col">
+               <div class="p-6 border-b border-gray-200">
+                  <h2 class="text-2xl font-bold text-gray-900 mb-2">Documentation</h2>
+                  <p>V.2.0.0</p>
+               </div>
+               <!-- Navigation -->
+               <nav class="flex-1 p-4 overflow-y-auto">
+                  <ul class="space-y-2" id="nav-list">
+                     <li>
+                        <a href="#overview"
+                           class="nav-link flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group">
+                        <span class="text-lg">🏠</span>
+                        <span class="font-medium">Overview</span>
+                        </a>
+                     </li>
+                     <li>
+                        <a href="#authentication"
+                           class="nav-link flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group">
+                        <span class="text-lg">🔑</span>
+                        <span class="font-medium">Authentication</span>
+                        </a>
+                     </li>
+                     <li>
+                        <a href="#base-url"
+                           class="nav-link flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group">
+                        <span class="text-lg">🔗</span>
+                        <span class="font-medium">Base URL</span>
+                        </a>
+                     </li>
+                     <li>
+                        <a href="#dfs-endpoints"
+                           class="nav-link flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group">
+                        <span class="text-lg">📋</span>
+                        <span class="font-medium">DFS Endpoints</span>
+                        </a>
+                     </li>
+                     <li>
+                        <a href="#sgp-endpoints"
+                           class="nav-link flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group">
+                        <span class="text-lg">📋</span>
+                        <span class="font-medium">SGP Endpoints</span>
+                        </a>
+                     </li>
+                     <li>
+                        <a href="#errors"
+                           class="nav-link flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group">
+                        <span class="text-lg">📋</span>
+                        <span class="font-medium">Errors</span>
+                        </a>
+                     </li>
+                  </ul>
+               </nav>
+            </div>
+         </aside>
+         <!-- Main -->
+         <main class="lg:ml-80 px-6 py-8 max-w-5xl mx-auto">
+            <!-- Overview -->
+            <section id="overview" class="mb-16">
+               <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white mb-8">
+                  <h1 class="text-4xl md:text-5xl font-bold mb-4">Different Odds API</h1>
+                  <p class="text-xl opacity-90 leading-relaxed max-w-3xl">
+                     A powerful external 3rd party API to interact with various sportsbooks, allowing you to fetch and display
+                     data in multiple formats.
+                  </p>
+               </div>
+               <div class="grid md:grid-cols-3 gap-6">
+                  <div class="bg-white p-6 rounded-xl border border-gray-200">
+                     <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                        <span class="text-2xl">⚡</span>
+                     </div>
+                     <h3 class="text-lg font-semibold text-gray-900 mb-2">Fast & Reliable</h3>
+                     <p class="text-gray-600 text-sm">High-performance API with consistent uptime and fast response times.</p>
+                  </div>
+                  <div class="bg-white p-6 rounded-xl border border-gray-200">
+                     <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+                        <span class="text-2xl">🔒</span>
+                     </div>
+                     <h3 class="text-lg font-semibold text-gray-900 mb-2">Secure Authentication</h3>
+                     <p class="text-gray-600 text-sm">Access is protected through API key-based authentication.</p>
+                  </div>
+                  <div class="bg-white p-6 rounded-xl border border-gray-200">
+                     <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+                        <span class="text-2xl">📊</span>
+                     </div>
+                     <h3 class="text-lg font-semibold text-gray-900 mb-2">Multiple Formats</h3>
+                     <p class="text-gray-600 text-sm">Flexible data formatting options to match your application needs.</p>
+                  </div>
+               </div>
+            </section>
+            <!-- Authentication -->
+            <section id="authentication" class="mb-16">
+               <h2 class="text-3xl font-bold text-gray-900 mb-6">Authentication</h2>
+               <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 space-y-4">
+                  <p class="text-gray-800 leading-relaxed">This API uses an API key for authentication. Majority of requests to the API endpoints must include your API key in the header.</p>
+                  <div class="bg-gray-900 rounded-xl p-4 border text-sm">
+                     <code class="text-gray-300">X-API-KEY: <span class="text-yellow-400">YOUR_API_KEY</span></code>
+                  </div>
+                   <p class="text-gray-800">Requests without a valid <code class="bg-gray-200 px-1 rounded font-mono text-sm">X-API-KEY</code> in the header will result in a <code class="bg-red-100 text-red-700 px-1 rounded-md">401 Invalid/Missing API Key</code> error.</p>
+               </div>
+            </section>
+            <!-- Base URL -->
+            <section class="mb-16" id="base-url">
+               <h2 class="text-3xl font-bold text-gray-900 mb-6">Base URL</h2>
+               <div class="bg-gray-900 rounded-xl p-6 border">
+                  <code class="text-green-400 text-lg font-mono">
+                  https://api.differentodds.com
+                  </code>
+               </div>
+            </section>
+            <!-- DFS Endpoints -->
+            <section class="mb-16" id="dfs-endpoints">
+               <h2 class="text-3xl font-bold text-gray-900 mb-2">DFS Endpoints</h2>
+               <p class="text-gray-600 mb-8">Endpoints for interacting with Daily Fantasy Sports data.</p>
+               <!--/dfs/book_list-->
+               <div class="bg-white border border-gray-200 rounded-xl p-6 mb-8 shadow-sm">
+                  <div class="flex flex-wrap items-center gap-3 mb-4">
+                     <span class="badge badge-get">GET</span>
+                     <code class="endpoint-span">/dfs/book_list</code>
+                  </div>
+                  <p class="text-gray-700 mb-6">Retrieves a list of all supported DFS books.</p>
+                  <h4 class="text-lg font-semibold text-gray-900 mb-4">Parameters</h4>
+                  <p class="text-gray-600 mb-6 bg-gray-50 rounded-lg p-4">This endpoint requires no parameters.</p>
+                  <h4 class="text-lg font-semibold text-gray-900 mb-4">Responses</h4>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                     <h5 class="text-base font-medium text-green-700 mb-2">200 Response</h5>
+                     <div x-data="{ open: false }" class="w-full shadow rounded-xl overflow-hidden">
+                        <!-- Header -->
+                        <div
+                            class="flex justify-between items-center px-4 py-2 bg-[#1e293b] cursor-pointer"
+                            @click="open = !open"
+                          >
+                           <span class="text-xs font-mono uppercase tracking-wide text-gray-300">JSON</span>
+                           <button class="text-gray-400 text-xs hover:text-white transition">
+                             <span x-show="!open">Show ▼</span>
+                             <span x-show="open">Hide ▲</span>
+                           </button>
+                        </div>
+                        <div x-show="open" x-collapse>
+                        <!-- Code -->
+                            <pre class="p-4 overflow-x-auto m-0 bg-[#0f172a] text-gray-100"><code class="language-json">{
+    "dfs_books": [
+    {
+      "title": "Underdog Fantasy",
+      "book_key": "underdog",
+      "status": "Online"
+    },
+    {
+      "title": "PrizePicks",
+      "book_key": "prizepicks",
+      "status": "Online"
+    },
+    {
+      "title": "Betr",
+      "book_key": "betr",
+      "status": "Online"
+    },
+    {
+      "title": "Drafters",
+      "book_key": "drafters",
+      "status": "Online"
+    },
+    {
+      "title": "Boom Fantasy",
+      "book_key": "boom",
+      "status": "Online"
+    },
+    {
+      "title": "ParlayPlay",
+      "book_key": "parlayplay",
+      "status": "Online"
+    },
+    {
+      "title": "Splash Sports",
+      "book_key": "splashsports",
+      "status": "Offline"
+    },
+    {
+      "title": "Ownerbox",
+      "book_key": "ownerbox",
+      "status": "Online"
+    },
+    {
+      "title": "Parlaye",
+      "book_key": "parlaye",
+      "status": "Online"
+    },
+    {
+      "title": "DraftKings Pick 6",
+      "book_key": "draftkings_6",
+      "status": "Online"
+    },
+    {
+      "title": "Sleeper Fantasy",
+      "book_key": "sleeper",
+      "status": "Online"
+    },
+    {
+      "title": "Dabble",
+      "book_key": "dabble",
+      "status": "Online"
+    },
+    {
+      "title": "Chalkboard",
+      "book_key": "chalkboard",
+      "status": "Online"
+    },
+    {
+      "title": "FanDuel Picks",
+      "book_key": "fanduel_picks",
+      "status": "Online"
+    }
+  ]
+}                           </code></pre>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <!--/dfs/odds-->
+               <div class="bg-white border border-gray-200 rounded-xl p-6 mb-8 shadow-sm">
+                  <div class="flex flex-wrap items-center gap-3 mb-4">
+                     <span class="badge badge-get">GET</span>
+                     <code class="endpoint-span">/dfs/odds</code>
+                  </div>
+                  <p class="text-gray-700 mb-6">Fetches odds for one or more specified DFS Books<br/>
+                      <small><i>If multiple books are requested, the response will be returned as key/value pairs,
+                        where each key is the book name and the value contains that book’s data.</i></small></p>
+                  <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Parameters</h4>
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex flex-wrap items-center gap-2 mb-3">
+                                <span class="font-semibold text-gray-900">books</span>
+                                <span class="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded">query parameter</span>
+                            </div>
+                            <p class="text-gray-700 text-sm leading-relaxed mb-2">
+                              One or more DFS book identifiers, passed as repeated
+                              <code class="bg-gray-200 px-1 rounded font-mono text-sm">books</code>
+                              query parameters. Example request URL:
+                            </p>
+                            <code class="text-sm bg-gray-200 p-1 rounded">/dfs/odds?books=draftkings_6&amp;books=boom</code>
+                        </div>
+                    </div>
+                  </div>
+                  <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Headers</h4>
+                    <div class="space-y-4">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div class="flex flex-wrap items-center gap-2 mb-3">
+                                <span class="font-semibold text-gray-900">X-Format</span>
+                                <span class="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded">header</span>
+                            </div>
+                            <p class="text-gray-700 text-sm leading-relaxed mb-2">
+                                Returned formatting options, passed in as a header.
+                                Allowed values:
+                                <code class="bg-gray-200 px-1 rounded font-mono text-sm">Base</code>,
+                                <code class="bg-gray-200 px-1 rounded font-mono text-sm">Game</code>.
+                                If omitted, defaults to
+                                <code class="bg-gray-200 px-1 rounded font-mono text-sm">Game</code>.
+                            </p>
+                            <p>
+                                <span class="font-semibold text-gray-900">Base:</span><br /><small>Returns data in a dict with no grouping.</small><br/><br/>
+                                <span class="font-semibold text-gray-900">Game:</span><br /><small>Returns data in a dict, grouped by games.</small><br/><br/>
+                            </p>
+                        </div>
+                    </div>
+
+                  </div>
+                  <h4 class="text-lg font-semibold text-gray-900 mb-4">Responses </h4>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                     <h5 class="text-base font-medium text-green-700 mb-2">200 Response (<small>Shown with Base formatter</small>)</h5>
+                     <div x-data="{ open: false }" class="w-full shadow rounded-xl overflow-hidden">
+                        <!-- Header -->
+                        <div
+                            class="flex justify-between items-center px-4 py-2 bg-[#1e293b] cursor-pointer"
+                            @click="open = !open"
+                          >
+                           <span class="text-xs font-mono uppercase tracking-wide text-gray-300">JSON</span>
+                           <button class="text-gray-400 text-xs hover:text-white transition">
+                             <span x-show="!open">Show ▼</span>
+                             <span x-show="open">Hide ▲</span>
+                           </button>
+                        </div>
+                        <div x-show="open" x-collapse>
+                        <!-- Code -->
+                            <pre class="p-4 overflow-x-auto m-0 bg-[#0f172a] text-gray-100"><code class="language-json">{
+   "underdog":{
+      "last_refresh":"2025-10-03T23:04:28.823713+00:00",
+      "data":[
+         {
+            "player_name":"Jaron Ennis",
+            "league":"BOXING",
+            "start_date":"2025-10-12T03:00:00Z",
+            "team_data":{
+               "team_a":"Ennis",
+               "team_b":"Lima",
+               "team_key":"lima_ennis_2025-10-12t03:00:00z",
+               "player_team":"Jaron Ennis",
+               "team_a_abbreviation":null,
+               "team_b_abbreviation":null
+            },
+            "future":false,
+            "stats":[
+               {
+                  "stat_type":"Fight Time (Mins)",
+                  "line":22.5,
+                  "bet_direction":"over",
+                  "regular_line":false,
+                  "optional_stats":{
+                     "market_type":"full",
+                     "odds_type":"reduced payout",
+                     "multiplier":0.87,
+                     "odds":{
+                        "american_odds":-148.0,
+                        "decimal_odds":1.68
+                     }
+                  },
+                  "discounts":{
+
+                  }
+               }
+            ]
+         }
+      }
+}
+                           </code></pre>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </section>
+
+            <!-- SGP Endpoints -->
+            <section class="mb-16" id="sgp-endpoints">
+               <h2 class="text-3xl font-bold text-gray-900 mb-2">SGP Endpoints</h2>
+               <p class="text-gray-600 mb-8">Endpoints for interacting with Single Game Parlay (SGP)</p>
+               <!--/sgp/book_list-->
+               <div class="bg-white border border-gray-200 rounded-xl p-6 mb-8 shadow-sm">
+                  <div class="flex flex-wrap items-center gap-3 mb-4">
+                     <span class="badge badge-get">GET</span>
+                     <code class="endpoint-span">/sgp/book_list</code>
+                  </div>
+                  <p class="text-gray-700 mb-6">Retrieves a list of all supported SGP books.</p>
+                  <h4 class="text-lg font-semibold text-gray-900 mb-4">Parameters</h4>
+                  <p class="text-gray-600 mb-6 bg-gray-50 rounded-lg p-4">This endpoint requires no parameters.</p>
+                  <h4 class="text-lg font-semibold text-gray-900 mb-4">Responses</h4>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                     <h5 class="text-base font-medium text-green-700 mb-2">200 Response</h5>
+                     <div x-data="{ open: false }" class="w-full shadow rounded-xl overflow-hidden">
+                        <!-- Header -->
+                        <div
+                            class="flex justify-between items-center px-4 py-2 bg-[#1e293b] cursor-pointer"
+                            @click="open = !open"
+                          >
+                           <span class="text-xs font-mono uppercase tracking-wide text-gray-300">JSON</span>
+                           <button class="text-gray-400 text-xs hover:text-white transition">
+                             <span x-show="!open">Show ▼</span>
+                             <span x-show="open">Hide ▲</span>
+                           </button>
+                        </div>
+                        <div x-show="open" x-collapse>
+                        <!-- Code -->
+                            <pre class="p-4 overflow-x-auto m-0 bg-[#0f172a] text-gray-100"><code class="language-json">{
+    "sgp_books": [
+    {
+      "title": "FanDuel Sportsbook",
+      "book_key": "fanduel",
+      "status": "Online"
+    },
+    {
+      "title": "BetMGM Sportsbook",
+      "book_key": "betmgm",
+      "status": "Online"
+    },
+    {
+      "title": "Fanatics Sportsbook",
+      "book_key": "fanatics",
+      "status": "Online"
+    },
+    {
+      "title": "Kambi Provider",
+      "book_key": "kambi",
+      "status": "Online"
+    },
+    {
+      "title": "DraftKings",
+      "book_key": "draftkings",
+      "status": "Online"
+    },
+    {
+      "title": "HardRock",
+      "book_key": "hardrock",
+      "status": "Online"
+    },
+    {
+      "title": "Novig",
+      "book_key": "novig",
+      "status": "Online"
+    },
+    {
+      "title": "Onyx Odds",
+      "book_key": "onyx",
+      "status": "Online"
+    }
+  ]
+}                           </code></pre>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <!--/dfs/odds-->
+               <div class="bg-white border border-gray-200 rounded-xl p-6 mb-8 shadow-sm">
+                  <div class="flex flex-wrap items-center gap-3 mb-4">
+                     <span class="bg-yellow-500 text-white px-3 py-1 rounded-md text-sm font-semibold">POST</span>
+                     <code class="endpoint-span">/sgp/odds</code>
+                  </div>
+                  <p class="text-gray-700 mb-6">Calculates and returns the odds for Same Game Parlays from specified sportsbooks.</p>
+                  <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Payload</h4>
+                    <div x-data="{ open: false }" class="w-full shadow rounded-xl overflow-hidden">
+                        <!-- Header -->
+                        <div
+                            class="flex justify-between items-center px-4 py-2 bg-[#1e293b] cursor-pointer"
+                            @click="open = !open"
+                          >
+                           <span class="text-xs font-mono uppercase tracking-wide text-gray-300">JSON</span>
+                           <button class="text-gray-400 text-xs hover:text-white transition">
+                             <span x-show="!open">Show ▼</span>
+                             <span x-show="open">Hide ▲</span>
+                           </button>
+                        </div>
+                        <div x-show="open" x-collapse>
+                        <!-- Code -->
+                            <pre class="p-4 overflow-x-auto m-0 bg-[#0f172a] text-gray-100"><code class="language-json">{
+    [
+      {
+        "book_name": "draftkings",
+        "links": [
+          "https://sportsbook.draftkings.com/event/...",
+          "https://sportsbook.draftkings.com/event/..."
+        ]
+      },
+      {
+        "book_name": "fanduel",
+        "links": [
+          "https://sportsbook.fanduel.com/event/..."
+        ]
+      }
+    ]
+}                           </code></pre>
+                        </div>
+                     </div>
+                  </div>
+                  <h4 class="text-lg font-semibold text-gray-900 mb-4">Responses</h4>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                     <h5 class="text-base font-medium text-green-700 mb-2">200 Response</h5>
+                     <div x-data="{ open: false }" class="w-full shadow rounded-xl overflow-hidden">
+                        <!-- Header -->
+                        <div
+                            class="flex justify-between items-center px-4 py-2 bg-[#1e293b] cursor-pointer"
+                            @click="open = !open"
+                          >
+                           <span class="text-xs font-mono uppercase tracking-wide text-gray-300">JSON</span>
+                           <button class="text-gray-400 text-xs hover:text-white transition">
+                             <span x-show="!open">Show ▼</span>
+                             <span x-show="open">Hide ▲</span>
+                           </button>
+                        </div>
+                        <div x-show="open" x-collapse>
+                        <!-- Code -->
+                            <pre class="p-4 overflow-x-auto m-0 bg-[#0f172a] text-gray-100"><code class="language-json">{
+
+}                           </code></pre>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </section>
+            <!-- Error Handling -->
+            <section class="mb-16" id="errors">
+               <h2 class="text-3xl font-bold text-gray-900 mb-6">Error Handling</h2>
+               <div class="bg-white rounded-xl border border-gray-200 p-6">
+                   <p class="text-gray-800 mb-6">The API follows standard HTTP status codes:</p>
+                   <div class="space-y-3">
+                       <div class="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                           <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                           <strong class="text-green-700">200 OK:</strong>
+                           <span class="text-gray-700">Request successful</span>
+                       </div>
+                       <div class="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                           <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                           <strong class="text-yellow-700">400 Bad Request:</strong>
+                           <span class="text-gray-700">Invalid parameters or request body</span>
+                       </div>
+                       <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                           <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                           <strong class="text-red-700">401 Unauthorized:</strong>
+                           <span class="text-gray-700">Authentication required or invalid API key</span>
+                       </div>
+                       <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                           <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                           <strong class="text-red-700">404 Not Found:</strong>
+                           <span class="text-gray-700">Resource not found</span>
+                       </div>
+                       <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                           <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                           <strong class="text-red-700">500 Server Error:</strong>
+                           <span class="text-gray-700">An error occurred on the server</span>
+                       </div>
+                   </div>
+               </div>
+            </section>
+         </main>
+      </div>
+      <script>
+         hljs.addPlugin(new CopyButtonPlugin());
+         hljs.highlightAll();
+      </script>
+   </body>
+</html>
