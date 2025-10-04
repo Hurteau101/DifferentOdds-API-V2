@@ -76,7 +76,7 @@ class Sleeper(DFSBookBase):
             solo_game=False if all([team_a, team_b]) else True,
             stats=[
                 Stats(
-                    stat_type=STAT_TYPES.get(option.get("wager_type").lower(), option.get("wager_type")).title(),
+                    stat_type=STAT_TYPES.get(option.get("wager_type").lower().replace("_", " "), option.get("wager_type")).title(),
                     line=option.get("outcome_value"),
                     bet_direction=option.get("outcome"),
                     regular_line=True if float(option.get("payout_multiplier")) == 1.00 else False,

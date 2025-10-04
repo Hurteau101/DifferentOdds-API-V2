@@ -82,7 +82,7 @@ class Parlayplay(DFSBookBase):
                 combo=False,
                 stats=[
                     Stats(
-                        stat_type=STAT_TYPES.get(stat.get("marketName").lower(), stat.get("marketName")).title(),
+                        stat_type=STAT_TYPES.get(stat.get("marketName").lower().replace("player", ""), stat.get("marketName")).title(),
                         line=stat.get("selectionPoints"),
                         bet_direction=option,
                         regular_line=True if price_key == 1.00 else False,
