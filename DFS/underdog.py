@@ -176,7 +176,7 @@ class Underdog(DFSBookBase):
 
         return [
             Stats(
-                stat_type=self.STAT_TYPES.get(line.get("display_stat"), line.get("display_stat")),
+                stat_type=self.STAT_TYPES.get(line.get("display_stat").lower(), line.get("display_stat")),
                 line=float(line.get("line")),
                 bet_direction=choice_mapping.get(option.get("choice")),
                 regular_line=True if option.get("payout_multiplier") == "1.0" else False,
