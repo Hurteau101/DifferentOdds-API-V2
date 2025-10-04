@@ -28,10 +28,10 @@ class BookParameters(BaseModel):
     book_nams: List[str]
 
 class FormatHeader(BaseModel):
-    format: Literal["League", "Base", "Game"] = "Game"
+    format: Literal["Base", "Game"] = "Game"
 
 def validate_format_header(
-    format: Optional[str] = Header(None, alias="X-Format", description="Select output format: League, Base, or Game")
+    format: Optional[str] = Header(None, alias="X-Format", description="Select output format: Base or Game")
 ):
     format = (format or "Game").capitalize()
 
