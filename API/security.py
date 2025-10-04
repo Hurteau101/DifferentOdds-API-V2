@@ -1,10 +1,10 @@
 from fastapi import Depends, Request, Security, HTTPException
 from fastapi.security import APIKeyHeader
-from starlette.status import HTTP_403_FORBIDDEN
+from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
 from Mapper.database import Database
 from cachetools import TTLCache
 
-api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=True)
+api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 _key_cache = TTLCache(maxsize=1, ttl=300)  # Cache for 5 minutes
 
 async def get_db(request: Request) -> Database:
@@ -27,4 +27,4 @@ async def get_api_key(api_key: str = Security(api_key_header),
                       valid_keys: set[str] = Depends(get_api_keys)):
     if api_key in valid_keys:
         return api_key
-    raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Invalid or missing API Key")
+    raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid or missing API Key")

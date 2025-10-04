@@ -1,9 +1,11 @@
 __pycache__/
 *.py[cod]
 .venv/
+venv/
 .env
 books
 dump.rdb
+celerybeat-schedule.db
 celerybeat-schedule.bak
 celerybeat-schedule.dat
 celerybeat-schedule.dir

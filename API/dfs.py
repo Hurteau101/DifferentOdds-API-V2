@@ -1,7 +1,7 @@
 import asyncio
-from typing import List, Dict
-from fastapi import Request
-
+from typing import List, Dict, Literal, Optional
+from fastapi import Request, Header
+from Formatters.dfs_formatter import get_formatter
 import orjson
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -27,29 +27,21 @@ class BooksListResponse(BaseModel):
 class BookParameters(BaseModel):
     book_nams: List[str]
 
-# async def fetch_redis_data(key_name):
-#     redis = RedisManager(db=0)
-#     try:
-#         cached_data = await redis.fetch_data(key_name)
-#         if not cached_data:
-#             return None
-#
-#         return orjson.loads(cached_data)
-#
-#     except Exception as e:
-#         return None
+class FormatHeader(BaseModel):
+    format: Literal["League", "Base", "Game"] = "Game"
 
-# async def fetch_redis_data(key_name):
-#     redis = RedisManager(db=0)
-#     try:
-#         cached_data = await redis.fetch_data(key_name)
-#         if not cached_data:
-#             return None
-#
-#         return cached_data
-#
-#     except Exception:
-#         return None
+def validate_format_header(
+    format: Optional[str] = Header(None, alias="X-Format", description="Select output format: League, Base, or Game")
+):
+    format = (format or "Game").capitalize()
+
+    if format not in ["Base", "Game"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid format. Must be one of: Base or Game."
+        )
+
+    return FormatHeader(format=format)
 
 async def fetch_redis_data(key_name, request):
     redis: RedisManager = request.app.state.redis
@@ -78,6 +70,7 @@ async def get_book_list():
 async def get_book_data(
         request: Request,
         books: List[str] = Query(..., description="List of DFS book names to fetch data for"),
+        fmt: str = Depends(validate_format_header)
 ):
     dfs_books = [book.get("book_key") for book in SportsbookConfig.get_book_info(book_type="dfs")]
     for book in books:
@@ -103,21 +96,6 @@ async def get_book_data(
         else:
             clean_results[book] = result
 
-    # clean_results = {}
-    # for book, result in zip(books, results):
-    #     if isinstance(result, (asyncio.TimeoutError, Exception)):
-    #         clean_results[book] = None
-    #     else:
-    #         if isinstance(result, dict) and "payload" in result and "last_refresh" in result:
-    #             clean_results[book] = {
-    #                 "data": result["payload"],
-    #                 "last_refresh": result["last_refresh"]
-    #             }
-    #         else:
-    #             clean_results[book] = {
-    #                 "data": result,
-    #                 "last_refresh": None
-    #             }
 
     # Final Check - if all results are None, raise 500 error
     if all(v is None for v in clean_results.values()):
@@ -128,6 +106,11 @@ async def get_book_data(
         )
         raise HTTPException(status_code=500,
                             detail="No data available for the requested books. Please try again later.")
+
+
+    if fmt.format == "Game":
+        return get_formatter("game", clean_results)
+
 
     return clean_results
 
