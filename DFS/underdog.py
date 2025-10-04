@@ -120,10 +120,20 @@ class Underdog(DFSBookBase):
 
         if game_type == "Game":
             team_data = Underdog._extract_team_games(game_section, team_id, player_name)
+
+            # Underdog API sometimes bugs, so extra check
+            if not team_data:
+                return {}
+
             team_data["solo_game"] = False
             full_details.update(**team_data)
         else:
             solo_data = Underdog._extract_solo_games(game_section, player_name)
+
+            # Underdog API sometimes bugs, so extra check
+            if not solo_data:
+                return {}
+
             solo_data["solo_game"] = True
             full_details.update(**solo_data)
 
@@ -204,6 +214,10 @@ class Underdog(DFSBookBase):
             player_name=player_details.get("player_name"),
             team_id=player_details.get("team_id") if game_type == "Game" else None,
         )
+
+        if not game_details:
+            return None
+
         league = self.LEAGUE_MAPPING.get(player_details.get("league").lower(), player_details.get("league"))
 
         grouped_stats = stats.get(line_id)
@@ -250,7 +264,6 @@ class Underdog(DFSBookBase):
         return grouped_stats
 
     async def run_book(self):
-        print("RUNNING UNDERDOG")
         async with aiohttp.ClientSession() as session:
             api_data = await self.api_caller(
                 session=session,
