@@ -186,15 +186,15 @@ DFS_PROVIDERS = [
         method="GET",
         active=True
     ),
-    DFSProvider(
-        title="Chalkboard",
-        name="chalkboard",
-        url={
-            "main_url": "https://firestore.googleapis.com/v1/projects/taild-262305/databases/(default)/documents:runQuery"
-        },
-        method="POST",
-        active=True
-    ),
+    # DFSProvider(
+    #     title="Chalkboard",
+    #     name="chalkboard",
+    #     url={
+    #         "main_url": "https://firestore.googleapis.com/v1/projects/taild-262305/databases/(default)/documents:runQuery"
+    #     },
+    #     method="POST",
+    #     active=True
+    # ),
     DFSProvider(
         title="FanDuel Picks",
         name="fanduel_picks",

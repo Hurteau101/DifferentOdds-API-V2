@@ -12,6 +12,9 @@ class GameFormatter(BaseFormatter):
                 # games[book] = []
                 games[book] = {}
 
+            if not extra_data:
+                continue
+
             for entry in extra_data.get("data", []):
                 game_key = entry.get("team_data", {}).get("team_key")
 
