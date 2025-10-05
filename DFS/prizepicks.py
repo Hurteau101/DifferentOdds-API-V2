@@ -104,8 +104,9 @@ class Prizepicks(DFSBookBase):
         player_name = player_information.get("display_name", "") if player_information.get("display_name") != "" \
             else player_information.get("name", "")
 
-        league =  player_information.get("league").upper() if player_information.get("league") else None
-        league = self.LEAGUE_MAPPING.get(league.lower(), league.upper())
+        raw_league =  player_information.get("league").upper() if player_information.get("league") else None
+
+        league = self.LEAGUE_MAPPING.get(raw_league.lower(), raw_league.upper())
 
 
         projection_id = game_details.get("id")
@@ -138,7 +139,7 @@ class Prizepicks(DFSBookBase):
                 )
             )
 
-            for stat in self._process_stats(game_information, league, projection_id)
+            for stat in self._process_stats(game_information, raw_league, projection_id)
         ]
 
         return PlayerData(
