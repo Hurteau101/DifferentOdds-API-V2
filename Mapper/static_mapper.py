@@ -40,7 +40,17 @@ LEAGUES = {
     'lck challengers korea': "LOL",
     "nbap": "NBA",
     "cfb2h": "CFB",
-
+    'cfb1h': 'CFB',
+    'cfb1q': 'CFB',
+    'cfb2q': 'CFB',
+    'cfb3q': 'CFB',
+    'cfb4q': 'CFB',
+    'nfl2h': 'NFL',
+    'nfl1h': 'NFL',
+    'nfl1q': 'NFL',
+    'nfl2q': 'NFL',
+    'nfl3q': 'NFL',
+    'nfl4q': 'NFL',
 }
 
 MARKET_TYPE_MAPPER = {

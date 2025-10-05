@@ -9,6 +9,7 @@ from API.security import get_api_key
 from API.setup import create_logging_setup
 from Redis.redis_manager import RedisManager
 from Settings.sportsbook_config import SportsbookConfig
+from API.Esports.dfs_esports_filter import Esports
 router = APIRouter(prefix="/dfs", tags=["DFS"])
 
 # Set a timeout for fetching data from Redis
@@ -43,35 +44,7 @@ def validate_format_header(
 
     return FormatHeader(format=format)
 
-async def fetch_redis_data(key_name, request):
-    redis: RedisManager = request.app.state.redis
-    try:
-        return await redis.fetch_data(key_name)
-    except Exception:
-        return None
-
-@router.get("/books_list",
-            summary="Get DFS Books List",
-            description="Retrieve a list of available DFS books.",
-            response_model=BooksListResponse
-            )
-async def get_book_list():
-    result = SportsbookConfig.get_book_info(book_type="dfs")
-    if not result:
-        raise HTTPException(status_code=500, detail="No DFS books available. Please contact support.")
-
-    return {"dfs_books": result}
-
-@router.get(
-    "/odds",
-    summary="Get DFS Odds",
-    dependencies=[Depends(get_api_key)]
-)
-async def get_book_data(
-        request: Request,
-        books: List[str] = Query(..., description="List of DFS book names to fetch data for"),
-        fmt: str = Depends(validate_format_header)
-):
+async def get_odds(books, request):
     dfs_books = [book.get("book_key") for book in SportsbookConfig.get_book_info(book_type="dfs")]
     for book in books:
         if book.lower() not in dfs_books:
@@ -107,10 +80,57 @@ async def get_book_data(
         raise HTTPException(status_code=500,
                             detail="No data available for the requested books. Please try again later.")
 
-
-    if fmt.format == "Game":
-        return get_formatter("game", clean_results)
-
-
     return clean_results
 
+
+
+async def fetch_redis_data(key_name, request):
+    redis: RedisManager = request.app.state.redis
+    try:
+        return await redis.fetch_data(key_name)
+    except Exception:
+        return None
+
+@router.get("/books_list",
+            summary="Get DFS Books List",
+            description="Retrieve a list of available DFS books.",
+            response_model=BooksListResponse
+            )
+async def get_book_list():
+    result = SportsbookConfig.get_book_info(book_type="dfs")
+    if not result:
+        raise HTTPException(status_code=500, detail="No DFS books available. Please contact support.")
+
+    return {"dfs_books": result}
+
+@router.get(
+    "/odds",
+    summary="Get DFS Odds",
+    dependencies=[Depends(get_api_key)]
+)
+async def get_book_data(
+        request: Request,
+        books: List[str] = Query(..., description="List of DFS book names to fetch data for"),
+        fmt: str = Depends(validate_format_header)
+):
+    odds = await get_odds(books, request)
+
+    if fmt.format == "Game":
+        return get_formatter("game", odds)
+
+
+    return odds
+
+
+@router.get(
+    "/esport_lines",
+    summary="Get Esports DFS Lines",
+    dependencies=[Depends(get_api_key)]
+)
+async def get_esport_lines(
+        request: Request,
+        books: List[str] = Query(..., description="List of DFS book names to fetch data for")
+):
+    odds = await get_odds(books, request)
+    esports = Esports(odds)
+    return esports.get_esport_lines()
