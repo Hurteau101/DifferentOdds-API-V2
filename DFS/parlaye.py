@@ -59,7 +59,7 @@ class Parlaye(DFSBookBase):
                 )
                 for option in ["over", "under"]
             ],
-            solo_game=False if all([team_a, team_b]) else True
+            solo_game=True if not all([team_a, team_b]) and self.solo_checker(LEAGUES.get(game_data.get("league").lower(), game_data.get("league").upper())) else False
         )
 
 
@@ -73,7 +73,7 @@ class Parlaye(DFSBookBase):
             )
 
             if not api_data:
-                print("No data retrieved from Parlaye API.")
+                self._api_call_log("parlaye")
                 return
 
             player_data_list = {}

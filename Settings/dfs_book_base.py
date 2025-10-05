@@ -88,6 +88,19 @@ class DFSBookBase(BookBase, ABC):
 
         return name
 
+    @staticmethod
+    def solo_checker(league):
+        """Last resort check for books that have issues with teams, this ensures that main leagues aren't mapped as solo in rare cases"""
+        if not league:
+            return True
+
+        main_leagues = ["NFL", "CFB", "WNBA", "NFL", "NHL", "MLB", "NBA", "MLS", "CFL"]
+
+        if league.upper() in main_leagues:
+            return False
+
+        return True
+
     async def _database_mapper(self, sportsbook_data: list[PlayerData]):
         sportsbook = self.__class__.__name__
         unique_data = self._unique_teams(sportsbook_data, sportsbook.lower())
