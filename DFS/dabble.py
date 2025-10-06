@@ -96,6 +96,8 @@ class Dabble(DFSBookBase):
             stat_type = STAT_TYPES.get(market_names.get(player.get("marketId"), "").lower(),
                                        market_names.get(player.get("marketId"), "")).title()
 
+            stat_type = stat_type.replace("_", " ")
+
             stat_obj = Stats(
                 stat_type=stat_type,
                 line=player.get("value"),
@@ -180,7 +182,8 @@ class Dabble(DFSBookBase):
                 for game_details in game_data_list
                 for player in self._extract_game_data(game_details, league_data)
             ]
-
+            serialize = self.serialize_data(player_list)
+            self.create_json(serialize, "dabble.json")
             return await self._database_mapper(player_list)
 
 
