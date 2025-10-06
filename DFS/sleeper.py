@@ -22,6 +22,10 @@ class Sleeper(DFSBookBase):
         return {f"{player['player_id']}-{player['sport']}": player for player in players}
 
     def _extract_game_data(self, game_data, team_data, player_information):
+        def configure_stats(stat_type):
+            stat_type = stat_type.replace("_", " ").lower()
+            return STAT_TYPES.get(stat_type, stat_type).title()
+
         if not game_data or not team_data or not player_information:
             return None
 
@@ -76,7 +80,7 @@ class Sleeper(DFSBookBase):
             solo_game=False if all([team_a, team_b]) else True,
             stats=[
                 Stats(
-                    stat_type=STAT_TYPES.get(option.get("wager_type").lower().replace("_", " "), option.get("wager_type")).title(),
+                    stat_type=configure_stats(option.get("wager_type")),
                     line=option.get("outcome_value"),
                     bet_direction=option.get("outcome"),
                     regular_line=True if float(option.get("payout_multiplier")) == 1.00 else False,

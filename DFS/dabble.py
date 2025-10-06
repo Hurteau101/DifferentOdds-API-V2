@@ -96,8 +96,6 @@ class Dabble(DFSBookBase):
             stat_type = STAT_TYPES.get(market_names.get(player.get("marketId"), "").lower(),
                                        market_names.get(player.get("marketId"), "")).title()
 
-            stat_type = stat_type.replace("_", " ")
-
             stat_obj = Stats(
                 stat_type=stat_type,
                 line=player.get("value"),
