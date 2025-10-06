@@ -169,6 +169,14 @@ class Betr(DFSBookBase):
 
 
     def _extract_projections(self, players, league, game_date, team_names=None, solo_game=False,):
+        def stat_type_helper(stat_types):
+            """Conflict with other books on some stat types, so we need to manually adjust them here."""
+            if stat_types.lower() == "strikeouts":
+                stat_types = "batter strikeouts"
+
+            return STAT_TYPES.get(stat_types.lower(), stat_types.title()),
+
+
         option_mapper = {
             "more": "over",
             "less": "under",
@@ -190,7 +198,7 @@ class Betr(DFSBookBase):
             for projection in player.get("projections", []):
                 bet_options = [
                     Stats(
-                        stat_type=STAT_TYPES.get(projection.get("label").lower(), projection.get("label").title()),
+                        stat_type=stat_type_helper(projection.get("label")),
                         line=projection.get("value"),
                         bet_direction=option_mapper.get(options.get("outcome").lower(), options.get("outcome").title()),
                         regular_line=True if projection.get("type").lower() == "regular" else False,
