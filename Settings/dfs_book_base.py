@@ -34,8 +34,6 @@ class DFSBookBase(BookBase, ABC):
 
     def _unique_teams(self, sportsbook_data: list[PlayerData], sportsbook):
         """Create a list of unique team names, so we can pass this data to RapidFuzz and OpenAI"""
-
-
         team_set = set()
         team_data = []
 
@@ -71,6 +69,7 @@ class DFSBookBase(BookBase, ABC):
                                 "solo_game": data.solo_game,
                                 "sportsbook": sportsbook
                             })
+
         return team_data
 
     @staticmethod
@@ -106,9 +105,14 @@ class DFSBookBase(BookBase, ABC):
         unique_data = self._unique_teams(sportsbook_data, sportsbook.lower())
         mapped_teams = await self.mapper.controller(unique_data)
 
+
         # Create a map of the returned RapidFuzz + OpenAI mapping.
+        # team_lookup = {
+        #     team["original_name"].lower(): team
+        #     for team in mapped_teams
+        # }
         team_lookup = {
-            team["original_name"].lower(): team
+            f'{team["original_name"].lower()}-{team["league"]}': team
             for team in mapped_teams
         }
 
@@ -125,8 +129,12 @@ class DFSBookBase(BookBase, ABC):
                     self._generate_key([data.player_name, data.start_date])
             else:
                 for side in ['team_a', 'team_b']:
+                    league = data.league
                     team_name_attr = getattr(data.team_data, side)
-                    team = team_lookup.get(team_name_attr.lower())
+
+                    team_key = f"{team_name_attr.lower()}-{league}"
+                    team = team_lookup.get(team_key)
+                    # team = team_lookup.get(team_name_attr.lower())
                     if team:
                         data.league = team["league"]
                         setattr(data.team_data, side, team["team_name"])
