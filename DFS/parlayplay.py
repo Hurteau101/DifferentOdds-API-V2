@@ -70,19 +70,23 @@ class Parlayplay(DFSBookBase):
 
 
     def _extract_data(self, game_data):
+        def configure_stat_type(stat_type):
+            stat_type = STAT_TYPES.get(stat_type.lower(), stat_type).title().replace("Player", "").strip()
+            return stat_type
+
         return [
             PlayerData(
                 player_name=player.get("player").get("fullName"),
                 league=LEAGUES.get(player.get("match").get("league").get("leagueNameShort").lower(),
                                    player.get("match").get("league").get("leagueNameShort")).upper(),
-                start_date=player.get("match").get("matchDate"),
+                start_date=self.cache_time(player.get("match").get("matchDate")),
                 team_data=self._extract_team_data(game_data=player),
                 future=Parlayplay._season_checker(player),
                 solo_game=self._check_solo_sport(player),
                 combo=False,
                 stats=[
                     Stats(
-                        stat_type=STAT_TYPES.get(stat.get("marketName").lower().replace("player", ""), stat.get("marketName")).title(),
+                        stat_type=configure_stat_type(stat.get("marketName")),
                         line=stat.get("selectionPoints"),
                         bet_direction=option,
                         regular_line=True if price_key == 1.00 else False,
