@@ -59,6 +59,11 @@ class Boom(DFSBookBase):
                 if is_esports:
                     player_name = player_data.get("title").get("o").get("name").lower()
                     stat_title = player_stats.get("title").lower().replace(player_name, "").replace(" |", "").strip()
+
+                    # Condition added as there is a conflict of mapping with other books
+                    if stat_title.lower == "walks":
+                        stat_title = "pitcher walks"
+
                     stat_type = STAT_TYPES.get(stat_title, stat_title.title())
                     league = LEAGUES.get(esport_check[-1].lower(), esport_check[-1].upper())
 
