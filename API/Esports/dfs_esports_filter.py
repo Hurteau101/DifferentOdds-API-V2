@@ -5,6 +5,7 @@ class Esports:
         "LOL", "CS2", "DOTA2", "VAL", "COD"
     ]
 
+
     def __init__(self, raw_dfs_data):
         self.data = raw_dfs_data
 
@@ -24,3 +25,13 @@ class Esports:
                     esports_only[book]["data"].append(line_data)
 
         return esports_only
+
+
+
+
+
+
+
+
+
+

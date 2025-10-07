@@ -176,10 +176,6 @@ class Epicks(DFSBookBase):
 
             data = await asyncio.gather(*tasks)
             combined_data = [item for sublist in data for item in sublist if item] # Flatten the list and remove None entries
-            import json
-            with open("epicks_raw.json", "w") as f:
-                json.dump(combined_data, f, indent=2)
-
 
             player_data_list = {}
             for raw_data in combined_data:

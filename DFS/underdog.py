@@ -1,6 +1,8 @@
 import asyncio
 from collections import defaultdict
 import aiohttp
+
+from Mapper.static_mapper import LEAGUES
 from Settings.book_base import BookBase, SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import *
@@ -10,6 +12,7 @@ class Underdog(DFSBookBase):
     def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="underdog")
         self.stats_list = []
+        self.esport_leagues = ["CS2", "LOL", "DOTA2", "VAL", "COD"]
 
     @staticmethod
     def _mapper(api_data):
@@ -46,43 +49,122 @@ class Underdog(DFSBookBase):
             "image": player_section.get("image_url"),
         }
 
-    @staticmethod
-    def _extract_team_games(game_section, team_id, player_name):
+    # def _extract_team_games(self, game_section, team_id, player_name):
+    #     """Extract Team Game Details"""
+    #     game_title = game_section.get("full_team_names_title").replace(".", "")
+    #     abbreviation_split = BookBase._split_teams(game_section.get("abbreviated_title").replace(".", ""))
+    #
+    #     valid_split = BookBase._split_teams(game_title.replace(".", ""))
+    #     if valid_split:
+    #         team_a, team_b, operator = valid_split["team_a"], valid_split["team_b"], valid_split["operator"].replace(".", "")
+    #         title_split = game_title.split(operator)
+    #
+    #         league = LEAGUES.get(game_section.get("sport_id").lower(), game_section.get("sport_id"))
+    #
+    #         if operator == "@" and team_id == game_section.get("home_team_id"):
+    #             if league in self.esport_leagues:
+    #                 player_team = title_split[0].strip()
+    #             else:
+    #                 player_team = title_split[1].strip()
+    #         else:
+    #             if league in self.esport_leagues:
+    #                 player_team = title_split[1].strip()
+    #             else:
+    #                 player_team = title_split[0].strip()
+    #         if operator == "vs" and team_id == game_section.get("home_team_id"):
+    #             if league in self.esport_leagues:
+    #                 player_team = title_split[0].strip()
+    #             else:
+    #                 player_team = title_split[1].strip()
+    #         else:
+    #             if league in self.esport_leagues:
+    #                 player_team = title_split[1].strip()
+    #             else:
+    #                 player_team = title_split[0].strip()
+    #
+    #         if team_a or team_b is None:
+    #             game_key = BookBase._generate_key([player_name, game_section.get("scheduled_at")])
+    #         else:
+    #             game_key = BookBase._generate_key([team_a, team_b, game_section.get("scheduled_at")])
+    #
+    #
+    #         return {
+    #             "match_title": game_section.get("full_team_names_title").strip(),
+    #             "player_team": DFSBookBase.clean_and_normalize_name(player_team),
+    #             "team_a": DFSBookBase.clean_and_normalize_name(team_a),
+    #             "team_b": DFSBookBase.clean_and_normalize_name(team_b),
+    #             "team_key": game_key,
+    #             "team_a_abbreviation": abbreviation_split.get("team_a"),
+    #             "team_b_abbreviation": abbreviation_split.get("team_b"),
+    #         }
+
+    def _extract_team_games(self, game_section, team_id, player_name):
         """Extract Team Game Details"""
-        game_title = game_section.get("full_team_names_title").replace(".", "")
-        abbreviation_split = BookBase._split_teams(game_section.get("abbreviated_title").replace(".", ""))
+        game_title = game_section.get("full_team_names_title", "").replace(".", "").strip()
+        abbreviation_split = BookBase._split_teams(game_section.get("abbreviated_title", "").replace(".", ""))
 
-        valid_split = BookBase._split_teams(game_title.replace(".", ""))
-        if valid_split:
-            team_a, team_b, operator = valid_split["team_a"], valid_split["team_b"], valid_split["operator"].replace(".", "")
-            title_split = game_title.split(operator)
-
-            if operator == "@" and team_id == game_section.get("home_team_id"):
-                player_team = title_split[1].strip()
-            else:
-                player_team = title_split[0].strip()
-
-            if operator == "vs" and team_id == game_section.get("home_team_id"):
-                player_team = title_split[0].strip()
-            else:
-                player_team = title_split[1].strip()
-
-
-            if team_a or team_b is None:
-                game_key = BookBase._generate_key([player_name, game_section.get("scheduled_at")])
-            else:
-                game_key = BookBase._generate_key([team_a, team_b, game_section.get("scheduled_at")])
-
-
+        # Detect operator ("vs" or "@")
+        valid_split = BookBase._split_teams(game_title)
+        if not valid_split:
             return {
-                "match_title": game_section.get("full_team_names_title").strip(),
-                "player_team": DFSBookBase.clean_and_normalize_name(player_team),
-                "team_a": DFSBookBase.clean_and_normalize_name(team_a),
-                "team_b": DFSBookBase.clean_and_normalize_name(team_b),
-                "team_key": game_key,
-                "team_a_abbreviation": abbreviation_split.get("team_a"),
-                "team_b_abbreviation": abbreviation_split.get("team_b"),
+                "match_title": None,
+                "player_team": None,
+                "team_a": None,
+                "team_b": None,
+                "team_key": None,
+                "team_a_abbreviation": None,
+                "team_b_abbreviation": None,
             }
+
+        team_a, team_b, operator = (
+            valid_split["team_a"].strip(),
+            valid_split["team_b"].strip(),
+            valid_split["operator"].replace(".", "").strip()
+        )
+
+        league = LEAGUES.get(game_section.get("sport_id", "").lower(), game_section.get("sport_id"))
+
+        title_split = game_title.split(operator)
+        if len(title_split) != 2:
+            return {
+                "match_title": None,
+                "player_team": None,
+                "team_a": None,
+                "team_b": None,
+                "team_key": None,
+                "team_a_abbreviation": None,
+                "team_b_abbreviation": None,
+            }
+
+        home_team_id = game_section.get("home_team_id")
+
+        # Determine home/away order like the old logic
+        if operator == "vs":
+            home_team, away_team = team_a, team_b
+        else:  # "@"
+            home_team, away_team = team_b, team_a
+
+        # Esports leagues reverse the order
+        if league in self.esport_leagues:
+            home_team, away_team = away_team, home_team
+
+        player_team = home_team if team_id == home_team_id else away_team
+
+        # Generate game key
+        if not team_a or not team_b:
+            game_key = BookBase._generate_key([player_name, game_section.get("scheduled_at")])
+        else:
+            game_key = BookBase._generate_key([team_a, team_b, game_section.get("scheduled_at")])
+
+        return {
+            "match_title": game_section.get("full_team_names_title").strip(),
+            "player_team": DFSBookBase.clean_and_normalize_name(player_team),
+            "team_a": DFSBookBase.clean_and_normalize_name(team_a),
+            "team_b": DFSBookBase.clean_and_normalize_name(team_b),
+            "team_key": game_key,
+            "team_a_abbreviation": abbreviation_split.get("team_a"),
+            "team_b_abbreviation": abbreviation_split.get("team_b"),
+        }
 
 
     @staticmethod
@@ -111,15 +193,14 @@ class Underdog(DFSBookBase):
             "team_key": game_key,
         }
 
-    @staticmethod
-    def _get_game_details(game_section, game_type, player_name, team_id):
+    def _get_game_details(self, game_section, game_type, player_name, team_id):
         """Get the game details for Solo Games and Team Games"""
         full_details = {
             "start_date": game_section.get("scheduled_at"),
         }
 
         if game_type == "Game":
-            team_data = Underdog._extract_team_games(game_section, team_id, player_name)
+            team_data = self._extract_team_games(game_section, team_id, player_name)
 
             # Underdog API sometimes bugs, so extra check
             if not team_data:
@@ -206,7 +287,7 @@ class Underdog(DFSBookBase):
 
         game_type = appearance_data.get("match_type")  # Game or SoloGame
 
-        game_details = Underdog._get_game_details(
+        game_details = self._get_game_details(
             game_section=map_data.get("team_games").get(game_id) if game_type == "Game" else map_data.get(
                 "solo_games").get(game_id),
             game_type=game_type,
@@ -282,7 +363,6 @@ class Underdog(DFSBookBase):
                 data for player in api_data.get("appearances", [])
                 if (data := self._extract_api_data(map_data, player, stats))
             ]
-
 
             return await self._database_mapper(underdog_data)
 
