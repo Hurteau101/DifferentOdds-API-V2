@@ -52,8 +52,10 @@ class Novig_SGP(SGPBookBase):
     async def run_book(self):
         ids = [{"id": link.get("bet_id")} for link in self.link_data]
         payload = {
+            "boostId": None,
             "outcomes": ids
         }
+
 
         async with aiohttp.ClientSession() as session:
             api_data = await self.api_caller(
@@ -82,8 +84,8 @@ if __name__== "__main__":
     import asyncio
 
     links = [
-        "https://app.novig.us/events/642b39e8-95ba-45c5-ab64-0fae756248fe/oddsjam",
-        "https://app.novig.us/events/3f4cc965-6dc1-4596-b465-4eb89aca6b93/oddsjam",
+        "https://app.novig.us/events/e16296cb-9ca6-4582-ad93-1625db5de588/oddsjam",
+        "https://app.novig.us/events/5ed4a9e7-67f3-4a8b-bbfc-368c7a0a38c4/oddsjam"
     ]
 
     novig_sgp = Novig_SGP(links=links)
