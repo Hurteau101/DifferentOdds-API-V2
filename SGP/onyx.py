@@ -35,7 +35,9 @@ class Onyx_SGP(SGPBookBase):
                         }
                     }
                     for data in self.link_data
-                    if data.get("bet_id") in mapped_ids
+                    if data is not None
+                       and (bet_id := data.get("bet_id")) is not None
+                       and bet_id in mapped_ids
                 }
             }
 
