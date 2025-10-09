@@ -22,13 +22,14 @@ DEFAULT_CONDITIONS = {
 }
 
 INITIALIZATION = {
-    # "fanduel": Fanduel_SGP,
-    # "betmgm": BetMGM_SGP,
-    # "fanatics": Fanatics_SGP,
-    # "kambi": Kambi_SGP,
-    # "draftkings": Draftkings_SGP,
-    # "hardrock": Hardrock_SGP,
-    "onyxodds": Onyx_SGP
+    "fanduel": Fanduel_SGP,
+    "betmgm": BetMGM_SGP,
+    "fanatics": Fanatics_SGP,
+    "kambi": Kambi_SGP,
+    "draftkings": Draftkings_SGP,
+    "hardrock": Hardrock_SGP,
+    "onyxodds": Onyx_SGP,
+    "novig": Novig_SGP,
 }
 
 
@@ -185,13 +186,14 @@ if __name__ == "__main__":
     #     {"book_name": "Fanduel", "links": []}
     # ]
     book_data = [
-        {"book_name": "onyxodds", "links": []}
+        # {"book_name": "onyxodds", "links": []},
         # {"book_name": "kambi", "links": []},
         # {"book_name": "draftkings", "links": []},
         # {"book_name": "betmgm", "links": []},
         # {"book_name": "fanatics", "links": []},
-        # {"book_name": "fanduel", "links": []}
-        # {"book_name": "hardrock", "links": []}
+        # {"book_name": "fanduel", "links": []},
+        {"book_name": "hardrock", "links": []},
+        {"book_name": "novig", "links": []}
     ]
 
     test_instance = SGPTest(book_data)
