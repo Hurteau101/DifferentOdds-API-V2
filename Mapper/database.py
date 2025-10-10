@@ -123,12 +123,12 @@ class Database:
 
     async def get_all_received_names(self):
         sql = """
-            SELECT received_name FROM teams
+            SELECT received_name, league FROM teams
             UNION
-            SELECT received_name FROM verification_table
+            SELECT received_name, league FROM verification_table
         """
         results = await self._exec(sql, fetch=True)
-        return set(row[0].lower() for row in results)
+        return set(f"{row[0].lower()}-{row[1].lower()}" for row in results)
 
 
     async def get_verification_received_names(self):
