@@ -99,63 +99,35 @@ class Underdog(DFSBookBase):
     #         }
 
     def _extract_team_games(self, game_section, team_id, player_name):
-        """Extract Team Game Details (standardized with __get_team_games logic)."""
-        reversed_index = ("MASL", "ESPORTS", "UNRIVALED", "VAL", "CS", "LOL", "DOTA", "CS2")
+        """Extract Team Game Details """
+        reversed_index = ("MASL", "ESPORTS", "UNRIVALED", "VAL", "LOL", "CS", "DOTA", "CS2")
 
-        match_title = (game_section.get("full_team_names_title") or "").lower().replace(".", "").strip()
-        abbreviated_title = (game_section.get("abbreviated_title") or "").replace(".", "").strip()
+        home_team_id = game_section.get("home_team_id")
+        match_title = game_section.get("title", "").lower().replace(".", "").strip()
+        match_title = match_title[match_title.index(":") + 1:].strip() if ":" in match_title else match_title
 
         delimiter = " vs " if " vs " in match_title else " @ " if "@" in match_title else None
         if not delimiter:
-            return {
-                "match_title": None,
-                "player_team": None,
-                "team_a": None,
-                "team_b": None,
-                "team_key": None,
-                "team_a_abbreviation": None,
-                "team_b_abbreviation": None,
-            }
+            return {"team_a": None, "team_b": None, "player_team": None, "start_date": None, "team_key": None}
 
         teams = match_title.split(delimiter)
         if len(teams) != 2:
-            return {
-                "match_title": None,
-                "player_team": None,
-                "team_a": None,
-                "team_b": None,
-                "team_key": None,
-                "team_a_abbreviation": None,
-                "team_b_abbreviation": None,
-            }
+            return {"team_a": None, "team_b": None, "player_team": None, "start_date": None, "team_key": None}
 
         home_team, away_team = teams if delimiter == " vs " else (teams[1], teams[0])
 
-        sport_id = (game_section.get("sport_id") or "").upper()
+        if any(keyword in game_section.get("sport_id") for keyword in reversed_index):
+            home_team, away_team = away_team, home_team
 
-        if any(keyword in sport_id for keyword in reversed_index):
-            home_team, away_team = away_team.strip(), home_team.strip()
-
-        home_team_id = game_section.get("home_team_id")
-        player_team = home_team if team_id == home_team_id else away_team
-
-
-        start_date = game_section.get("scheduled_at")
-        game_key = BookBase._generate_key([home_team, away_team, start_date])
-
-        abbreviation_split = BookBase._split_teams(abbreviated_title)
+        abbreviation_split = BookBase._split_teams(game_section.get("abbreviated_title").replace(".", ""))
         team_a_abbrev = abbreviation_split.get("team_a") if abbreviation_split else None
         team_b_abbrev = abbreviation_split.get("team_b") if abbreviation_split else None
 
-        return {
-            "match_title": game_section.get("full_team_names_title", "").strip(),
-            "player_team": DFSBookBase.clean_and_normalize_name(player_team),
-            "team_a": DFSBookBase.clean_and_normalize_name(home_team),
-            "team_b": DFSBookBase.clean_and_normalize_name(away_team),
-            "team_key": game_key,
-            "team_a_abbreviation": team_a_abbrev,
-            "team_b_abbreviation": team_b_abbrev,
-        }
+        player_team = home_team if team_id == home_team_id else away_team
+        generate_key = self._generate_key([home_team, away_team, game_section.get("scheduled_at")])
+
+        return {"team_a": home_team, "team_b": away_team, "player_team": player_team, "team_a_abbreviation": team_a_abbrev,
+                "team_b_abbreviation": team_b_abbrev, "team_key": generate_key}
 
 
     @staticmethod
@@ -354,6 +326,8 @@ class Underdog(DFSBookBase):
                 data for player in api_data.get("appearances", [])
                 if (data := self._extract_api_data(map_data, player, stats))
             ]
+            serialize = self.serialize_data(underdog_data)
+            self.create_json(serialize, "raw_underdog.json")
 
             return await self._database_mapper(underdog_data)
 
