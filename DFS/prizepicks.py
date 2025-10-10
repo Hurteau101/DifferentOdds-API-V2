@@ -94,6 +94,12 @@ class Prizepicks(DFSBookBase):
         team_id = player_info_map.get(player_id, {}).get("relationships", {}).get("team_data", {}).get("data", {}).get(
             "id")
 
+        # Fallback if team_id is not found in relationships
+        if not team_id:
+            team_id = player_info_map.get(player_id, {}).get("attributes", {}).get("team") if (
+                player_info_map.get(player_id, {}).get("attributes", {}).get("team")) \
+                else player_info_map.get(player_id, {}).get("attributes", {}).get("team_name")
+
         if not player_id or not team_id:
             return None
 
