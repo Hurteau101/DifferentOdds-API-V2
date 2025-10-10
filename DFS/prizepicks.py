@@ -112,7 +112,7 @@ class Prizepicks(DFSBookBase):
         projection_id = game_details.get("id")
         start_date = self.cache_time(game_information.get("start_time"))
         team = self.clean_and_normalize_name(player_information.get("team"))
-        opponent = self._opponent_extractor(league=league, opponent=game_information.get("description"))
+        opponent = self.clean_and_normalize_name(self._opponent_extractor(league=league, opponent=game_information.get("description")))
         future = True if "szn" in game_information.get("description").lower() or "szn" in league.lower() else False
         combo = True if "combo" in game_information.get("stat_type").lower() else False
         live = True if league.lower() == "mlblive" else False
