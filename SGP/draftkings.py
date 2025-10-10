@@ -40,7 +40,7 @@ class Draftkings_SGP(SGPBookBase):
                         if sgp_bet:
                             return {
                                 "decimal": None,
-                                "american": float(sgp_bet.get("displayOdds")),
+                                "american": float(str(sgp_bet.get("displayOdds")).replace("−", "-"))
                             }
 
             return None
