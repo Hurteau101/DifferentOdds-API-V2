@@ -214,14 +214,24 @@ class Mapper:
         existing_names = await self.db.get_all_received_names()
 
         # # Any teams unable to match will be passed to OpenAI to try to map.
+        # teams_to_pass_to_ai = [
+        #     result for result in results
+        #     if result
+        #        and not result.get("found")
+        #        and any(result.values())
+        #        and f"{result.get('team_name').lower()}-{result.get('league').lower()}" not in existing_names
+        # ]
+
         teams_to_pass_to_ai = [
             result for result in results
             if result
                and not result.get("found")
                and any(result.values())
-               and f"{result.get('team_name').lower()}-{result.get('league').lower()}" not in existing_names
+               and result.get('team_name').lower() not in existing_names
         ]
-
+        #
+        # print(existing_names)
+        #
         if teams_to_pass_to_ai:
             print(f"Passing {len(teams_to_pass_to_ai)} to AI")
             team = await self.run_open_ai(teams_to_pass_to_ai)
