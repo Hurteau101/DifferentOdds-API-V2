@@ -123,6 +123,7 @@ class DFSBookBase(BookBase, ABC):
 
             if data.solo_game and (not data.team_data.team_a or not data.team_data.team_b):
                 team = team_lookup.get(data.player_name.lower())
+
                 if team:
                     data.league = team["league"]
                     data.player_team = team["team_name"]
@@ -139,6 +140,9 @@ class DFSBookBase(BookBase, ABC):
                         data.league = team["league"]
                         setattr(data.team_data, side, team["team_name"])
                         setattr(data.team_data, f"{side}_abbreviation", team.get("abbreviation"))
+
+                        if data.team_data.player_team and data.team_data.player_team.lower() == team["original_name"].lower():
+                            data.team_data.player_team = team["team_name"]
 
                 data.team_data.team_key = self._generate_key([data.team_data.team_a, data.team_data.team_b, data.start_date])
 
