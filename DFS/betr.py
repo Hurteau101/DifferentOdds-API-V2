@@ -174,7 +174,7 @@ class Betr(DFSBookBase):
             if stat_types.lower() == "strikeouts":
                 stat_types = "batter strikeouts"
 
-            return STAT_TYPES.get(stat_types.lower(), stat_types.title()),
+            return STAT_TYPES.get(stat_types.lower(), stat_types.title())
 
 
         option_mapper = {
@@ -308,7 +308,6 @@ class Betr(DFSBookBase):
 
             # Flatten the list of lists into a single list of games.
             results = [game for league_results in betr_data if league_results for game in league_results]
-
             return await self._database_mapper(results)
 
 if __name__ == "__main__":
