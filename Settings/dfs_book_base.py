@@ -134,7 +134,11 @@ class DFSBookBase(BookBase, ABC):
                     league = data.league
                     team_name_attr = getattr(data.team_data, side)
 
+                    if not team_name_attr:
+                        continue
+
                     team_key = f"{team_name_attr.lower()}-{league}"
+
                     team = team_lookup.get(team_key)
                     # team = team_lookup.get(team_name_attr.lower())
                     if team:
