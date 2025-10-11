@@ -327,8 +327,6 @@ class Underdog(DFSBookBase):
                 if (data := self._extract_api_data(map_data, player, stats))
             ]
             serialize = self.serialize_data(underdog_data)
-            self.create_json(serialize, "raw_underdog.json")
-
             return await self._database_mapper(underdog_data)
 
 
