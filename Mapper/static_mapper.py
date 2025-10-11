@@ -1,3 +1,7 @@
+ESPORT_LEAGUES = [
+    "LOL", "CS2", "DOTA2", "VAL", "COD", "APEX", "R6"
+]
+
 LEAGUES = {
     # CS2
     "cs": "CS2",
@@ -231,6 +235,9 @@ STAT_TYPES = {
     "game 2 kills": "Map 2 Kills",
     "kills on maps 1+2": "Maps 1-2 Kills",
     "kills in game 1+2": "Maps 1-2 Kills",
+    "kills in maps 1+2": "Maps 1-2 Kills",
+    "kills on maps 1+2+3": "Maps 1-3 Kills",
+    "kills in maps 1+2+3": "Maps 1-3 Kills",
     "1st 2 maps kills": "Maps 1-2 Kills",
     "kills maps 1 2": "Maps 1-2 Kills",
     "kills": "Maps 1-2 Kills", # Double Check its 1-2 for maps
@@ -238,6 +245,9 @@ STAT_TYPES = {
     "headshots maps 1 2": "Maps 1-2 Headshots",
     "headshots on maps 1+2": "Maps 1-2 Headshots",
     "fantasy points in games 1+2": "Maps 1-2 Fantasy Score",
+    "Fantasy Points on Maps 1+2": "Maps 1-2 Fantasy Score",
+    "assists on maps 1+2": "Maps 1-2 Assists",
+    "assists on maps 1+2+3": "Maps 1-3 Assists",
 
     # Darts
     "1st leg checkout total": "1st Leg Checkout Total",
