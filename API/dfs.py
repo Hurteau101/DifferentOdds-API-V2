@@ -121,7 +121,6 @@ async def get_book_data(
 
     return odds
 
-
 @router.get(
     "/esport_lines",
     summary="Get Esports DFS Lines",
@@ -129,8 +128,33 @@ async def get_book_data(
 )
 async def get_esport_lines(
         request: Request,
-        books: List[str] = Query(..., description="List of DFS book names to fetch data for")
+        books: List[str] = Query(..., description="Get a list of esports DFS lines from specified books"),
 ):
     odds = await get_odds(books, request)
     esports = Esports(odds)
     return esports.get_esport_lines()
+
+
+@router.get(
+    "/esport_lines/differences",
+    summary="Get Esports Difference Lines",
+    dependencies=[Depends(get_api_key)]
+)
+async def get_esport_differences(
+        request: Request,
+        books: List[str] = Query(..., description="Get a list of esports DFS differences where multiple books have the same stat type"),
+):
+    if len(books) <= 1:
+        raise HTTPException(status_code=400, detail="At least two books must be provided to compare differences.")
+
+    odds = await get_odds(books, request)
+    esports = Esports(odds)
+    esport_lines = esports.get_esport_lines()
+    if esport_lines:
+        differences = esports.create_differences(esport_lines)
+        if not differences:
+            raise HTTPException(status_code=404, detail="No differences found between the provided books.")
+    else:
+        raise HTTPException(status_code=404, detail="No esports lines found for the provided books.")
+
+    return differences
