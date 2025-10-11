@@ -15,6 +15,8 @@ from collections import defaultdict
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 
+ESPORT_LEAGUES = ["LOL", "CS2", "DOTA2", "VAL", "COD"]
+
 def group_teams_by_name(database_teams):
     normalized = defaultdict(list)
     received = defaultdict(list)
@@ -50,7 +52,7 @@ def find_matches(args):
                 return {
                     "found": True,
                     "team_name": matched_team[0],
-                    "league": matched_team[3].upper() if matched_team[3] else league_upper,
+                    "league": matched_team[3].upper() if matched_team[3] and matched_team[3] not in ESPORT_LEAGUES else league_upper,
                     "original_league": league_upper,
                     "abbreviation": matched_team[2].upper() if matched_team[2] else None,
                     "original_name": received_name,
@@ -69,6 +71,7 @@ def find_matches(args):
                 for matched_team in matched_teams:
                     base_league = matched_team[4].split(",") if matched_team[4] else []
 
+
                     # Check if the league matches or base league.
                     if matched_team[3].upper() != league_upper and league_upper not in base_league:
                         continue
@@ -76,7 +79,7 @@ def find_matches(args):
                     return {
                         "found": True,
                         "team_name": matched_team[0],
-                        "league": matched_team[3].upper() if matched_team[3] else league_upper,
+                        "league": matched_team[3].upper() if matched_team[3] and matched_team[3] not in ESPORT_LEAGUES else league_upper,
                         "original_league": league_upper,
                         "abbreviation": matched_team[2].upper() if matched_team[2] else None,
                         "original_name": received_name,
@@ -127,7 +130,7 @@ def textdistance_match(received_name, name_sources, league_upper, sportsbook):
                     return {
                         "found": True,
                         "team_name": matched_team[0],
-                        "league": matched_team[3].upper() if matched_team[3] else league_upper,
+                        "league": matched_team[3].upper() if matched_team[3] and matched_team[3] not in ESPORT_LEAGUES else league_upper,
                         "original_league": league_upper,
                         "abbreviation": matched_team[2].upper() if matched_team[2] else None,
                         "original_name": received_name,
@@ -150,7 +153,7 @@ def textdistance_match(received_name, name_sources, league_upper, sportsbook):
                     return {
                         "found": True,
                         "team_name": matched_team[0],
-                        "league": matched_team[3].upper() if matched_team[3] else league_upper,
+                        "league": matched_team[3].upper() if matched_team[3] and matched_team[3] not in ESPORT_LEAGUES else league_upper,
                         "original_league": league_upper,
                         "abbreviation": matched_team[2].upper() if matched_team[2] else None,
                         "original_name": received_name,

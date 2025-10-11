@@ -121,10 +121,17 @@ class Database:
         sql = "SELECT normalized_name, received_name, abbreviation, league, base_league FROM teams"
         return await self._exec(sql, fetch=True)
 
+    # async def get_all_received_names(self):
+    #     sql = """
+    #         SELECT received_name FROM teams
+    #         UNION
+    #         SELECT received_name FROM verification_table
+    #     """
+    #     results = await self._exec(sql, fetch=True)
+    #     return set(row[0].lower() for row in results)
+
     async def get_all_received_names(self):
         sql = """
-            SELECT received_name FROM teams
-            UNION
             SELECT received_name FROM verification_table
         """
         results = await self._exec(sql, fetch=True)
