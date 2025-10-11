@@ -3,7 +3,7 @@ import re
 from abc import ABC
 
 import unicodedata
-
+from Mapper.static_mapper import ESPORT_LEAGUES
 from Settings.book_base import BookBase
 from Settings.sportsbook_config import SportsbookConfig
 from Settings.logger import FileLogger, ConsoleLogger
@@ -105,12 +105,13 @@ class DFSBookBase(BookBase, ABC):
         unique_data = self._unique_teams(sportsbook_data, sportsbook.lower())
         mapped_teams = await self.mapper.controller(unique_data)
 
-
         # Create a map of the returned RapidFuzz + OpenAI mapping.
         # team_lookup = {
         #     team["original_name"].lower(): team
         #     for team in mapped_teams
         # }
+
+
         team_lookup = {
             f'{team["original_name"].lower()}-{team["league"]}': team
             for team in mapped_teams
