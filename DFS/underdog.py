@@ -106,7 +106,13 @@ class Underdog(DFSBookBase):
         match_title = game_section.get("title", "").lower().replace(".", "").strip()
         match_title = match_title[match_title.index(":") + 1:].strip() if ":" in match_title else match_title
 
-        delimiter = " vs " if " vs " in match_title else " @ " if "@" in match_title else None
+        for d in [" vs ", " @ ", " vc "]:
+            if d in match_title:
+                delimiter = d
+                break
+        else:
+            delimiter = None
+
         if not delimiter:
             return {"team_a": None, "team_b": None, "player_team": None, "start_date": None, "team_key": None}
 
@@ -326,9 +332,8 @@ class Underdog(DFSBookBase):
                 data for player in api_data.get("appearances", [])
                 if (data := self._extract_api_data(map_data, player, stats))
             ]
-            serialize = self.serialize_data(underdog_data)
-            return await self._database_mapper(underdog_data)
 
+            return await self._database_mapper(underdog_data)
 
 if __name__ == "__main__":
     underdog = Underdog()
