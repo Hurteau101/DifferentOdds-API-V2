@@ -9,7 +9,7 @@ from API.security import get_api_key
 from API.setup import create_logging_setup
 from Redis.redis_manager import RedisManager
 from Settings.sportsbook_config import SportsbookConfig
-from API.Esports.dfs_esports_filter import Esports
+from API.Esports.dfs_esports_filter import extract_esport_lines, create_differences
 router = APIRouter(prefix="/dfs", tags=["DFS"])
 
 # Set a timeout for fetching data from Redis
@@ -131,8 +131,10 @@ async def get_esport_lines(
         books: List[str] = Query(..., description="Get a list of esports DFS lines from specified books"),
 ):
     odds = await get_odds(books, request)
-    esports = Esports(odds)
-    return esports.get_esport_lines()
+    esports = extract_esport_lines(odds)
+    if not esports:
+        raise HTTPException(status_code=404, detail="No esports lines found for the provided books.")
+    return esports
 
 
 @router.get(
@@ -148,13 +150,15 @@ async def get_esport_differences(
         raise HTTPException(status_code=400, detail="At least two books must be provided to compare differences.")
 
     odds = await get_odds(books, request)
-    esports = Esports(odds)
-    esport_lines = esports.get_esport_lines()
-    if esport_lines:
-        differences = esports.create_differences(esport_lines)
-        if not differences:
-            raise HTTPException(status_code=404, detail="No differences found between the provided books.")
-    else:
+    esports_lines = extract_esport_lines(odds)
+
+    if not esports_lines:
         raise HTTPException(status_code=404, detail="No esports lines found for the provided books.")
+
+    differences = create_differences(esports_lines)
+
+    if not differences:
+        raise HTTPException(status_code=404, detail="No differences found between the provided books.")
+
 
     return differences
