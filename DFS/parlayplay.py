@@ -71,7 +71,8 @@ class Parlayplay(DFSBookBase):
 
     def _extract_data(self, game_data):
         def configure_stat_type(stat_type):
-            stat_type = STAT_TYPES.get(stat_type.lower(), stat_type).title().replace("Player", "").strip()
+            stat_type = stat_type.replace("Player", "").strip()
+            stat_type = STAT_TYPES.get(stat_type.lower(), stat_type)
             return stat_type
 
         return [
