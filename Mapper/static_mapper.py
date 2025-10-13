@@ -91,7 +91,19 @@ LEAGUES = {
 }
 
 MARKET_TYPE_MAPPER = {
-    "fg": "Full"
+    "fg": "Full",
+    "1h": "1H",
+    "h1": "1H",
+    "2h": "2H",
+    "h2": "2H",
+    "1q": "1Q",
+    "q1": "1Q",
+    "2q": "2Q",
+    "q2": "2Q",
+    "3q": "3Q",
+    "q3": "3Q",
+    "4q": "4Q",
+    "q4": "4Q",
 }
 
 STAT_TYPES = {
@@ -109,6 +121,7 @@ STAT_TYPES = {
     "pass touchdowns": "Passing TDs",
     "pass yards": "Passing Yards",
     "passing yds": "Passing Yards",
+    "1st half passing yards": "1H Passing Yards",
     "passing yards + rushing yards": "Passing + Rushing Yards",
     "pass yards (combo)": "Passing Yards (Combo)",
     "receiving yds": "Receiving Yards",

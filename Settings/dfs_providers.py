@@ -95,7 +95,8 @@ DFS_PROVIDERS = [
         title="ParlayPlay",
         name="parlayplay",
         url={
-            "main_url": "http://45.61.52.251:8000/parlayplay"
+            "main_url": "http://45.61.52.251:8000/parlayplay?sport={sport}&league={league}&period={period}",
+            "league_url": "http://45.61.52.251:8000/parlayplay/leagues"
         },
         method="GET",
         active=True
