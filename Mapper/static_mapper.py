@@ -37,6 +37,11 @@ LEAGUES = {
     # Golf
     'pga tour': 'PGA',
 
+    # Hockey
+    "nhl1p": "NHL",
+    "nhl2p": "NHL",
+    "nhl3p": "NHL",
+
     # Baseball
     "mlbcombos": "MLB",
 
@@ -65,7 +70,9 @@ LEAGUES = {
     'cfb3q': 'CFB',
     'cfb4q': 'CFB',
     'nfl2h': 'NFL',
+    'nfl 2h': 'NFL',
     'nfl1h': 'NFL',
+    'nfl 1h': 'NFL',
     'nfl1q': 'NFL',
     'nfl2q': 'NFL',
     'nfl3q': 'NFL',
@@ -244,6 +251,7 @@ STAT_TYPES = {
     "Kicker Extra Points": "XP Made",
 
     # Esports
+    "kills in game 1": "Map 1 Kills",
     "game 1 kills": "Map 1 Kills",
     "game 2 kills": "Map 2 Kills",
     "kills on maps 1+2": "Maps 1-2 Kills",
