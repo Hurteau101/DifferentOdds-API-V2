@@ -1,6 +1,6 @@
 from Settings.dfs_providers import DFS_PROVIDERS, DFSProvider
 from Settings.sgp_providers import SGPProvider, SGP_PROVIDERS
-from Settings.exchange_providers import EXCHANGE_PROVIDERS, ExchangeProvider
+from Settings.prediction_providers import EXCHANGE_PROVIDERS, ExchangeProvider
 
 
 NAMES_MAPPER = {

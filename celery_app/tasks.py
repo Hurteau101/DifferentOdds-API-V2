@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from celery.utils.log import get_task_logger
 from celery import shared_task
 
-# from Exchange.kalashi import Kalashi
+# from Prediction.kalashi import Kalashi
 from Redis.redis_manager import RedisManager
 from asgiref.sync import async_to_sync
 

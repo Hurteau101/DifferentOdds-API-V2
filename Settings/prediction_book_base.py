@@ -13,7 +13,7 @@ class ExchangeBookBase(BookBase, ABC):
         self.redis_db = 1
 
         if log_directory is None:
-            log_directory = os.path.join(PROJECT_ROOT, "Exchange", "Exchange Logs")
+            log_directory = os.path.join(PROJECT_ROOT, "Prediction", "Prediction Logs")
 
         os.makedirs(log_directory, exist_ok=True)
 
