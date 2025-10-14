@@ -58,6 +58,7 @@ LEAGUES = {
     'ser a': 'SERIE A',
     'prem': 'EPL',
     'ucl': "UEFA CHAMPIONS",
+    "fifa world cup qualifiers": "FIFA",
 
     # Basketball
     "nbap": "NBA",
