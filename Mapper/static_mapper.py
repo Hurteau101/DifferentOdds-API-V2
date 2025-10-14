@@ -19,6 +19,7 @@ LEAGUES = {
     "leagueoflegends": "LOL",
     'lck challengers': "LOL",
     'lck challengers korea': "LOL",
+    'riot': "LOL",
 
     # Valorant
     'valorant champions tour': "VAL",
@@ -101,6 +102,7 @@ LEAGUES = {
     "the hundred (women)": "CRICKET",
     "tt": "TABLE TENNIS",
     "world grand prix": "DARTS",
+    "mma": "UFC",
 }
 
 MARKET_TYPE_MAPPER = {

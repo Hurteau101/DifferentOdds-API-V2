@@ -17,14 +17,16 @@ env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 
 ESPORT_LEAGUES = ["LOL", "CS2", "DOTA2", "VAL", "COD"]
 
+def clean(s: str):
+    return s.strip().replace('\xa0', '').replace('\u200b', '').lower()
+
 def group_teams_by_name(database_teams):
     normalized = defaultdict(list)
     received = defaultdict(list)
     for team in database_teams:
-        normalized[team[0].lower()].append(team)
-        received[team[1].lower()].append(team)
+        normalized[clean(team[0])].append(team)
+        received[clean(team[1])].append(team)
     return [normalized, received]
-
 
 def find_matches(args):
     """Compare names against database and compare common names against RapidFuzz"""
