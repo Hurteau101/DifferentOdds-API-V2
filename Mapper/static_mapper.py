@@ -51,18 +51,22 @@ LEAGUES = {
 
     # Soccer
     "l1f": "LIGUE 1",
+    "ligue1": "LIGUE 1",
     'llg': 'LA LIGA',
     'sea': 'SERIE A',
     'bun': 'BUNDESLIGA',
     "bundes": "BUNDESLIGA",
     'ser a': 'SERIE A',
     'prem': 'EPL',
+    "uel": "UEFA EUROPA",
     'ucl': "UEFA CHAMPIONS",
     "fifa world cup qualifiers": "FIFA",
+    "fifa world cup qualifiers - uefa": "FIFA",
 
     # Basketball
     "nbap": "NBA",
     "nba preseason": "NBA",
+    "euro": "EUROLEAGUE",
 
     # Football
     "cfb2h": "CFB",

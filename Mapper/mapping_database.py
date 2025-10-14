@@ -208,6 +208,7 @@ class Mapper:
 
 
         teams_to_return = [result for result in results if result.get("found")] # Return these teams for mapping.
+
         database_teams = [team for team in teams_to_return if team.get("update_db")] # Update DB with these teams.
 
         # # Bulk update the database with any 'close' RapidFuzz matches.
@@ -215,6 +216,9 @@ class Mapper:
             await self.db.bulk_update_verification_table(database_teams)
 
         existing_names = await self.db.get_all_received_names()
+
+        if not existing_names:
+            return []
 
         # # Any teams unable to match will be passed to OpenAI to try to map.
         # teams_to_pass_to_ai = [
