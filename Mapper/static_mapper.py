@@ -62,6 +62,7 @@ LEAGUES = {
 
     # Basketball
     "nbap": "NBA",
+    "nba preseason": "NBA",
 
     # Football
     "cfb2h": "CFB",
