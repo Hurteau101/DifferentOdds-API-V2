@@ -189,7 +189,13 @@ class Mapper:
 
 
     async def controller(self, team_data):
-        database_teams = await self.db.load_teams()
+        await self.db.engine.dispose()
+        # database_teams = await self.db.load_teams()
+        database_teams = await self.db.reload_teams()
+        database_teams = [tuple(row) for row in database_teams]
+
+        if not database_teams:
+            return []
 
         # database_teams = self.database_teams
 
@@ -211,11 +217,12 @@ class Mapper:
 
         teams_to_return = [result for result in results if result.get("found")] # Return these teams for mapping.
 
-        database_teams = [team for team in teams_to_return if team.get("update_db")] # Update DB with these teams.
+        teams_to_update  = [team for team in teams_to_return if team.get("update_db")] # Update DB with these teams.
+
 
         # # Bulk update the database with any 'close' RapidFuzz matches.
-        if database_teams:
-            await self.db.bulk_update_verification_table(database_teams)
+        if teams_to_update :
+            await self.db.bulk_update_verification_table(teams_to_update )
 
         existing_names = await self.db.get_all_received_names()
 

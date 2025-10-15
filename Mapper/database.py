@@ -116,10 +116,19 @@ class Database:
         """
         await self._exec(sql)
 
+    async def reload_teams(self):
+        """Force a fresh connection from the pool to ensure the latest data is fetched."""
+        async with self.engine.connect() as conn:
+            await conn.execution_options(isolation_level="AUTOCOMMIT")
+            result = await conn.execute(
+                text("SELECT normalized_name, received_name, abbreviation, league, base_league FROM teams")
+            )
+            return result.fetchall()
 
-    async def load_teams(self):
-        sql = "SELECT normalized_name, received_name, abbreviation, league, base_league FROM teams"
-        return await self._exec(sql, fetch=True)
+
+    # async def load_teams(self):
+    #     sql = "SELECT normalized_name, received_name, abbreviation, league, base_league FROM teams"
+    #     return await self._exec(sql, fetch=True)
 
     # async def get_all_received_names(self):
     #     sql = """
