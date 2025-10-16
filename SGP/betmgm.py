@@ -11,6 +11,7 @@ class BetMGM_SGP(SGPBookBase):
         self.VALID_LEAGUE_IDS = [
             23, # Baseball
             11, # Football
+            12, # Hockey
         ]
 
     @SGPBookBase.require_link_data
@@ -46,18 +47,23 @@ class BetMGM_SGP(SGPBookBase):
         }
 
     def _create_payload(self, mapped_data):
-        return {
-            "tv1Picks": [
-                {
-                    "fixtureId": data.get("event_id"),
-                    "gameId": int(mapped_data.get(str(-int(data.get("bet_id"))), {}).get("game_id")),
-                    "resultId": -int(data.get("bet_id")),
-                    "useLiveFallBack": False,
-                    "pickGroupId": mapped_data.get(str(-int(data.get("bet_id"))), {}).get("group_id"),
-                }
-                for data in self.link_data
-            ]
-        }
+
+        try:
+            return {
+                "tv1Picks": [
+                    {
+                        "fixtureId": data.get("event_id"),
+                        "gameId": int(mapped_data.get(str(-int(data.get("bet_id"))), {}).get("game_id")) if mapped_data.get(str(-int(data.get("bet_id"))), {}).get("game_id") else None,
+                        "resultId": -int(data.get("bet_id")),
+                        "useLiveFallBack": False,
+                        "pickGroupId": mapped_data.get(str(-int(data.get("bet_id"))), {}).get("group_id"),
+                    }
+                    for data in self.link_data
+                ]
+            }
+        except:
+            print("FAILED TO CREATE PAYLOAD")
+            print(mapped_data)
 
     def _filter_mapping(self, raw_data):
         # Map the ID's

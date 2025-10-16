@@ -23,6 +23,9 @@ class Onyx_SGP(SGPBookBase):
         auth_token = await self._get_auth()
         async with aiohttp.ClientSession() as session:
             mapped_ids = await self._get_cached_ids()
+            if not mapped_ids:
+                return None
+
             payload = {
                 "betSelections": {
                     mapped_ids[data["bet_id"]]["semantic_id"]: {

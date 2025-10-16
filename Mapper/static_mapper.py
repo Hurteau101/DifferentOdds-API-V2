@@ -54,13 +54,16 @@ LEAGUES = {
     "l1f": "LIGUE 1",
     "ligue1": "LIGUE 1",
     'llg': 'LA LIGA',
+    'laliga': 'LA LIGA',
     'sea': 'SERIE A',
     'bun': 'BUNDESLIGA',
     "bundes": "BUNDESLIGA",
     'ser a': 'SERIE A',
+    'seriea': 'SERIE A',
     'prem': 'EPL',
     "uel": "UEFA EUROPA",
     'ucl': "UEFA CHAMPIONS",
+    'fifa': "SOCCER",
     "fifa world cup qualifiers": "FIFA",
     "fifa world cup qualifiers - uefa": "FIFA",
 
@@ -96,13 +99,18 @@ LEAGUES = {
     # "nhl futures": "NHL",
     # 'nba futures': 'NBA',
 
+    # Fightning
+    "mma": "UFC",
+    "wba": "BOXING",
+
+
     # Other Sports
     'fia formula 2 championship': 'F2',
     "women's world cup": 'ICC',
     "the hundred (women)": "CRICKET",
     "tt": "TABLE TENNIS",
     "world grand prix": "DARTS",
-    "mma": "UFC",
+    "eurogolf": "DP WORLD TOUR",
 }
 
 MARKET_TYPE_MAPPER = {

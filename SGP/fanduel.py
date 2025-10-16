@@ -13,7 +13,7 @@ class Fanduel_SGP(SGPBookBase):
     def __init__(self, links):
         super().__init__(SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="fanduel_sgp.log", sportsbook_name="fanduel", links=links)
         self.VALID_LEAGUES = [
-            "mlb", "nfl", "ncaaf", "sport", "wnba", "tennis", "pga", "ufc", "esports", "nba", "ncaab"
+            "mlb", "nfl", "ncaaf", "sport", "wnba", "tennis", "pga", "ufc", "esports", "nba", "ncaab", "nhl"
         ]
 
     @SGPBookBase.require_link_data
@@ -224,7 +224,7 @@ if __name__ == "__main__":
     import asyncio
 
 
-    run_type = ""
+    run_type = "store"
 
     if run_type == "store":
         asyncio.run(fanduel.store_fanduel_data())
