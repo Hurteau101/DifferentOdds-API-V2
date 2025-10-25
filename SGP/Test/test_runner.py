@@ -13,12 +13,13 @@ from SGP.hardrock import Hardrock_SGP
 from SGP.kambi import Kambi_SGP
 from SGP.novig import Novig_SGP
 from SGP.onyx import Onyx_SGP
+from SGP.prophet import Prophet_SGP
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
 
 DEFAULT_CONDITIONS = {
-    "league": "NFL",
-    "market_types": ["moneyline", "total points"],
+    "league": "NCAAF",
+    "market_types": ["point spread", "total points"],
 }
 
 INITIALIZATION = {
@@ -30,6 +31,7 @@ INITIALIZATION = {
     "hardrock": Hardrock_SGP,
     "onyxodds": Onyx_SGP,
     "novig": Novig_SGP,
+    "prophetx": Prophet_SGP,
 }
 
 
@@ -192,8 +194,9 @@ if __name__ == "__main__":
         # {"book_name": "betmgm", "links": []},
         # {"book_name": "fanatics", "links": []},
         # {"book_name": "fanduel", "links": []},
-        {"book_name": "hardrock", "links": []},
-        {"book_name": "novig", "links": []}
+        # {"book_name": "hardrock", "links": []},
+        # {"book_name": "novig", "links": []},
+        {"book_name": "prophetx", "links": []}
     ]
 
     test_instance = SGPTest(book_data)

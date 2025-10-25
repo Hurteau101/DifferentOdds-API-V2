@@ -147,6 +147,22 @@ SGP_PROVIDERS = [
         },
         method="POST",
         active=True,
+    ),
+    SGPProvider(
+        title="Prophetx",
+        name="prophetx",
+        url={
+            "main_url": "https://cash.api.prophetx.co/parlay/api/v1/affiliate/quotes",
+        },
+        regex={
+            "bet_id_regex": r"lineID=([^&]+)",
+            "event_id_regex": r"lineID=([^&]+)", # Use event_id same as bet_id as don't need event_id
+        },
+        headers={
+            'Content-Type': 'application/json'
+        },
+        method="POST",
+        active=True,
     )
 
 ]
