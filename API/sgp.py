@@ -11,6 +11,7 @@ from SGP.fanduel import Fanduel_SGP
 from SGP.hardrock import Hardrock_SGP
 from SGP.kambi import Kambi_SGP
 from SGP.onyx import Onyx_SGP
+from SGP.prophet import Prophet_SGP
 from Settings.sportsbook_config import SportsbookConfig
 
 BOOK_INITIALIZERS = {
@@ -20,7 +21,8 @@ BOOK_INITIALIZERS = {
     "kambi": Kambi_SGP,
     "draftkings": Draftkings_SGP,
     "hardrock": Hardrock_SGP,
-    "onyx": Onyx_SGP
+    "onyx": Onyx_SGP,
+    "prophetx": Prophet_SGP,
 }
 
 file_logger = create_logging_setup(folder_name="sgp", file_name="sgp_api.log")
