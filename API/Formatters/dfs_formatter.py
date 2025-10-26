@@ -47,7 +47,6 @@ class TempFormatter:
                 for stat in entry.get("stats", []):
                     optional_stats = stat.get("optional_stats", {})
 
-                    # Build optional stats structure (rename fields for consistency)
                     optional_stats_formatted = {
                         "odds_type": optional_stats.get("odds_type"),
                         "market_type": optional_stats.get("market_type"),
@@ -62,6 +61,7 @@ class TempFormatter:
                     stat_data = {
                         "player_name": entry.get("player_name"),
                         "regular": stat.get("regular_line", False),
+                        "static_info": [],
                         "stat_type": stat.get("stat_type"),
                         "line": stat.get("line"),
                         "bet_type": stat.get("bet_direction"),
