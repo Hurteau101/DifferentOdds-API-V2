@@ -29,17 +29,17 @@ class BookParameters(BaseModel):
     book_nams: List[str]
 
 class FormatHeader(BaseModel):
-    format: Literal["Base", "Game"] = "Game"
+    format: Literal["Base", "Game", "Temp"] = "Game"
 
 def validate_format_header(
     format: Optional[str] = Header(None, alias="X-Format", description="Select output format: Base or Game")
 ):
     format = (format or "Game").capitalize()
 
-    if format not in ["Base", "Game"]:
+    if format not in ["Base", "Game", "Temp"]:
         raise HTTPException(
             status_code=400,
-            detail="Invalid format. Must be one of: Base or Game."
+            detail="Invalid format. Must be one of: Base, Game or Temp."
         )
 
     return FormatHeader(format=format)
@@ -117,6 +117,8 @@ async def get_book_data(
 
     if fmt.format == "Game":
         return get_formatter("game", odds)
+    elif fmt.format == "Temp":
+        return get_formatter("temp", odds)
 
 
     return odds

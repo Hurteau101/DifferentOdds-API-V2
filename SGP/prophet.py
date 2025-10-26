@@ -58,11 +58,12 @@ if __name__ == "__main__":
     import asyncio
 
     links = [
-        "https://www.prophetx.co/?action=addtobetslip&lineID=9579c67eee9fb79f6b8bdcfb23271b7a&partner_id=null&currency=cash",
-        "https://www.prophetx.co/?action=addtobetslip&lineID=85e5cb0af00b410c2d86c3e6d2e2db70&partner_id=null&currency=cash",
+        "https://www.prophetx.co/?action=addtobetslip&lineID=a747def04602dfe255dfb63f3a049e59&partner_id=null&currency=cash",
+        "https://www.prophetx.co/?action=addtobetslip&lineID=4559592eb00b547925a128137af3e3ca&partner_id=null&currency=cash"
     ]
 
     prophet_sgp = Prophet_SGP(links)
     data = asyncio.run(prophet_sgp.run_book())
+    print(data)
 
 
