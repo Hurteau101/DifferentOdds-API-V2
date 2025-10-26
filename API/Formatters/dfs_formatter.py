@@ -41,6 +41,7 @@ class TempFormatter:
                         "combo": entry.get("combo", False),
                         "future": entry.get("future", False),
                         "odds": [],
+                        "static_info": [],
                         "discounted_odds": [],
                     }
 
@@ -60,9 +61,8 @@ class TempFormatter:
 
                     stat_data = {
                         "player_name": entry.get("player_name"),
-                        "regular": stat.get("regular_line", False),
-                        "static_info": [],
-                        "stat_type": stat.get("stat_type"),
+                        "regular": stat.get("regular_line"),
+                        "stat_type": f'Player {stat.get("stat_type")}',
                         "line": stat.get("line"),
                         "bet_type": stat.get("bet_direction"),
                         "optional_stats": optional_stats_formatted,
