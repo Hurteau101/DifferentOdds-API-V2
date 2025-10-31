@@ -12,12 +12,12 @@ async def generate_ownerbox_auth_token():
     redis = RedisManager(db=5)
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=False)
         context = await browser.new_context()
         page = await context.new_page()
 
         # Go to login page
-        await page.goto("https://app.ownersbox.com/wfs/login")
+        await page.goto("https://app.ownersbox.com/wfs/login", timeout=60000)
 
         # Fill in login form
         await page.fill("//input[@placeholder='Enter your Email']", EMAIL)
