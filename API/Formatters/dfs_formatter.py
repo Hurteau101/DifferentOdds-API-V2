@@ -139,7 +139,7 @@ class GameFormatter(BaseFormatter):
                 for stat in entry.get("stats", []):
                     stat_data = {
                         "player_name": entry.get("player_name"),
-                        "stat_type": stat.get("stat_type"),
+                        "stat_type": f'Player {stat.get("stat_type")}',
                         "line": stat.get("line"),
                         "bet_type": stat.get("bet_direction"),
                         "regular_line": stat.get("regular_line"),
