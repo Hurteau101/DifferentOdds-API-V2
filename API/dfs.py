@@ -1,4 +1,5 @@
 import asyncio
+from functools import lru_cache
 from typing import List, Dict, Literal, Optional
 from fastapi import Request, Header
 from API.Formatters.dfs_formatter import get_formatter
@@ -10,6 +11,8 @@ from API.setup import create_logging_setup
 from Redis.redis_manager import RedisManager
 from Settings.sportsbook_config import SportsbookConfig
 from API.Esports.dfs_esports_filter import extract_esport_lines, create_differences
+from functools import lru_cache
+
 router = APIRouter(prefix="/dfs", tags=["DFS"])
 
 # Set a timeout for fetching data from Redis
@@ -91,13 +94,19 @@ async def fetch_redis_data(key_name, request):
     except Exception:
         return None
 
+
+@lru_cache(maxsize=None)
+def get_cached_dfs_books():
+    return SportsbookConfig.get_book_info(book_type="dfs")
+
+
 @router.get("/books_list",
             summary="Get DFS Books List",
             description="Retrieve a list of available DFS books.",
             response_model=BooksListResponse
             )
 async def get_book_list():
-    result = SportsbookConfig.get_book_info(book_type="dfs")
+    result = get_cached_dfs_books()
     if not result:
         raise HTTPException(status_code=500, detail="No DFS books available. Please contact support.")
 
