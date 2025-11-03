@@ -105,7 +105,7 @@ class DraftKingsPickSix(DFSBookBase):
 
         active_markets = line_data.get("activeMarkets")[0] if len(line_data.get("activeMarkets")) > 0 else {}
 
-        if not active_markets:
+        if not active_markets or active_markets.get("isPaused"):
             return None
 
 
