@@ -39,8 +39,8 @@ async def generate_fanduel_picks_auth_token():
             ), None)
 
             if auth_token:
-                await redis.store_auth_token("fanduel_picks_auth_token", auth_token,
-                                            key_expiration=12 * 3600)  # Store for 12 hours
+                await redis.store_auth_token(key_name="fanduel_picks_auth_token", value=auth_token,
+                                             key_expiration=12 * 3600)  # Store for 12 hours
                 await redis.close()
 
 if __name__ == "__main__":
