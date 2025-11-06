@@ -1,3 +1,4 @@
+import gzip
 import json
 
 import redis.asyncio as redis
@@ -39,7 +40,14 @@ class RedisManager:
             cached_data = await self.redis_client.get(key_name)
             if not cached_data:
                 return None
-            return orjson.loads(cached_data)
+
+            decompressed = gzip.decompress(cached_data)
+
+            try:
+                return orjson.loads(decompressed)
+            except orjson.JSONDecodeError:
+                return decompressed
+
         except Exception as e:
             logging.error(f"Error fetching {key_name}: {e}")
             return None
@@ -82,13 +90,15 @@ class RedisManager:
                 if is_dataclass(data_to_store):
                     data_to_store = BookBase.serialize_data(data_to_store)
 
-                # Serialize to bytes with orjson
                 data_bytes = orjson.dumps(data_to_store)
+                compressed = gzip.compress(data_bytes, compresslevel=1)
 
-                if key_expiration is not None:
-                    success = await self.redis_client.set(key_name, data_bytes, ex=key_expiration)
+                if key_expiration:
+                    success = await self.redis_client.set(
+                        key_name, compressed, ex=key_expiration
+                    )
                 else:
-                    success = await self.redis_client.set(key_name, data_bytes)
+                    success = await self.redis_client.set(key_name, compressed)
 
                 if success:
                     logging.info(f"Stored data for {key_name} successfully.")

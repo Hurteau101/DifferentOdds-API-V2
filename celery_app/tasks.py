@@ -1,5 +1,7 @@
 import asyncio
+from dataclasses import asdict
 
+from API.Formatters.dfs_formatter import get_formatter
 from DFS.fanduel_picks import FanDuelPicks
 from DFS.prizepicks import Prizepicks
 from DFS.underdog import Underdog
@@ -164,7 +166,16 @@ def map_sgp_ids():
 
     async_to_sync(_run)()
 
-
+# def normalize_to_dict(obj):
+#     if isinstance(obj, BaseModel):
+#         # Convert model to dict (including nested models)
+#         return {k: normalize_to_dict(v) for k, v in obj.model_dump().items()}
+#     elif isinstance(obj, list):
+#         return [normalize_to_dict(o) for o in obj]
+#     elif isinstance(obj, dict):
+#         return {k: normalize_to_dict(v) for k, v in obj.items()}
+#     else:
+#         return obj
 
 @shared_task(ignore_result=True)
 def run_book(name, redis_db, run_book_type):
@@ -190,8 +201,31 @@ def run_book(name, redis_db, run_book_type):
                     data=data if data else [],
                 )
 
+                normalized_data = [asdict(player_data) for player_data in book_data.data]
+
+
+                formatted_versions = {
+                    "base": get_formatter("base", normalized_data),
+                    "game": get_formatter("game", normalized_data),
+                    # "temp": get_formatter("temp", {name: normalized_data}),
+                }
+
+                for fmt, payload in formatted_versions.items():
+                    key = f"{run_book_type}:{name}:{fmt}"
+
+                    if fmt == "base":
+                        wrapped_payload = {
+                            "last_refresh": datetime.now(timezone.utc).isoformat(),
+                            "data": payload
+                        }
+                    else:
+                        wrapped_payload = payload
+
+                    await redis_manager.store_data(key, wrapped_payload, key_expiration=300)
+                    logger.info(f"Stored formatted {fmt.upper()} data for {name}")
+
                 # await redis_manager.store_data(f"dfs:{name}", book_data.model_dump_json())
-                await redis_manager.store_data(f"{run_book_type}:{name}", book_data.model_dump(), key_expiration=300)
+                # await redis_manager.store_data(f"{run_book_type}:{name}", book_data.model_dump(), key_expiration=300)
             # else:
             #     logger.warning(f"No data found for {run_book_type} book {name}, deleting existing data.")
             #     await redis_manager.delete(f"{run_book_type}:{name}")
@@ -207,6 +241,53 @@ def run_book(name, redis_db, run_book_type):
                 logger.error(f"Error releasing lock for {run_book_type} book {name}: {e}")
 
     async_to_sync(_run)()
+
+# CHECK THIS LATER
+# @shared_task(ignore_result=True)
+# def run_book(name, redis_db, run_book_type):
+#     import asyncio
+#
+#     async def _run():
+#         redis_manager = RedisManager(db=redis_db)
+#
+#         lock_key = f"{run_book_type}_lock:{name}"
+#         lock = redis_manager.redis_client.lock(lock_key, timeout=120, blocking_timeout=1)
+#
+#         if not await lock.acquire(blocking=False):
+#             logger.info(f"Skipping {run_book_type} book {name}, already running.")
+#             return
+#
+#         try:
+#             logger.info(f"Starting {run_book_type} book: {name}")
+#             cls = BOOKS[run_book_type][name]["class"]
+#             book = cls()
+#
+#             import aiohttp
+#             async with aiohttp.ClientSession() as session:
+#                 data = await book.run_book()
+#
+#             if data:
+#                 book_data = BookData(
+#                     last_refresh=datetime.now(timezone.utc),
+#                     data=data if data else [],
+#                 )
+#                 await redis_manager.store_data(f"{run_book_type}:{name}", book_data.model_dump(), key_expiration=300)
+#
+#             logger.info(f"Finished {run_book_type} book: {name}")
+#         except Exception as e:
+#             logger.error(f"Error in {run_book_type} book {name}: {e}", exc_info=True)
+#         finally:
+#             try:
+#                 await lock.release()
+#             except Exception as e:
+#                 logger.error(f"Error releasing lock for {run_book_type} book {name}: {e}")
+#
+#     loop = asyncio.new_event_loop()
+#     asyncio.set_event_loop(loop)
+#     loop.run_until_complete(_run())
+#     loop.close()
+
+
 #
 #
 # @shared_task(ignore_result=True)

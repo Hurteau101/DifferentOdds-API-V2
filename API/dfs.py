@@ -47,15 +47,18 @@ def validate_format_header(
 
     return FormatHeader(format=format)
 
-async def get_odds(books, request):
+async def get_odds(books, request, fmt):
+    redis = request.app.state.redis
+
     dfs_books = [book.get("book_key") for book in SportsbookConfig.get_book_info(book_type="dfs")]
     for book in books:
         if book.lower() not in dfs_books:
             raise HTTPException(status_code=400, detail=f"Invalid book name: {book}")
 
     # Fetch data concurrently with timeout
+    fmt = fmt.lower()
     tasks = [
-        asyncio.wait_for(fetch_redis_data(f"dfs:{book.lower()}", request), timeout=TIMEOUT_SECONDS)
+        asyncio.wait_for(redis.fetch_data(f"dfs:{book.lower()}:{fmt}"), timeout=TIMEOUT_SECONDS)
         for book in books
     ]
 
@@ -122,12 +125,12 @@ async def get_book_data(
         books: List[str] = Query(..., description="List of DFS book names to fetch data for"),
         fmt: str = Depends(validate_format_header)
 ):
-    odds = await get_odds(books, request)
+    odds = await get_odds(books, request, fmt.format)
 
-    if fmt.format == "Game":
-        return get_formatter("game", odds)
-    elif fmt.format == "Temp":
-        return get_formatter("temp", odds)
+    # if fmt.format == "Game":
+    #     return get_formatter("game", odds)
+    # elif fmt.format == "Temp":
+    #     return get_formatter("temp", odds)
 
 
     return odds
@@ -141,7 +144,7 @@ async def get_esport_lines(
         request: Request,
         books: List[str] = Query(..., description="Get a list of esports DFS lines from specified books"),
 ):
-    odds = await get_odds(books, request)
+    odds = await get_odds(books, request, "game")
     esports = extract_esport_lines(odds)
     if not esports:
         raise HTTPException(status_code=404, detail="No esports lines found for the provided books.")
@@ -160,7 +163,7 @@ async def get_esport_differences(
     if len(books) <= 1:
         raise HTTPException(status_code=400, detail="At least two books must be provided to compare differences.")
 
-    odds = await get_odds(books, request)
+    odds = await get_odds(books, request, "game")
     esports_lines = extract_esport_lines(odds)
 
     if not esports_lines:
