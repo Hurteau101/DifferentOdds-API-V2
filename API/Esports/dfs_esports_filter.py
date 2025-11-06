@@ -203,6 +203,7 @@ def create_differences(esports_data):
                 if not book_entry:
                     book_entry = {
                         "book_name": book_name,
+                        "betlink": stat.get("optional_stats").get("betlink", {}) if book_name == "prizepicks" else {},
                         "line": stat.get("line"),
                         "directions": []
                     }
