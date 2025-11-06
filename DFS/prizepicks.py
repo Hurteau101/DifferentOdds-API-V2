@@ -199,8 +199,7 @@ class Prizepicks(DFSBookBase):
                         player_data_list[player_key] = player_data
 
             prizepick_data = list(player_data_list.values())
-            print(prizepick_data)
-            # return await self._database_mapper(prizepick_data)
+            return await self._database_mapper(prizepick_data)
 
 
 
