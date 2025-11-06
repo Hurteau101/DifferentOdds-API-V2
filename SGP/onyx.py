@@ -62,7 +62,7 @@ class Onyx_SGP(SGPBookBase):
             }
 
     async def _get_auth(self):
-        auth_token = await self.redis.fetch_data("onyx_auth_token")
+        auth_token = await self.redis.get_auth_token("onyx_auth_token")
         await self.redis.close()
         return auth_token
 

@@ -95,7 +95,7 @@ class FanDuelPicks(DFSBookBase):
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
 
-            auth_token = await self.redis.fetch_data("fanduel_picks_auth_token")
+            auth_token = await self.redis.get_auth_token("fanduel_picks_auth_token")
             await self.redis.close()
 
             if not auth_token:

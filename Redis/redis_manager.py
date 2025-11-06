@@ -25,6 +25,31 @@ class RedisManager:
             max_connections=max_connections
         )
 
+    async def store_auth_token(self, key_name, value, key_expiration=None):
+        try:
+            if isinstance(value, str):
+                value = value.encode()
+
+            if key_expiration:
+                await self.redis_client.set(key_name, value, ex=key_expiration)
+            else:
+                await self.redis_client.set(key_name, value)
+
+            logging.info(f"Stored plain text data for {key_name}")
+        except Exception as e:
+            logging.error(f"Error storing plain text for {key_name}: {e}")
+
+    async def get_auth_token(self, key_name):
+        try:
+            cached_data = await self.redis_client.get(key_name)
+            if cached_data:
+                return cached_data.decode()
+            return None
+        except Exception as e:
+            logging.error(f"Error fetching plain text for {key_name}: {e}")
+            return None
+
+
     # async def fetch_data(self, key_name: str):
     #     """Fetch data from Redis (no lock needed)."""
     #     try:

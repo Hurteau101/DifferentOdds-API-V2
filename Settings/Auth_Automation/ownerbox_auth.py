@@ -37,9 +37,9 @@ async def generate_ownerbox_auth_token():
             auth_token = obauth_cookie["value"]
 
             if auth_token:
-                await redis.store_data(
+                await redis.store_auth_token(
                     key_name="ownerbox_auth_token",
-                    data_to_store=auth_token,
+                    value=auth_token,
                     key_expiration=46800
                 )
                 await redis.close()

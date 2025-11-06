@@ -35,7 +35,6 @@ class Fanduel_SGP(SGPBookBase):
                 payload=payload
             )
 
-            # print(api_data)
 
             if not api_data:
                 return None
@@ -215,16 +214,16 @@ class Fanduel_SGP(SGPBookBase):
 
 if __name__ == "__main__":
     links = [
-        "https://sportsbook.fanduel.com/addToBetslip?marketId=42.528612375&selectionId=12197171",# Total Runs Over 9.5 --  Braves / Mets
+        "https://sportsbook.fanduel.com/addToBetslip?marketId=42.535745385&selectionId=26999348",# Total Runs Over 9.5 --  Braves / Mets
         # "https://sportsbook.fanduel.com/addToBetslip?marketId=42.524340163444&selectionId=12493614",
         # "https://sportsbook.fanduel.com/addToBetslip?marketId=42.52434016333&selectionId=12493614",
-        "https://sportsbook.fanduel.com/addToBetslip?marketId=42.527239529&selectionId=50199" # Moneyline Braves  -- Braves / Mets
+        "https://sportsbook.fanduel.com/addToBetslip?marketId=42.535745385&selectionId=27163247" # Moneyline Braves  -- Braves / Mets
     ]
     fanduel = Fanduel_SGP(links=links)
     import asyncio
 
 
-    run_type = "store"
+    run_type = ""
 
     if run_type == "store":
         asyncio.run(fanduel.store_fanduel_data())

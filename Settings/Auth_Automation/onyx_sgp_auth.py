@@ -31,7 +31,7 @@ async def generate_onyx_auth_token():
         data = await response.json()
         auth_token = data.get("user", {}).get("accessToken")
         if auth_token:
-            await redis.store_data(key_name="onyx_auth_token", data_to_store=auth_token, key_expiration=46800)
+            await redis.store_auth_token(key_name="onyx_auth_token", value=auth_token, key_expiration=46800)
         else:
             base_directory = os.path.dirname(os.path.abspath(__file__))
             log_path = os.path.join(base_directory, "Logs")
