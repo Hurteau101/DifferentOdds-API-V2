@@ -39,7 +39,7 @@ class RedisManager:
     async def get_auth_token(self, key_name):
         try:
             cached_data = await self.redis_client.get(key_name)
-            return cached_data or None
+            return cached_data.decode('utf-8')
         except Exception as e:
             logging.error(f"Error fetching plain text for {key_name}: {e}")
             return None
