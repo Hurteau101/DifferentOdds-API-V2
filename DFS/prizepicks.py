@@ -80,6 +80,7 @@ class Prizepicks(DFSBookBase):
             **extracted_stats,
             "bet_direction": bet,
             "betlink": {
+                "raw_projection_id": projection_id,
                 "id": f"{projection_id}-{bet[0]}-{extracted_stats['line']}",
                 "base": "https://app.prizepicks.com/?projections=",
                 "url": f'https://app.prizepicks.com/?projections={projection_id}-{bet[0]}-{extracted_stats["line"]}',
@@ -198,7 +199,8 @@ class Prizepicks(DFSBookBase):
                         player_data_list[player_key] = player_data
 
             prizepick_data = list(player_data_list.values())
-            return await self._database_mapper(prizepick_data)
+            print(prizepick_data)
+            # return await self._database_mapper(prizepick_data)
 
 
 
