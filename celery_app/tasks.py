@@ -221,7 +221,7 @@ def run_book(name, redis_db, run_book_type):
                     else:
                         wrapped_payload = payload
 
-                    await redis_manager.store_data(key, wrapped_payload, key_expiration=300)
+                    await redis_manager.store_data(key, wrapped_payload, key_expiration=600)
                     logger.info(f"Stored formatted {fmt.upper()} data for {name}")
 
                 # await redis_manager.store_data(f"dfs:{name}", book_data.model_dump_json())
