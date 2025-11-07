@@ -108,6 +108,11 @@ class DraftKingsPickSix(DFSBookBase):
         if not active_markets or active_markets.get("isPaused"):
             return None
 
+        league = LEAGUES.get(player_details.get("league").lower(), player_details.get("league").upper())
+
+        groupId = market_data.get("pickGroupId", "")
+        pickableId = market_data.get("pickableId", "")
+
 
         # Check in place as Esports, you need to know the maps for the stat type, so we add this check to ensure its added.
         if not player_details.get("solo_game") and player_details.get("total_competition_time"):
@@ -118,7 +123,7 @@ class DraftKingsPickSix(DFSBookBase):
 
         return PlayerData(
             player_name=self.clean_and_normalize_name(player_details.get("player_name")),
-            league=LEAGUES.get(player_details.get("league").lower(), player_details.get("league").upper()),
+            league=league,
             start_date=player_details.get("start_date"),
             team_data=TeamData(
                 team_a=player_details.get("team_a"),
@@ -135,7 +140,13 @@ class DraftKingsPickSix(DFSBookBase):
                     bet_direction=direction_mapper.get(str(stat.get("statLinePropositionId"))),
                     regular_line=True if stat.get("standingsMultiplier") == 1 else False,
                     optional_stats=OptionalStatInformation(
-                        multiplier=stat.get("standingsMultiplier")
+                        multiplier=stat.get("standingsMultiplier"),
+                        betlink=self._generate_bet_link(
+                            league=league,
+                            groupId=groupId,
+                            pickableId=pickableId,
+                            direction=direction_mapper.get(str(stat.get("statLinePropositionId")))
+                        ),
                     )
                 )
 
@@ -146,6 +157,35 @@ class DraftKingsPickSix(DFSBookBase):
             solo_game=player_details.get("solo_game")
         )
 
+    def _generate_bet_link(self, league, groupId, pickableId, direction):
+        mapper = {
+            "over": "1",
+            "under": "2"
+        }
+
+        base = "https://pick6.draftkings.com/?"
+        sport = f"sport={league}&"
+        pickGroup= f"pickGroup={groupId}&"
+        pickable = f"picks={pickableId}%2B{mapper.get(direction)}"
+        end = "&entrySource=shareLink"
+
+        single_url = f"{base}{sport}{pickGroup}{pickable}{end}"
+        middle_adder = f"{pickableId}%2B{mapper.get(direction)}%2C"
+        end_adder = f",{pickableId}%2B{mapper.get(direction)}"
+
+
+        return {
+            "pickableId": pickableId,
+            "groupId": groupId,
+            "base": base,
+            "side": direction,
+            "link_helper": {
+                "single_url": single_url,
+                "middle_adder": middle_adder,
+                "end_adder": end_adder,
+                "end": end,
+            }
+        }
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
