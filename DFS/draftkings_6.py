@@ -170,6 +170,7 @@ class DraftKingsPickSix(DFSBookBase):
         end = "&entrySource=shareLink"
 
         single_url = f"{base}{sport}{pickGroup}{pickable}{end}"
+        starter = f"{base}{sport}{pickGroup}{pickable},"
         middle_adder = f"{pickableId}%2B{mapper.get(direction)}%2C"
         end_adder = f",{pickableId}%2B{mapper.get(direction)}"
 
@@ -178,9 +179,11 @@ class DraftKingsPickSix(DFSBookBase):
             "pickableId": pickableId,
             "groupId": groupId,
             "base": base,
+            "sport": league,
             "side": direction,
             "link_helper": {
                 "single_url": single_url,
+                "starter": starter,
                 "middle_adder": middle_adder,
                 "end_adder": end_adder,
                 "end": end,
@@ -296,6 +299,8 @@ class DraftKingsPickSix(DFSBookBase):
                             player_data_list[player_key] = player_data
 
             picksix_data = list(player_data_list.values())
+            serialize = self.serialize_data(picksix_data)
+            self.create_json(serialize, "draftkings_6.json")
             return await self._database_mapper(picksix_data)
 
 if __name__ == "__main__":
