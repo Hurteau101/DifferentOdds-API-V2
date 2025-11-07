@@ -164,7 +164,7 @@ async def get_esport_differences(
     if len(books) <= 1:
         raise HTTPException(status_code=400, detail="At least two books must be provided to compare differences.")
 
-    odds = await get_odds(books, request, "game")
+    odds = await get_odds(books, request, "base")
     esports_lines = extract_esport_lines(odds)
 
     if not esports_lines:
