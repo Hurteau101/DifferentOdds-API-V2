@@ -82,8 +82,9 @@ class Drafters(DFSBookBase):
                 headers=self.book_data.headers
             )
 
+            api_data = self.check_api_response(sportsbook="drafters", results=api_data)
+
             if not api_data:
-                self._api_call_log("drafters")
                 return
 
             leagues = await self.api_caller(
@@ -94,11 +95,12 @@ class Drafters(DFSBookBase):
                 parse_json=True
             )
 
-            self._extract_league_ids(leagues)
+            league_data = self.check_api_response(sportsbook="drafters", results=leagues)
 
-            if not self.league_data:
-                self._api_call_log("drafters")
+            if not league_data:
                 return
+
+            self._extract_league_ids(league_data)
 
             results = [
                 self._extract_game_data(game_data=game.get("players"))
@@ -106,7 +108,6 @@ class Drafters(DFSBookBase):
             ]
 
             results = [player for sublist in results for player in sublist]
-
             return await self._database_mapper(results)
 
 

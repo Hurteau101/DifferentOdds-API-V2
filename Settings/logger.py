@@ -1,11 +1,12 @@
+import os.path
 from datetime import datetime
 
 class BaseLogger:
     @classmethod
-    def format(cls, message, level, **kwargs):
+    def format(cls, sportsbook, message, level, **kwargs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         additional_info = f" | Additional Info: {kwargs}" if kwargs else ""
-        return f"{timestamp} - {level.upper()}: {message} {additional_info}"
+        return f"{timestamp} - {level.upper()}: {sportsbook.title()} - {message} {additional_info}"
 
 
 # Class to log messages to the console
@@ -33,7 +34,11 @@ class FileLogger(BaseLogger):
     def set_log_file(self, path):
         self.log_file = path
 
-    def log(self, message, level="info", **kwargs):
-        formatted_message = self.format(message, level, **kwargs)
+    def log(self, sportsbook, message, level="info", **kwargs):
+        directory = os.path.dirname(self.log_file)
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+
+        formatted_message = self.format(sportsbook, message, level, **kwargs)
         with open(self.log_file, "a") as file:
             file.write(formatted_message + " \n")

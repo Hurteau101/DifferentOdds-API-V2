@@ -132,13 +132,17 @@ class Betr(DFSBookBase):
             }
 
 
-        game_data = await self.api_caller(
+        raw_game_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
                 headers=self.book_data.headers,
                 payload=payload
             )
+
+        game_data = self.check_api_response(sportsbook="betr", results=raw_game_data)
+        if not game_data:
+            return
 
         return [
             self._game_info_controller(game)
@@ -234,7 +238,7 @@ class Betr(DFSBookBase):
 
     def _extract_team_games(self, teams, team_names, league, game_date):
         if not teams:
-            self._api_call_log("betr")
+            self._api_call_log(sportsbook="betr", error_details="No teams found in team game extraction.")
             return []
 
 
@@ -251,7 +255,7 @@ class Betr(DFSBookBase):
 
     def _extract_solo_games(self, players):
         if not players:
-            self._api_call_log("betr")
+            self._api_call_log(sportsbook="betr", error_details="No players found in solo game extraction.")
             return []
 
     def _game_info_controller(self, game):
@@ -273,7 +277,7 @@ class Betr(DFSBookBase):
             game_data = self._extract_team_games(game.get("teams"), team_names, league, game_date)
             results.extend(game_data)
         else:
-            self._api_call_log("betr")
+            self._api_call_log(sportsbook="betr", error_details=f"Unknown player structure: {game.get('playerStructure')}")
             return
 
         if not results:
@@ -284,7 +288,7 @@ class Betr(DFSBookBase):
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            api_data = await self.api_caller(
+            raw_api_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
@@ -299,12 +303,15 @@ class Betr(DFSBookBase):
                 }
             )
 
+            api_data = self.check_api_response(sportsbook="betr", results=raw_api_data)
             if not api_data:
-                self._api_call_log("betr")
                 return
 
             leagues = self._extract_leagues(api_data)
             betr_data = await self._extract_game_data(leagues, session)
+
+            if not betr_data:
+                return
 
             # Flatten the list of lists into a single list of games.
             results = [game for league_results in betr_data if league_results for game in league_results]

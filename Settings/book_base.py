@@ -5,6 +5,8 @@ from dataclasses import asdict
 from enum import Enum
 import asyncio
 from functools import lru_cache
+from typing import Union
+
 from tls_client import Session
 from dateutil import parser
 from Settings.logger import FileLogger, ConsoleLogger
@@ -23,7 +25,8 @@ class BookBase(ABC):
             )
 
         self.request_type = request_type
-        self._create_directory(log_directory)
+        # self._create_directory(log_directory)
+        self.log_directory = log_directory
 
         if log_name is None:
             log_name = f"{self.__class__.__name__}.log"
@@ -33,17 +36,24 @@ class BookBase(ABC):
         self.file_logger = FileLogger(log_path)
         self.console_logger = ConsoleLogger()
 
-    def _create_directory(self, directory: str):
-        """Create a directory if it doesn't exist."""
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+    # def _create_directory(self, directory: str):
+    #     """Create a directory if it doesn't exist."""
+    #     if not os.path.exists(directory):
+    #         os.makedirs(directory)
 
-    def _api_call_log(self, sportsbook_name):
+    def _api_call_log(self, sportsbook, error_details=None):
         """General logger for when a sportsbook can't get data from API"""
+        # self.file_logger.log(
+        #     message=f"Failed to fetch data from {sportsbook_name} API",
+        #     level="ERROR",
+        #     ERROR=error_details
+        # )
         self.file_logger.log(
-            message=f"Failed to fetch data from {sportsbook_name} API",
+            sportsbook=sportsbook,
             level="ERROR",
+            message=error_details
         )
+
 
     @staticmethod
     def _generate_key(key_data):
@@ -99,6 +109,12 @@ class BookBase(ABC):
         with open(file_name, "w") as json_file:
             json.dump(data, json_file, indent=2)
 
+
+    @abstractmethod
+    def check_api_response(self, sportsbook: str, results: list):
+        raise NotImplementedError
+
+
     @abstractmethod
     async def run_book(self):
         raise NotImplementedError("Subclasses must implement the run_book method.")
@@ -151,13 +167,31 @@ class AsyncBook:
             if parse_json:
                 try:
                     text = await response.text()
-                    return json.loads(text)
+                    data = json.loads(text)
+                    return {
+                        "success": True,
+                        **data
+                    }
                 except json.JSONDecodeError:
-                    return None
+                    return {
+                        "success": False,
+                        "data": None,
+                        "error": "Failed to parse JSON"
+                    }
+            data = await response.json()
 
-            return await response.json()
+            return {
+                "success": True,
+                **(data if isinstance(data, dict) else {"data": data})
+            }
         else:
-            return None
+            return {
+                "success": False,
+                "error": {
+                    "status": response.status,
+                    "message": await response.text()
+                }
+            }
 
 from curl_cffi import AsyncSession
 
@@ -200,16 +234,37 @@ class Spoof:
 
                 if resp.status_code == 200:
                     try:
-                        return resp.json()
+                        data = resp.json()
+                        return {
+                            "success": True,
+                            **data
+                        }
+
                     except Exception:
-                        return resp.text
+                        return {
+                            "success": False,
+                            "error": {
+                                "status": resp.status,
+                                "message": resp.text
+                            }
+                        }
                 else:
-                    print(f"[Spoof] Non-200 status: {resp.status_code}")
-                    return None
+                    return {
+                        "success": False,
+                        "error": {
+                            "status": resp.status,
+                            "message": resp.text
+                        }
+                    }
 
         except Exception as e:
-            print(f"[Spoof] Request error: {e}")
-            return None
+            return {
+                "success": False,
+                "error": {
+                    "status": resp.status,
+                    "message": resp.text
+                }
+            }
 
 # # Spoofing book fetching class
 # class Spoof:

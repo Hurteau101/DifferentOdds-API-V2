@@ -108,11 +108,15 @@ class Parlayplay(DFSBookBase):
         )
 
     async def _get_leagues(self, session):
-        league_data = await self.api_caller(
+        raw_league_data = await self.api_caller(
             session=session,
             url=self.book_data.url.get("league_url"),
             method=self.book_data.method
         )
+
+        league_data = self.check_api_response(sportsbook="parlayplay", results=raw_league_data)
+        if not league_data:
+            return
 
         league_list = [
             {
@@ -149,6 +153,9 @@ class Parlayplay(DFSBookBase):
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             league_data = await self._get_leagues(session)
+            if not league_data:
+                return
+
             tasks = [
                 self.api_caller(
                     session=session,
@@ -160,12 +167,12 @@ class Parlayplay(DFSBookBase):
                 for period in league.get("market_periods", [])
             ]
 
-            results = await asyncio.gather(*tasks)
-            api_data = [result for result in results if result]
-
-            if not api_data:
-                self._api_call_log("parlayplay")
+            raw_results = await asyncio.gather(*tasks)
+            results = self.check_api_response(sportsbook="parlayplay", results=raw_results)
+            if not results:
                 return
+
+            api_data = [result for result in results if result]
 
             player_data_list = {}
 

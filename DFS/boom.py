@@ -116,15 +116,15 @@ class Boom(DFSBookBase):
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            api_data = await self.api_caller(
+            raw_api_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
                 headers=self.book_data.headers,
             )
 
+            api_data = self.check_api_response(sportsbook="boom", results=raw_api_data)
             if not api_data:
-                self._api_call_log("boom")
                 return
 
             results = [

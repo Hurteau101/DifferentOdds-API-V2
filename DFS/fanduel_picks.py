@@ -100,10 +100,12 @@ class FanDuelPicks(DFSBookBase):
 
             if not auth_token:
                 self.file_logger.log(
-                    message=f"No auth token found for FanDuel Picks",
-                    additional="run_book caller",
+                    sportsbook="fanduel_picks",
+                    message="No auth token found for FanDuel Picks",
                     level="ERROR",
+                    additional_information="Ensure to run the auth token retriever script",
                 )
+
                 return
 
             headers = self.book_data.headers
@@ -121,9 +123,11 @@ class FanDuelPicks(DFSBookBase):
                 for league in FanDuelPicks.VALID_LEAGUES
             ]
 
-            results = await asyncio.gather(*tasks)
+            raw_results = await asyncio.gather(*tasks)
+
+            results = self.check_api_response(sportsbook="fanduel_picks", results=raw_results)
+
             if not results:
-                self._api_call_log("fanduel_picks")
                 return
 
             game_ids = [
@@ -145,7 +149,12 @@ class FanDuelPicks(DFSBookBase):
                 for game in game_ids
             ]
 
-            results = await asyncio.gather(*stat_tasks)
+            raw_results = await asyncio.gather(*stat_tasks)
+            results = self.check_api_response(sportsbook="fanduel_picks", results=raw_results)
+
+            if not results:
+                return
+
             merge_data = [
                 {
                     "league": game["league"],

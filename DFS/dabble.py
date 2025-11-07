@@ -122,17 +122,15 @@ class Dabble(DFSBookBase):
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            league_data = await self.api_caller(
+            raw_league_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
             )
 
+            league_data = self.check_api_response(sportsbook="dabble", results=raw_league_data)
             if not league_data:
-                self.file_logger.log(
-                    message="Couldn't map leagues for Dabble",
-                )
-                return None
+                return
 
             league_ids = [
                 league.get("id")
@@ -148,7 +146,11 @@ class Dabble(DFSBookBase):
                 for league_id in league_ids
             ]
 
-            results = await asyncio.gather(*tasks)
+            raw_results = await asyncio.gather(*tasks)
+            results = self.check_api_response(sportsbook="dabble", results=raw_results)
+            if not results:
+                return
+
 
             game_ids = set(
                 game.get("id")
@@ -166,7 +168,11 @@ class Dabble(DFSBookBase):
                 for game_id in game_ids
             ]
 
-            results = await asyncio.gather(*tasks)
+            raw_results = await asyncio.gather(*tasks)
+
+            results = self.check_api_response(sportsbook="dabble", results=raw_results)
+            if not results:
+                return
 
             # Flatten and filter out None results
             game_data_list = [

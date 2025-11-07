@@ -92,6 +92,11 @@ class Sleeper(DFSBookBase):
             ]
         )
 
+    def extract_data(self, response):
+        if isinstance(response, dict) and "data" in response:
+            return response["data"]
+        return response
+
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             tasks = [
@@ -103,10 +108,37 @@ class Sleeper(DFSBookBase):
             ]
 
             main_lines, alternate_lines, game_data, player_data, season_data = await asyncio.gather(*tasks)
-            combined_lines = main_lines + alternate_lines # Combine ALT and Regular Lines.
-            combined_game_data = game_data + season_data # Combine regular and season game data.
+
+            responses = {
+                "main_line": main_lines,
+                "alternate_line": alternate_lines,
+                "game_data": game_data,
+                "player_data": player_data,
+                "season_data": season_data,
+            }
+
+            for name, data in responses.items():
+                checked = self.check_api_response("sleeper", data)
+                if checked is None:
+                    checked = []
+
+                responses[name] = checked
+
+            main_lines = responses["main_line"]
+            alternate_lines = responses["alternate_line"]
+            game_data = responses["game_data"]
+            player_data = responses["player_data"]
+            season_data = responses["season_data"]
+
+            combined_lines = self.extract_data(main_lines) + self.extract_data(alternate_lines)
+            combined_game_data = self.extract_data(game_data) + self.extract_data(season_data)
             team_data = self._map_games(combined_game_data)
-            player_information = self._map_players(player_data)
+            player_information = self._map_players(self.extract_data(player_data))
+
+            # combined_lines = main_lines + alternate_lines # Combine ALT and Regular Lines.
+            # combined_game_data = game_data + season_data # Combine regular and season game data.
+            # team_data = self._map_games(combined_game_data)
+            # player_information = self._map_players(player_data)
 
             player_data_list = {}
             for game_details in combined_lines:

@@ -315,15 +315,16 @@ class Underdog(DFSBookBase):
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            api_data = await self.api_caller(
+            raw_api_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method
             )
 
+            api_data = self.check_api_response(sportsbook="underdog", results=raw_api_data)
             if not api_data:
-                self._api_call_log("underdog")
                 return
+
 
             map_data = Underdog._mapper(api_data)
             stats = self.regroup_stats(api_data)

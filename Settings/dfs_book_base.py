@@ -24,13 +24,27 @@ class DFSBookBase(BookBase, ABC):
             # Put logs inside DFS/DFS Logs/
             log_directory = os.path.join(PROJECT_ROOT, "DFS", "DFS Logs")
 
-        os.makedirs(log_directory, exist_ok=True)
-
         super().__init__(request_type, log_directory=log_directory, log_name=log_name)
         self.mapper = Mapper()
         self.LEAGUE_MAPPING = LEAGUES
         self.STAT_TYPES = STAT_TYPES
 
+    def check_api_response(self, sportsbook: str, results: list):
+        if not results:
+            self._api_call_log(sportsbook=sportsbook, error_details="No data received from API")
+            return None
+
+        if isinstance(results, dict):
+            if not results.get("success"):
+                self._api_call_log(sportsbook=sportsbook, error_details=results.get("error"))
+                return None
+        else:
+            for response in results:
+                if not response.get("success"):
+                    self._api_call_log(sportsbook=sportsbook, error_details=response.get("error"))
+                    return None
+
+        return results
 
     def _unique_teams(self, sportsbook_data: list[PlayerData], sportsbook):
         """Create a list of unique team names, so we can pass this data to RapidFuzz and OpenAI"""

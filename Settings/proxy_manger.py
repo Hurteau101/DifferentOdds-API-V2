@@ -35,11 +35,11 @@ class ProxyManager:
 
         self.caller_file_name = os.path.basename(caller_file_full)  # File name of the caller
 
-    async def proxy_controller(self, url, method, headers=None, session=None, client_identifier=None, sync_type="async"):
+    async def proxy_controller(self, url, method, headers=None, session=None, client_identifier=None, sync_type="async", sportsbook=None):
         if sync_type == "async":
-            return await self.proxy_caller_async(session, url, method, headers)
+            return await self.proxy_caller_async(session, url, method, headers, sportsbook)
         else:
-            return await self.proxy_caller_spoof(url, method, headers, client_identifier)
+            return await self.proxy_caller_spoof(url, method, headers, client_identifier, sportsbook)
 
     def _cycle_proxies(self):
         proxy = next(self.proxy_pool)
@@ -57,7 +57,7 @@ class ProxyManager:
         return f"http://{username}:{password}@{ip}:{port}"
 
 
-    async def proxy_caller_async(self, session, url, method, headers):
+    async def proxy_caller_async(self, session, url, method, headers, sportsbook=None):
         for i in range(self.proxy_amount):
             proxy = self._cycle_proxies()
             if proxy:
@@ -77,6 +77,7 @@ class ProxyManager:
                 except ClientHttpProxyError as e:
                     self.file_logger.log(
                         message=f"Proxies Issue",
+                        sportsbook=sportsbook,
                         file=f"{self.caller_file_name}",
                         proxy=proxy,
                         proxy_message=e,
@@ -84,7 +85,7 @@ class ProxyManager:
                     )
                     continue
 
-    async def proxy_caller_spoof(self, url, method, headers, client_identifier="chrome_114"):
+    async def proxy_caller_spoof(self, url, method, headers, client_identifier="chrome_114", sportsbook=None):
         for i in range(self.proxy_amount):
             proxy = self._cycle_proxies()
             if proxy:
@@ -104,6 +105,7 @@ class ProxyManager:
                 except TLSClientExeption as e:
                     self.file_logger.log(
                         message=f"Proxies Issue",
+                        sportsbook=sportsbook,
                         file=f"{self.caller_file_name}",
                         proxy=proxy,
                         proxy_message=e,

@@ -169,16 +169,17 @@ class Prizepicks(DFSBookBase):
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             proxy_manger = ProxyManager(self.api_caller)
-            api_data = await proxy_manger.proxy_controller(
+            raw_api_data = await proxy_manger.proxy_controller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
+                sportsbook="prizepicks",
             )
 
-            if not api_data:
-                self._api_call_log("prizepicks")
-                return
+            api_data = self.check_api_response(sportsbook="prizepicks", results=raw_api_data)
 
+            if not api_data:
+                return
     
             player_info_map, team_info_map = self._map_info(api_data)
             player_data_list = {}

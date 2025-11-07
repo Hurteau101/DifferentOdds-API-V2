@@ -149,17 +149,15 @@ class DraftKingsPickSix(DFSBookBase):
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            api_league_keys = await self.api_caller(
+            raw_api_league_keys = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("league_list_url"),
                 method="get",
                 headers=self.book_data.headers,
             )
 
+            api_league_keys = self.check_api_response(sportsbook="draftkings_6", results=raw_api_league_keys)
             if not api_league_keys:
-                self.file_logger.log(
-                    message="Couldn't get league keys for DraftKings Pick 6",
-                )
                 return
 
             league_keys = self._extract_league_keys(api_league_keys)
@@ -175,12 +173,12 @@ class DraftKingsPickSix(DFSBookBase):
 
                 for league_key in league_keys
             ]
-            league_results = await asyncio.gather(*tasks)
+
+            raw_league_results = await asyncio.gather(*tasks)
+
+            league_results = self.check_api_response(sportsbook="draftkings_6", results=raw_league_results)
 
             if not league_results:
-                self.file_logger.log(
-                    message="Couldn't get league ids for DraftKings Pick 6",
-                )
                 return
 
             league_ids = [
@@ -199,12 +197,11 @@ class DraftKingsPickSix(DFSBookBase):
                 for league in league_ids
             ]
 
-            market_results = await asyncio.gather(*tasks)
+            raw_market_results = await asyncio.gather(*tasks)
+
+            market_results = self.check_api_response(sportsbook="draftkings_6", results=raw_market_results)
 
             if not market_results:
-                self.file_logger.log(
-                    message="Couldn't get market data for DraftKings Pick 6",
-                )
                 return
 
 
@@ -226,9 +223,11 @@ class DraftKingsPickSix(DFSBookBase):
                 for league in league_ids
             ]
 
-            results = await asyncio.gather(*tasks)
+            raw_results = await asyncio.gather(*tasks)
+
+            results = self.check_api_response(sportsbook="draftkings_6", results=raw_results)
+
             if not results:
-                self._api_call_log("draftkings_6")
                 return
 
             merged_data = [result for result in results]

@@ -24,12 +24,14 @@ class Epicks(DFSBookBase):
 
         # Recursive function to handle pagination
         async def _pagination_runner(cursor_payload=None):
-            api_data = await self.api_caller(
+            raw_api_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url").format(league=league),
                 method="POST",
                 payload=cursor_payload if cursor_payload else {}
             )
+
+            api_data = self.check_api_response(sportsbook="epicks", results=raw_api_data)
 
             if not api_data:
                 return None
@@ -155,18 +157,20 @@ class Epicks(DFSBookBase):
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            league_data = await self.api_caller(
+            raw_league_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("league_url"),
                 method=self.book_data.method,
             )
 
+            league_data = self.check_api_response(sportsbook="epicks", results=raw_league_data)
             if not league_data:
-                self.file_logger.log(
-                    message="Couldn't map leagues for Epicks",
-                )
-                return None
+                return
 
+            # Remove success key if present
+            league_data.pop("success")
+
+            # print(league_data)
             leagues = self._extract_leagues(league_data)
 
             tasks = [

@@ -86,9 +86,20 @@ class Ownerbox(DFSBookBase):
             ]
 
             results = await asyncio.gather(*tasks)
-            merged_data = [item for res in results if res for item in res.get("data", [])]
+
+            sportsbook_data = self.check_api_response(sportsbook="ownerbox", results=results)
+            if not sportsbook_data:
+                return
+
+            # valid_results, data = self.successful_response_checker(results)
+            # if not valid_results:
+            #     self._api_call_log(sportsbook="ownerbox", error_details=data)
+            #     return
+
+            merged_data = [item for res in sportsbook_data if res for item in res.get("data", [])]
+
             if not merged_data:
-                self._api_call_log("ownerbox")
+                self._api_call_log(sportsbook="ownerbox", error_details="No data found in API responses")
                 return
 
             player_data_list = {}
