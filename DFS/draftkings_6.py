@@ -170,9 +170,9 @@ class DraftKingsPickSix(DFSBookBase):
         end = "&entrySource=shareLink"
 
         single_url = f"{base}{sport}{pickGroup}{pickable}{end}"
-        starter = f"{base}{sport}{pickGroup}{pickable},"
+        starter = f"{base}{sport}{pickGroup}{pickable}"
         middle_adder = f"{pickableId}%2B{mapper.get(direction)}%2C"
-        end_adder = f",{pickableId}%2B{mapper.get(direction)}"
+        end_adder = f"{pickableId}%2B{mapper.get(direction)}"
 
 
         return {
