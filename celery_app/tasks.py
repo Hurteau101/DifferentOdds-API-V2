@@ -240,7 +240,11 @@ def run_book(name, redis_db, run_book_type):
             except Exception as e:
                 logger.error(f"Error releasing lock for {run_book_type} book {name}: {e}")
 
-    async_to_sync(_run)()
+    # async_to_sync(_run)()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(_run())
+    loop.close()
 
 # CHECK THIS LATER
 # @shared_task(ignore_result=True)
