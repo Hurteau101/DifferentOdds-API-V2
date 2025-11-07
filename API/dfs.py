@@ -144,7 +144,7 @@ async def get_esport_lines(
         request: Request,
         books: List[str] = Query(..., description="Get a list of esports DFS lines from specified books"),
 ):
-    odds = await get_odds(books, request, "game")
+    odds = await get_odds(books, request, "base")
     esports = extract_esport_lines(odds)
     if not esports:
         raise HTTPException(status_code=404, detail="No esports lines found for the provided books.")

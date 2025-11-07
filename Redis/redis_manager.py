@@ -54,21 +54,34 @@ class RedisManager:
     #         logging.error(f"Error fetching {key_name}: {e}")
     #         return None
 
+
+    #### OLD FUNCTION
+    # async def fetch_data(self, key_name: str):
+    #     """Fetch data from Redis and deserialize JSON (no compression)."""
+    #     try:
+    #         cached_data = await self.redis_client.get(key_name)
+    #         if not cached_data:
+    #             return None
+    #
+    #         # decompressed = gzip.decompress(cached_data)
+    #
+    #         try:
+    #             return orjson.loads(decompressed)
+    #         except orjson.JSONDecodeError:
+    #             return decompressed
+    #
+    #     except Exception as e:
+    #         logging.error(f"Error fetching {key_name}: {e}")
+    #         return None
+
     async def fetch_data(self, key_name: str):
-        """Fetch data from Redis and deserialize JSON (no compression)."""
+        """Fetch and deserialize JSON data from Redis."""
         try:
             cached_data = await self.redis_client.get(key_name)
             if not cached_data:
                 return None
-
-            decompressed = gzip.decompress(cached_data)
-
-            try:
-                return orjson.loads(decompressed)
-            except orjson.JSONDecodeError:
-                return decompressed
-
-        except Exception as e:
+            return orjson.loads(cached_data)
+        except (orjson.JSONDecodeError, RedisError) as e:
             logging.error(f"Error fetching {key_name}: {e}")
             return None
 
@@ -111,14 +124,16 @@ class RedisManager:
                     data_to_store = BookBase.serialize_data(data_to_store)
 
                 data_bytes = orjson.dumps(data_to_store)
-                compressed = gzip.compress(data_bytes, compresslevel=1)
+                # compressed = gzip.compress(data_bytes, compresslevel=1)
 
                 if key_expiration:
-                    success = await self.redis_client.set(
-                        key_name, compressed, ex=key_expiration
-                    )
+                    # success = await self.redis_client.set(
+                    #     key_name, compressed, ex=key_expiration
+                    # )
+                    success = await self.redis_client.set(key_name, data_bytes, ex=key_expiration)
                 else:
-                    success = await self.redis_client.set(key_name, compressed)
+                    success = await self.redis_client.set(key_name, data_bytes)
+                    # success = await self.redis_client.set(key_name, compressed)
 
                 if success:
                     logging.info(f"Stored data for {key_name} successfully.")
