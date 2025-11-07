@@ -34,11 +34,22 @@ class FileLogger(BaseLogger):
     def set_log_file(self, path):
         self.log_file = path
 
+    # def log(self, sportsbook, message, level="info", **kwargs):
+    #     directory = os.path.dirname(self.log_file)
+    #     if directory and not os.path.exists(directory):
+    #         os.makedirs(directory, exist_ok=True)
+    #
+    #     formatted_message = self.format(sportsbook, message, level, **kwargs)
+    #     with open(self.log_file, "a") as file:
+    #         file.write(formatted_message + " \n")
+
     def log(self, sportsbook, message, level="info", **kwargs):
+        self.log_file = os.path.normpath(self.log_file)
         directory = os.path.dirname(self.log_file)
         if directory and not os.path.exists(directory):
             os.makedirs(directory, exist_ok=True)
 
         formatted_message = self.format(sportsbook, message, level, **kwargs)
-        with open(self.log_file, "a") as file:
-            file.write(formatted_message + " \n")
+        with open(self.log_file, "a", encoding="utf-8") as file:
+            file.write(formatted_message + "\n")
+

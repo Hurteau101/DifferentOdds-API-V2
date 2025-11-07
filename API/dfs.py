@@ -79,6 +79,7 @@ async def get_odds(books, request, fmt):
     # Final Check - if all results are None, raise 500 error
     if all(v is None for v in clean_results.values()):
         file_logger.log(
+            sportsbook=",".join(books),
             message="No data available for the requested books.",
             books=",".join(books),
             level="ERROR"
