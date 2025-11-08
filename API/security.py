@@ -1,6 +1,6 @@
 from fastapi import Depends, Request, Security, HTTPException
 from fastapi.security import APIKeyHeader
-from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
+from starlette.status import HTTP_401_UNAUTHORIZED
 from Mapper.database import Database
 from cachetools import TTLCache
 

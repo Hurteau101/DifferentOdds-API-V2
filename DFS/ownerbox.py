@@ -66,7 +66,6 @@ class Ownerbox(DFSBookBase):
     async def run_book(self):
         links = self._generate_urls()
         async with aiohttp.ClientSession() as session:
-            # 'Cookie': f'obauth={os.getenv("ownerbox_auth_token")}'
             auth_token = await self.redis.get_auth_token("ownerbox_auth_token")
             await self.redis.close()
 
@@ -90,11 +89,6 @@ class Ownerbox(DFSBookBase):
             sportsbook_data = self.check_api_response(sportsbook="ownerbox", results=results)
             if not sportsbook_data:
                 return
-
-            # valid_results, data = self.successful_response_checker(results)
-            # if not valid_results:
-            #     self._api_call_log(sportsbook="ownerbox", error_details=data)
-            #     return
 
             merged_data = [item for res in sportsbook_data if res for item in res.get("data", [])]
 
@@ -122,6 +116,5 @@ class Ownerbox(DFSBookBase):
             return await self._database_mapper(ownerbox_data)
 
 if __name__ == "__main__":
-    import asyncio
     ob = Ownerbox()
     asyncio.run(ob.run_book())

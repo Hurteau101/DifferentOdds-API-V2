@@ -1,7 +1,6 @@
 import re
-
 import aiohttp
-
+import asyncio
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
@@ -137,7 +136,5 @@ class Boom(DFSBookBase):
 
 
 if __name__ == "__main__":
-    import asyncio
     boom = Boom()
-
     data = asyncio.run(boom.run_book())

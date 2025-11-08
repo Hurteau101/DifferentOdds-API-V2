@@ -1,8 +1,6 @@
 import aiohttp
 import os
-
 from dotenv import load_dotenv
-
 from Settings.book_base import SportbookRequestType
 from Settings.proxy_manger import ProxyManager
 from Settings.sgp_book_base import SGPBookBase

@@ -1,8 +1,6 @@
 import os
-
 import httpx
 from dotenv import load_dotenv
-
 from Redis.redis_manager import RedisManager
 
 load_dotenv()

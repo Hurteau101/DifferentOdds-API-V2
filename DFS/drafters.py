@@ -1,8 +1,8 @@
 from datetime import datetime
-
 import aiohttp
+import asyncio
 from Mapper.static_mapper import STAT_TYPES, LEAGUES
-from Settings.book_base import BookBase, SportbookRequestType
+from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import Stats, PlayerData, TeamData
 
@@ -113,5 +113,4 @@ class Drafters(DFSBookBase):
 
 if __name__ == "__main__":
     drafters = Drafters()
-    import asyncio
     asyncio.run(drafters.run_book())

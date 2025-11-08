@@ -1,5 +1,3 @@
-from email.policy import default
-
 import aiohttp
 import asyncio
 from Redis.redis_manager import RedisManager

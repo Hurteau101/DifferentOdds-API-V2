@@ -1,7 +1,6 @@
 import json
 import re
 from abc import ABC, abstractmethod
-
 from orjson import orjson
 import urllib.parse
 from Redis.redis_manager import RedisManager

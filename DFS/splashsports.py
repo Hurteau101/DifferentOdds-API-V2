@@ -1,7 +1,6 @@
 from datetime import datetime
-
+import asyncio
 import aiohttp
-
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import Stats, PlayerData, TeamData
@@ -90,5 +89,4 @@ class SplashSports(DFSBookBase):
 
 if __name__ == "__main__":
     splash_sports = SplashSports()
-    import asyncio
     asyncio.run(splash_sports.run_book())

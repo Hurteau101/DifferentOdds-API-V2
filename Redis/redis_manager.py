@@ -1,6 +1,3 @@
-import gzip
-import json
-
 import redis.asyncio as redis
 from orjson import orjson
 from redis.exceptions import LockError, RedisError
@@ -44,36 +41,6 @@ class RedisManager:
             logging.error(f"Error fetching plain text for {key_name}: {e}")
             return None
 
-
-    # async def fetch_data(self, key_name: str):
-    #     """Fetch data from Redis (no lock needed)."""
-    #     try:
-    #         logging.info(f"Fetching data for {key_name}")
-    #         return await self.redis_client.get(key_name)
-    #     except Exception as e:
-    #         logging.error(f"Error fetching {key_name}: {e}")
-    #         return None
-
-
-    #### OLD FUNCTION
-    # async def fetch_data(self, key_name: str):
-    #     """Fetch data from Redis and deserialize JSON (no compression)."""
-    #     try:
-    #         cached_data = await self.redis_client.get(key_name)
-    #         if not cached_data:
-    #             return None
-    #
-    #         # decompressed = gzip.decompress(cached_data)
-    #
-    #         try:
-    #             return orjson.loads(decompressed)
-    #         except orjson.JSONDecodeError:
-    #             return decompressed
-    #
-    #     except Exception as e:
-    #         logging.error(f"Error fetching {key_name}: {e}")
-    #         return None
-
     async def fetch_data(self, key_name: str):
         """Fetch and deserialize JSON data from Redis."""
         try:
@@ -84,32 +51,6 @@ class RedisManager:
         except (orjson.JSONDecodeError, RedisError) as e:
             logging.error(f"Error fetching {key_name}: {e}")
             return None
-
-    # async def store_data(self, key_name, data_to_store, timeout=60, blocking_timeout=10, key_expiration=60):
-    #     """Store data in Redis with a lock to prevent concurrent access issues."""
-    #     lock = self.redis_client.lock(f"{key_name}_lock", timeout=timeout, blocking_timeout=blocking_timeout)
-    #     try:
-    #         async with lock:
-    #             if is_dataclass(data_to_store):
-    #                 data_to_store = BookBase.serialize_data(data_to_store)
-    #             elif isinstance(data_to_store, dict):
-    #                 data_to_store = json.dumps(data_to_store)
-    #             elif isinstance(data_to_store, list):
-    #                 serialized = BookBase.serialize_data(data_to_store)
-    #                 data_to_store = json.dumps(serialized, default=str)
-    #
-    #             success = await self.redis_client.set(key_name, data_to_store, ex=key_expiration)
-    #
-    #             if success:
-    #                 logging.info(f"Stored data for {key_name} successfully.")
-    #             else:
-    #                 logging.error(f"Failed to store data for {key_name}.")
-    #
-    #     except LockError:
-    #         logging.error(f"Skipping {key_name}. Another process might be using it.")
-    #
-    #     except RedisError as e:
-    #         logging.error(f"Redis error for {key_name}: {e}")
 
     async def store_data(self, key_name, data_to_store, timeout=60, blocking_timeout=10, key_expiration=None):
         """Store data in Redis as raw JSON bytes (fast, no compression)."""
@@ -127,13 +68,9 @@ class RedisManager:
                 # compressed = gzip.compress(data_bytes, compresslevel=1)
 
                 if key_expiration:
-                    # success = await self.redis_client.set(
-                    #     key_name, compressed, ex=key_expiration
-                    # )
                     success = await self.redis_client.set(key_name, data_bytes, ex=key_expiration)
                 else:
                     success = await self.redis_client.set(key_name, data_bytes)
-                    # success = await self.redis_client.set(key_name, compressed)
 
                 if success:
                     logging.info(f"Stored data for {key_name} successfully.")

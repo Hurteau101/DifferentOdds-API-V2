@@ -44,24 +44,6 @@ async def generate_onyx_auth_token():
                 level="ERROR"
             )
 
-    # cookies = await page.context.cookies()
-        # for c in cookies:
-        #     print(c)
-        #     if c['name'] == '__Secure-authjs.session-token':
-        #         session_token = c['value']
-        #         if session_token:
-        #             await redis.store_data(key_name="onyx_session_token", data_to_store=session_token, key_expiration=46800)
-        #         else:
-        #             BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        #             log_path = os.path.join(BASE_DIR, "Logs")
-        #             os.makedirs(log_path, exist_ok=True)
-        #             log_file = os.path.join(log_path, "onyx_auth_error.log")
-        #             logger = FileLogger()
-        #             logger.set_log_file(log_file)
-        #             logger.log(
-        #                 message=f"Could not retrieve Onyx session token.",
-        #                 level="ERROR"
-        #             )
 
 if __name__ == "__main__":
     asyncio.run(generate_onyx_auth_token())

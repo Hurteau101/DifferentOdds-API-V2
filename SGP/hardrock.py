@@ -1,10 +1,6 @@
-import json
-
-import httpx
 from SGP.hardrock_helper import HardRockHelper
 from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase
-import websockets
 
 class Hardrock_SGP(SGPBookBase):
     def __init__(self, links):

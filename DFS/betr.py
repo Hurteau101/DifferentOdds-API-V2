@@ -1,6 +1,5 @@
-import json
+import asyncio
 import aiohttp
-
 from Mapper.static_mapper import STAT_TYPES
 from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
@@ -319,5 +318,4 @@ class Betr(DFSBookBase):
 
 if __name__ == "__main__":
     betr = Betr()
-    import asyncio
     asyncio.run(betr.run_book())

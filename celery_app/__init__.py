@@ -1,14 +1,10 @@
 from celery import Celery
-from celery.signals import worker_process_init
-import asyncio
-from Mapper.database import Database
-
 
 # Create Celery app
 celery_app = Celery(
     "differentodds",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/1",  # optional
+    broker="redis://localhost:6379/9",
+    backend="redis://localhost:6379/8",  # optional
 )
 
 # Setup Celery configuration

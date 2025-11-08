@@ -1,21 +1,15 @@
-import os
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.responses import RedirectResponse
-from starlette.staticfiles import StaticFiles
 from Mapper.database import Database
 from Redis.redis_manager import RedisManager
-from Settings.logger import FileLogger
 from . import dfs
 from . import sgp
 from contextlib import asynccontextmanager
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-
 BASE_DIR = Path(__file__).resolve().parent
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

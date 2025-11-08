@@ -1,6 +1,5 @@
 import aiohttp
 import asyncio
-
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
@@ -85,13 +84,6 @@ class Epicks(DFSBookBase):
         }
 
     def _extract_data(self, projections, teams, events, players, props):
-        # raw_data = {
-        #     "projections": api_data.get("projections", {}),
-        #     "events": api_data.get("events", {}),
-        #     "props": api_data.get("props", {}),
-        #     "teams": api_data.get("teams", {}),
-        # }
-
         event_id = projections.get("event_id")
         player_id = projections.get("subject_id")
         start_date = self.cache_time(projections.get("iso_event_datetime"))

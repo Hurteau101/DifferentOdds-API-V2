@@ -49,55 +49,6 @@ class Underdog(DFSBookBase):
             "image": player_section.get("image_url"),
         }
 
-    # def _extract_team_games(self, game_section, team_id, player_name):
-    #     """Extract Team Game Details"""
-    #     game_title = game_section.get("full_team_names_title").replace(".", "")
-    #     abbreviation_split = BookBase._split_teams(game_section.get("abbreviated_title").replace(".", ""))
-    #
-    #     valid_split = BookBase._split_teams(game_title.replace(".", ""))
-    #     if valid_split:
-    #         team_a, team_b, operator = valid_split["team_a"], valid_split["team_b"], valid_split["operator"].replace(".", "")
-    #         title_split = game_title.split(operator)
-    #
-    #         league = LEAGUES.get(game_section.get("sport_id").lower(), game_section.get("sport_id"))
-    #
-    #         if operator == "@" and team_id == game_section.get("home_team_id"):
-    #             if league in self.esport_leagues:
-    #                 player_team = title_split[0].strip()
-    #             else:
-    #                 player_team = title_split[1].strip()
-    #         else:
-    #             if league in self.esport_leagues:
-    #                 player_team = title_split[1].strip()
-    #             else:
-    #                 player_team = title_split[0].strip()
-    #         if operator == "vs" and team_id == game_section.get("home_team_id"):
-    #             if league in self.esport_leagues:
-    #                 player_team = title_split[0].strip()
-    #             else:
-    #                 player_team = title_split[1].strip()
-    #         else:
-    #             if league in self.esport_leagues:
-    #                 player_team = title_split[1].strip()
-    #             else:
-    #                 player_team = title_split[0].strip()
-    #
-    #         if team_a or team_b is None:
-    #             game_key = BookBase._generate_key([player_name, game_section.get("scheduled_at")])
-    #         else:
-    #             game_key = BookBase._generate_key([team_a, team_b, game_section.get("scheduled_at")])
-    #
-    #
-    #         return {
-    #             "match_title": game_section.get("full_team_names_title").strip(),
-    #             "player_team": DFSBookBase.clean_and_normalize_name(player_team),
-    #             "team_a": DFSBookBase.clean_and_normalize_name(team_a),
-    #             "team_b": DFSBookBase.clean_and_normalize_name(team_b),
-    #             "team_key": game_key,
-    #             "team_a_abbreviation": abbreviation_split.get("team_a"),
-    #             "team_b_abbreviation": abbreviation_split.get("team_b"),
-    #         }
-
     def _extract_team_games(self, game_section, team_id, player_name):
         """Extract Team Game Details """
         reversed_index = ("MASL", "ESPORTS", "UNRIVALED", "VAL", "LOL", "CS", "DOTA", "CS2")
@@ -260,7 +211,6 @@ class Underdog(DFSBookBase):
             game_section=map_data.get("team_games").get(game_id) if game_type == "Game" else map_data.get(
                 "solo_games").get(game_id),
             game_type=game_type,
-            # player_name=player_details.get("full_name"),
             player_name=player_details.get("player_name"),
             team_id=player_details.get("team_id") if game_type == "Game" else None,
         )

@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 import asyncio
 import aiohttp
@@ -134,11 +133,6 @@ class Sleeper(DFSBookBase):
             combined_game_data = self.extract_data(game_data) + self.extract_data(season_data)
             team_data = self._map_games(combined_game_data)
             player_information = self._map_players(self.extract_data(player_data))
-
-            # combined_lines = main_lines + alternate_lines # Combine ALT and Regular Lines.
-            # combined_game_data = game_data + season_data # Combine regular and season game data.
-            # team_data = self._map_games(combined_game_data)
-            # player_information = self._map_players(player_data)
 
             player_data_list = {}
             for game_details in combined_lines:

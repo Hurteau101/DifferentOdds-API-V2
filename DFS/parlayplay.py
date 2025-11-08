@@ -197,5 +197,4 @@ class Parlayplay(DFSBookBase):
 
 if __name__ == "__main__":
     parlayplay = Parlayplay()
-    import asyncio
     asyncio.run(parlayplay.run_book())

@@ -2,7 +2,6 @@ import asyncio
 import inspect
 import json
 import multiprocessing
-from concurrent.futures.process import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 import textdistance
 from Settings.logger import FileLogger
@@ -197,16 +196,9 @@ class Mapper:
         if not database_teams:
             return []
 
-        # database_teams = self.database_teams
-
         # Run in parallel to find all exact or close matches using RapidFuzz
         args = [(data, database_teams) for data in team_data]
         loop = asyncio.get_running_loop()
-        # with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-        #     results = await loop.run_in_executor(
-        #         None,
-        #         lambda: list(executor.map(find_matches, args))
-        #     )
 
         with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
             results = await loop.run_in_executor(
@@ -229,15 +221,6 @@ class Mapper:
         if not existing_names:
             return []
 
-        # # Any teams unable to match will be passed to OpenAI to try to map.
-        # teams_to_pass_to_ai = [
-        #     result for result in results
-        #     if result
-        #        and not result.get("found")
-        #        and any(result.values())
-        #        and f"{result.get('team_name').lower()}-{result.get('league').lower()}" not in existing_names
-        # ]
-
         teams_to_pass_to_ai = [
             result for result in results
             if result
@@ -245,9 +228,7 @@ class Mapper:
                and any(result.values())
                and result.get('team_name').lower() not in existing_names
         ]
-        #
-        # print(existing_names)
-        #
+
         if teams_to_pass_to_ai:
             print(f"Passing {len(teams_to_pass_to_ai)} to AI")
             team = await self.run_open_ai(teams_to_pass_to_ai)

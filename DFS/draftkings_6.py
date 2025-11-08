@@ -1,4 +1,3 @@
-import re
 import aiohttp
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, OptionalStatInformation
@@ -299,8 +298,6 @@ class DraftKingsPickSix(DFSBookBase):
                             player_data_list[player_key] = player_data
 
             picksix_data = list(player_data_list.values())
-            serialize = self.serialize_data(picksix_data)
-            self.create_json(serialize, "draftkings_6.json")
             return await self._database_mapper(picksix_data)
 
 if __name__ == "__main__":

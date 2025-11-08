@@ -1,15 +1,9 @@
-import os
 import aiohttp
-import json
-import httpx
-import requests
-from celery.bin.result import result
 from dotenv import load_dotenv
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Redis.redis_manager import RedisManager
 from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
-from datetime import datetime, timedelta
 from Settings.dfs_model import PlayerData, TeamData, Stats, OptionalStatInformation
 import asyncio
 
@@ -71,26 +65,6 @@ class FanDuelPicks(DFSBookBase):
             ],
             solo_game=False
         )
-
-
-    # async def _extract_ids(self, league, session):
-    #     api_data = await self.api_caller(
-    #         session=session,
-    #         url=self.book_data.url.get("main_url").format(league=league),
-    #         method=self.book_data.method,
-    #         headers=self.book_data.headers
-    #     )
-    #
-    #     # Keeping this in, you don't need market strings, but may in the future.
-    #     # market_string = ",".join({
-    #     #     market.get("id")
-    #     #     for market in api_data.get("markets", [])
-    #     # })
-    #
-    #     return [
-    #         data.get("id")
-    #         for data in api_data.get("gameGroupsForCompetition", [])
-    #     ]
 
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
@@ -188,5 +162,4 @@ class FanDuelPicks(DFSBookBase):
 
 if __name__ == "__main__":
     fanduel = FanDuelPicks()
-    import asyncio
     asyncio.run(fanduel.run_book())

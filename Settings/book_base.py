@@ -5,12 +5,10 @@ from dataclasses import asdict
 from enum import Enum
 import asyncio
 from functools import lru_cache
-from typing import Union
-
-from tls_client import Session
 from dateutil import parser
 from Settings.logger import FileLogger, ConsoleLogger
 import pytz
+from curl_cffi import AsyncSession
 
 class SportbookRequestType(Enum):
     ASYNC = "async"
@@ -25,7 +23,6 @@ class BookBase(ABC):
             )
 
         self.request_type = request_type
-        # self._create_directory(log_directory)
         self.log_directory = log_directory
 
         if log_name is None:
@@ -36,18 +33,8 @@ class BookBase(ABC):
         self.file_logger = FileLogger(log_path)
         self.console_logger = ConsoleLogger()
 
-    # def _create_directory(self, directory: str):
-    #     """Create a directory if it doesn't exist."""
-    #     if not os.path.exists(directory):
-    #         os.makedirs(directory)
-
     def _api_call_log(self, sportsbook, error_details=None):
         """General logger for when a sportsbook can't get data from API"""
-        # self.file_logger.log(
-        #     message=f"Failed to fetch data from {sportsbook_name} API",
-        #     level="ERROR",
-        #     ERROR=error_details
-        # )
         self.file_logger.log(
             sportsbook=sportsbook,
             level="ERROR",
@@ -193,8 +180,6 @@ class AsyncBook:
                 }
             }
 
-from curl_cffi import AsyncSession
-
 class Spoof:
     @staticmethod
     async def fetch(
@@ -265,28 +250,3 @@ class Spoof:
                     "message": resp.text
                 }
             }
-
-# # Spoofing book fetching class
-# class Spoof:
-#     @staticmethod
-#     async def fetch(api_url, method, headers=None, payload=None, client_identifier="chrome_114", proxy=None, params=None):
-#         def _spoof_request():
-#             session = Session(client_identifier=client_identifier, random_tls_extension_order=True)
-#             method_lower = method.lower()
-#
-#             if method_lower not in ["get", "post"]:
-#                 raise ValueError("Method must be 'get' or 'post'.")
-#
-#             request_method = getattr(session, method_lower)
-#
-#             if method_lower == "get":
-#                 response = request_method(api_url, headers=headers, proxy=proxy, params=params)
-#             else:
-#                 response = request_method(api_url, headers=headers, proxy=proxy, json=payload)
-#
-#             if response.status_code == 200:
-#                 return response.json()
-#             else:
-#                 return None
-#
-#         return await asyncio.to_thread(_spoof_request)

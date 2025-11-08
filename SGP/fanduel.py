@@ -1,10 +1,7 @@
 import asyncio
 import json
-import time
-
 import aiohttp
 from orjson import orjson
-
 from Redis.redis_manager import RedisManager
 from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase

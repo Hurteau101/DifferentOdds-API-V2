@@ -1,9 +1,6 @@
 import asyncio
-from functools import lru_cache
-from typing import List, Dict, Literal, Optional
+from typing import List, Literal, Optional
 from fastapi import Request, Header
-from API.Formatters.dfs_formatter import get_formatter
-import orjson
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from API.security import get_api_key
@@ -32,17 +29,17 @@ class BookParameters(BaseModel):
     book_nams: List[str]
 
 class FormatHeader(BaseModel):
-    format: Literal["Base", "Game", "Temp"] = "Game"
+    format: Literal["Base", "Game"] = "Game"
 
 def validate_format_header(
     format: Optional[str] = Header(None, alias="X-Format", description="Select output format: Base or Game")
 ):
     format = (format or "Game").capitalize()
 
-    if format not in ["Base", "Game", "Temp"]:
+    if format not in ["Base", "Game"]:
         raise HTTPException(
             status_code=400,
-            detail="Invalid format. Must be one of: Base, Game or Temp."
+            detail="Invalid format. Must be one of: Base or Game."
         )
 
     return FormatHeader(format=format)
@@ -127,13 +124,6 @@ async def get_book_data(
         fmt: str = Depends(validate_format_header)
 ):
     odds = await get_odds(books, request, fmt.format)
-
-    # if fmt.format == "Game":
-    #     return get_formatter("game", odds)
-    # elif fmt.format == "Temp":
-    #     return get_formatter("temp", odds)
-
-
     return odds
 
 @router.get(
