@@ -29,7 +29,7 @@ SGP_MAPPER_PROVIDERS = [
     ),
     SGPMapperProviders(
         title="Onyx Sportsbook",
-        name="onyx",
+        name="onyxodds",
         url={
             "league_url": "https://api.onyxodds.com/api/odds/mainLines",
             "game_ids_url": "https://api.onyxodds.com/api/odds/mainLines/{league_name}",

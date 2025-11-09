@@ -133,7 +133,7 @@ SGP_PROVIDERS = [
     ),
     SGPProvider(
         title="Onyx Odds",
-        name="onyx",
+        name="onyxodds",
         url={
             "main_url": "https://api.onyxodds.com/api/odds/parlayPrice"
         },

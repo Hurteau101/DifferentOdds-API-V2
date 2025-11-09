@@ -22,7 +22,7 @@ BOOK_INITIALIZERS = {
     "kambi": Kambi_SGP,
     "draftkings": Draftkings_SGP,
     "hardrock": Hardrock_SGP,
-    "onyx": Onyx_SGP,
+    "onyxodds": Onyx_SGP,
     "prophetx": Prophet_SGP,
     "novig": Novig_SGP,
 }
