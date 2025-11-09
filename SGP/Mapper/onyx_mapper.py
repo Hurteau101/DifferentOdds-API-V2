@@ -117,11 +117,7 @@ class Onyx_Mapper(SGPMapperBase):
                 for game_id in game_ids
             ]
 
-            raw_results = await asyncio.gather(*tasks)
-
-            results = self.check_api_response(sportsbook="onyx", results=raw_results)
-            if not results:
-                return
+            results = await asyncio.gather(*tasks)
 
             all_mapped_ids = {}
 

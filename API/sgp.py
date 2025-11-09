@@ -69,7 +69,7 @@ async def get_sgp_odds(books: List[SGP]):
             try:
                 return await asyncio.wait_for(book_instance.run_book(), timeout=timeout)
             except asyncio.TimeoutError:
-                file_logger.log(message=f"{book.book_name} timed out", level="ERROR")
+                file_logger.log(sportsbook=book.book_name, message=f"{book.book_name} timed out", level="ERROR")
 
                # Single books we want to raise an error, for multiple just return the error in the response due to partial failure
                 if single_book:
