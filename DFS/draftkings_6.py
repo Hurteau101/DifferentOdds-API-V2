@@ -167,6 +167,7 @@ class DraftKingsPickSix(DFSBookBase):
         pickGroup= f"pickGroup={groupId}&"
         pickable = f"picks={pickableId}%2B{mapper.get(direction)}"
         end = "&entrySource=shareLink"
+        url = f"{base}{sport}{pickGroup}{pickable}{end}"
 
         single_url = f"{base}{sport}{pickGroup}{pickable}{end}"
         starter = f"{base}{sport}{pickGroup}{pickable}"
