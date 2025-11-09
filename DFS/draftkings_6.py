@@ -181,6 +181,7 @@ class DraftKingsPickSix(DFSBookBase):
             "base": base,
             "sport": league,
             "side": direction,
+            "url": url,
             "link_helper": {
                 "single_url": single_url,
                 "starter": starter,
