@@ -10,6 +10,7 @@ from SGP.fanactics import Fanatics_SGP
 from SGP.fanduel import Fanduel_SGP
 from SGP.hardrock import Hardrock_SGP
 from SGP.kambi import Kambi_SGP
+from SGP.novig import Novig_SGP
 from SGP.onyx import Onyx_SGP
 from SGP.prophet import Prophet_SGP
 from Settings.sportsbook_config import SportsbookConfig
@@ -23,6 +24,7 @@ BOOK_INITIALIZERS = {
     "hardrock": Hardrock_SGP,
     "onyx": Onyx_SGP,
     "prophetx": Prophet_SGP,
+    "novig": Novig_SGP,
 }
 
 file_logger = create_logging_setup(folder_name="sgp", file_name="sgp_api.log")
@@ -56,7 +58,7 @@ async def get_sgp_book_list():
 @router.post("/odds",
                 summary="Get SGP Odds",
                 description="Fetch SGP odds from specified sportsbooks.",
-                # dependencies=[Depends(get_api_key)]
+                dependencies=[Depends(get_api_key)]
              )
 async def get_sgp_odds(books: List[SGP]):
     # Create instance of each sportsbook and run concurrently

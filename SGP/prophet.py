@@ -3,14 +3,12 @@ import aiohttp
 from dotenv import load_dotenv
 from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase
-
+import asyncio
 
 class Prophet_SGP(SGPBookBase):
     def __init__(self, links):
         load_dotenv()
         super().__init__(request_type=SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="prophet_sgp.log", sportsbook_name="prophetx", links=links)
-
-
 
     @SGPBookBase.require_link_data
     async def run_book(self):
@@ -25,7 +23,7 @@ class Prophet_SGP(SGPBookBase):
                 for links_id in self.link_data
             ]
 
-            api_data = await self.api_caller(
+            raw_api_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
@@ -36,10 +34,12 @@ class Prophet_SGP(SGPBookBase):
                 }
             )
 
+            api_data = self.check_api_response(sportsbook="prophetx", results=raw_api_data)
+
             if not api_data:
-                self._api_call_log("prophet_sgp")
                 return
 
+            api_data.pop("success")
 
             if len(api_data.get("offers")) <= 0:
                 return None
@@ -53,8 +53,6 @@ class Prophet_SGP(SGPBookBase):
 
 
 if __name__ == "__main__":
-    import asyncio
-
     links = [
         "https://www.prophetx.co/?action=addtobetslip&lineID=a747def04602dfe255dfb63f3a049e59&partner_id=null&currency=cash",
         "https://www.prophetx.co/?action=addtobetslip&lineID=4559592eb00b547925a128137af3e3ca&partner_id=null&currency=cash"

@@ -18,7 +18,8 @@ from SGP.prophet import Prophet_SGP
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
 
 DEFAULT_CONDITIONS = {
-    "league": "NCAAF",
+    # "league": "NCAAF",
+    "league": "NFL",
     "market_types": ["point spread", "total points"],
 }
 
@@ -188,14 +189,14 @@ if __name__ == "__main__":
     #     {"book_name": "Fanduel", "links": []}
     # ]
     book_data = [
-        # {"book_name": "onyxodds", "links": []},
-        # {"book_name": "kambi", "links": []},
-        # {"book_name": "draftkings", "links": []},
-        # {"book_name": "betmgm", "links": []},
-        # {"book_name": "fanatics", "links": []},
-        # {"book_name": "fanduel", "links": []},
-        # {"book_name": "hardrock", "links": []},
-        # {"book_name": "novig", "links": []},
+        {"book_name": "onyxodds", "links": []},
+        {"book_name": "kambi", "links": []},
+        {"book_name": "draftkings", "links": []},
+        {"book_name": "betmgm", "links": []},
+        {"book_name": "fanatics", "links": []},
+        {"book_name": "fanduel", "links": []},
+        {"book_name": "hardrock", "links": []},
+        {"book_name": "novig", "links": []},
         {"book_name": "prophetx", "links": []}
     ]
 

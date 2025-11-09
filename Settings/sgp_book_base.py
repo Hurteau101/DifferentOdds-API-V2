@@ -6,9 +6,9 @@ import urllib.parse
 from Redis.redis_manager import RedisManager
 from Settings.book_base import BookBase
 from Settings.sportsbook_config import SportsbookConfig
+from Settings.Mixin.mixins import ApiResponseMixin
 
-
-class SGPBookBase(BookBase, ABC):
+class SGPBookBase(ApiResponseMixin, BookBase, ABC):
     """Base class for SGP books, inheriting from SportsbookBase."""
     def __init__(self, request_type, sportsbook_name: str, links, log_directory="SGP Logs", log_name=None, decode_url=False):
         self.book_data = SportsbookConfig.get_sgp_provider(sportsbook_name)
@@ -34,6 +34,7 @@ class SGPBookBase(BookBase, ABC):
 
         if not mapped_ids:
             self.file_logger.log(
+                sportsbook=sportsbook_name,
                 message="No mapped IDs found in Redis",
                 level="ERROR",
             )

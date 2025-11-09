@@ -24,7 +24,10 @@ class Hardrock_SGP(SGPBookBase):
         hardrock_extractor = HardRockHelper(hardrock_ids)
         api_data = hardrock_extractor.runner()
         if not api_data:
-            self._api_call_log("hardrock_sgp")
+            self._api_call_log(
+                sportsbook="hardrock_sgp",
+                error_details="Failed to retrieve data from Hardrock API."
+            )
 
         betslip_data = api_data[0].get("Betslip", {}) if isinstance(api_data, list) else api_data.get("Betslip", {})
 

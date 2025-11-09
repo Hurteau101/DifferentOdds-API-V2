@@ -6,11 +6,12 @@ import os
 from  Settings.dfs_model import PlayerData
 from Mapper.mapping_database import Mapper
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
+from Settings.Mixin.mixins import ApiResponseMixin
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, ".."))
 
-class DFSBookBase(BookBase, ABC):
+class DFSBookBase(ApiResponseMixin, BookBase, ABC):
     """Base class for DFS books, inheriting from BookBase."""
     def __init__(self, request_type, sportsbook_name: str, log_directory=None, log_name=None):
         self.book_data = SportsbookConfig.get_dfs_provider(sportsbook_name)
@@ -23,23 +24,6 @@ class DFSBookBase(BookBase, ABC):
         self.mapper = Mapper()
         self.LEAGUE_MAPPING = LEAGUES
         self.STAT_TYPES = STAT_TYPES
-
-    def check_api_response(self, sportsbook: str, results: list):
-        if not results:
-            self._api_call_log(sportsbook=sportsbook, error_details="No data received from API")
-            return None
-
-        if isinstance(results, dict):
-            if not results.get("success"):
-                self._api_call_log(sportsbook=sportsbook, error_details=results.get("error"))
-                return None
-        else:
-            for response in results:
-                if not response.get("success"):
-                    self._api_call_log(sportsbook=sportsbook, error_details=response.get("error"))
-                    return None
-
-        return results
 
     def _unique_teams(self, sportsbook_data: list[PlayerData], sportsbook):
         """Create a list of unique team names, so we can pass this data to RapidFuzz and OpenAI"""

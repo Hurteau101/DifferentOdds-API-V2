@@ -2,6 +2,7 @@ import json
 from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase
 import websockets
+import asyncio
 
 class Fanatics_SGP(SGPBookBase):
     def __init__(self, links):
@@ -27,12 +28,14 @@ class Fanatics_SGP(SGPBookBase):
                 received_data = json.loads(message)
             except json.JSONDecodeError:
                 self.file_logger.log(
+                    sportsbook="fanatics",
                     message="Failed to decode JSON response",
                     level="ERROR",
                 )
                 return None
             except Exception as e:
                 self.file_logger.log(
+                    sportsbook="fanatics",
                     message=f"Unexpected error: {e}",
                     level="ERROR",
                 )
@@ -60,6 +63,5 @@ if __name__ == "__main__":
 "fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%222404247%22%2C%22marketId%22%3A%22365254917%22%2C%22selectionId%22%3A%22915694968%22%7D%5D%7D&"
     ]
     fanduel_sgp = Fanatics_SGP(test_links)
-    import asyncio
     odds = asyncio.run(fanduel_sgp.run_book())
     print(odds)

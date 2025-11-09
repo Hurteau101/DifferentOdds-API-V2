@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from Settings.book_base import SportbookRequestType
 from Settings.proxy_manger import ProxyManager
 from Settings.sgp_book_base import SGPBookBase
-
+import asyncio
 
 class Kambi_SGP(SGPBookBase):
     def __init__(self, links):
@@ -21,15 +21,17 @@ class Kambi_SGP(SGPBookBase):
             PROXY = os.getenv("KAMBI_PROXY")
             proxy_manager = ProxyManager(self.api_caller, proxies=[PROXY])
 
-            api_data = await proxy_manager.proxy_controller(
+            raw_api_data = await proxy_manager.proxy_controller(
                 session=session,
                 url=self.book_data.url.get("main_url").format(event_id=event_id, bet_ids=bet_id_list),
                 method=self.book_data.method,
             )
 
+            api_data = self.check_api_response(sportsbook="kambi", results=raw_api_data)
             if not api_data:
-                self._api_call_log("kambi_sgp")
                 return
+
+            api_data.pop("success")
 
             if api_data and isinstance(api_data, dict):
                 odds = api_data.get("selectedOdds")
@@ -49,6 +51,5 @@ if __name__ == "__main__":
     ]
 
     kambi = Kambi_SGP(links)
-    import asyncio
     data = asyncio.run(kambi.run_book())
     print(data)

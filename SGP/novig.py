@@ -1,7 +1,7 @@
 import aiohttp
 from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase
-
+import asyncio
 
 class Novig_SGP(SGPBookBase):
     def __init__(self, links):
@@ -55,21 +55,22 @@ class Novig_SGP(SGPBookBase):
             "outcomes": ids
         }
 
-
         async with aiohttp.ClientSession() as session:
-            api_data = await self.api_caller(
+            raw_api_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method="POST",
                 payload=payload
             )
 
-
+            api_data = self.check_api_response(sportsbook="novig", results=raw_api_data)
             if not api_data:
-                self._api_call_log("novig_sgp")
+                return
 
-            if api_data and isinstance(api_data, list):
-                data = self._extract_odds(api_data)
+            api_data.pop("success")
+
+            if api_data and isinstance(api_data.get("data"), list):
+                data = self._extract_odds(api_data.get("data"))
                 if data:
                     return {
                         "american_odds": float(data),
@@ -80,11 +81,9 @@ class Novig_SGP(SGPBookBase):
 
 
 if __name__== "__main__":
-    import asyncio
-
     links = [
-        "https://app.novig.us/events/e16296cb-9ca6-4582-ad93-1625db5de588/oddsjam",
-        "https://app.novig.us/events/5ed4a9e7-67f3-4a8b-bbfc-368c7a0a38c4/oddsjam"
+        "https://app.novig.us/events/1726a9eb-50ae-492a-be36-93ae3bd68cf5/oddsjam", # RAMS -2.5
+        "https://app.novig.us/events/edc6d463-3632-4377-8bfc-94778a95109c/oddsjam", # Over 51.5
     ]
 
     novig_sgp = Novig_SGP(links=links)

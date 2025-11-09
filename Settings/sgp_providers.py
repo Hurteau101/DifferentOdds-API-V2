@@ -18,9 +18,8 @@ SGP_PROVIDERS = [
         title="FanDuel Sportsbook",
         name="fanduel",
         url={
-            "league_id_url": "https://api.sportsbook.fanduel.com/sbapi/content-managed-page?page=CUSTOM&customPageId={league}&pbHorizontal=false&_ak=FhMFpcPWXMeyZxOx&timezone=America%2FNew_York",
-            "market_id_url": "https://api.sportsbook.fanduel.com/sbapi/event-page?_ak=FhMFpcPWXMeyZxOx&eventId={event_id}&tab=same-game-parlay-&pulseScalingEnable=true&useCombinedTouchdownsVirtualMarket=true&usePulse=true&useQuickBets=true&useQuickBetsNFL=true&useQuickBetsMLB=true",
-            "sgp_url": "https://sib.nj.sportsbook.fanduel.com/api/sports/fixedodds/transactional/v1/implyBets?pricePolicy=SUGGESTED"
+            "sgp_url": "https://sib.az.sportsbook.fanduel.com/api/sports/fixedodds/transactional/v1/implyBets?pricePolicy=SUGGESTED"
+
         },
         headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0',
@@ -43,7 +42,6 @@ SGP_PROVIDERS = [
         title="BetMGM Sportsbook",
         name="betmgm",
         url={
-            "market_id_url": "https://www.on.betmgm.ca/cds-api/bettingoffer/fixtures?x-bwin-accessid=MzViOTU5Y2EtNzgyMy00ZTBmLThkNDctYjRlYjgwNjMwZDQy&lang=en-us&country=CA&userCountry=CA&subdivision=CA-Alberta&fixtureTypes=Standard&state=Latest&offerMapping=All&offerCategories=Gridable&fixtureCategories=Gridable,NonGridable,Other&sportIds={league_id}&regionIds=&competitionIds=&conferenceIds=",
             "sgp_url": "https://www.on.betmgm.ca/cds-api/bettingoffer/picks?x-bwin-accessid=MzViOTU5Y2EtNzgyMy00ZTBmLThkNDctYjRlYjgwNjMwZDQy&lang=en-us&country=CA&userCountry=CA&subdivision=CA-Alberta"
         },
         headers={
@@ -137,8 +135,6 @@ SGP_PROVIDERS = [
         title="Onyx Odds",
         name="onyx",
         url={
-            "store_url": "https://api.onyxodds.com/api/odds/mainLines",
-            "market_url": "https://api.onyxodds.com/api/odds/gameMainLines/{game_id}",
             "main_url": "https://api.onyxodds.com/api/odds/parlayPrice"
         },
         regex={

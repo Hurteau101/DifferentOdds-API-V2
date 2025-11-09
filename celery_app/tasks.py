@@ -20,6 +20,8 @@ from celery import shared_task
 # from Prediction.kalashi import Kalashi
 from Redis.redis_manager import RedisManager
 from asgiref.sync import async_to_sync
+
+from SGP.Mapper.runner import Runner
 from SGP.betmgm import BetMGM_SGP
 from SGP.fanduel import Fanduel_SGP
 from SGP.onyx import Onyx_SGP
@@ -138,23 +140,26 @@ def refresh_auths():
 @shared_task(ignore_result=True)
 def map_sgp_ids():
     async def _run():
-        try:
-            fanduel = Fanduel_SGP(links=[])
-            await fanduel.store_fanduel_data()
-        except Exception as e:
-            logger.error(f"Error initializing Fanduel_SGP: {e}")
+        runner = Runner()
+        await runner.run_mappers()
 
-        try:
-            onyx = Onyx_SGP(links=[])
-            await onyx.store_onyx_data()
-        except Exception as e:
-            logger.error(f"Error initializing Onyx_SGP: {e}")
-
-        try:
-            betmgm = BetMGM_SGP(links=[])
-            await betmgm.store_betmgm_data()
-        except Exception as e:
-            logger.error(f"Error initializing BetMGM_SGP: {e}")
+        # try:
+        #     fanduel = Fanduel_SGP(links=[])
+        #     await fanduel.store_fanduel_data()
+        # except Exception as e:
+        #     logger.error(f"Error initializing Fanduel_SGP: {e}")
+        #
+        # try:
+        #     onyx = Onyx_SGP(links=[])
+        #     await onyx.store_onyx_data()
+        # except Exception as e:
+        #     logger.error(f"Error initializing Onyx_SGP: {e}")
+        #
+        # try:
+        #     betmgm = BetMGM_SGP(links=[])
+        #     await betmgm.store_betmgm_data()
+        # except Exception as e:
+        #     logger.error(f"Error initializing BetMGM_SGP: {e}")
 
 
     async_to_sync(_run)()
