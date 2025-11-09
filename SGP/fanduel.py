@@ -70,8 +70,8 @@ class Fanduel_SGP(SGPBookBase):
         #     return None
         #
         return {
-            "american_odds": float(odds_dict.get("winAvgOdds").get("americanDisplayOdds", {}).get("americanOdds")),
-            "decimal_odds": odds_dict.get("winAvgOdds").get("decimalDisplayOdds", {}).get("decimalOdds"),
+            "american": float(odds_dict.get("winAvgOdds").get("americanDisplayOdds", {}).get("americanOdds")),
+            "decimal": odds_dict.get("winAvgOdds").get("decimalDisplayOdds", {}).get("decimalOdds"),
         }
 
     async def _map_data(self):

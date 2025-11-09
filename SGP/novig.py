@@ -73,7 +73,7 @@ class Novig_SGP(SGPBookBase):
                 data = self._extract_odds(api_data.get("data"))
                 if data:
                     return {
-                        "american_odds": float(data),
+                        "american": float(data),
                     }
 
             return None

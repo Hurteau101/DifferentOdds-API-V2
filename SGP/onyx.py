@@ -63,7 +63,7 @@ class Onyx_SGP(SGPBookBase):
                 return None
 
             return {
-                "american_odds": float(api_data.get("price"))
+                "american": float(api_data.get("price"))
             }
 
     async def _get_auth(self):

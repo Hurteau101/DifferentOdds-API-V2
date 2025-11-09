@@ -50,8 +50,8 @@ class BetMGM_SGP(SGPBookBase):
             return None
 
         return {
-            "american_odds": float(odds.get("americanOdds")),
-            "decimal_odds": float(odds.get("odds")),
+            "american": float(odds.get("americanOdds")),
+            "decimal": float(odds.get("odds")),
         }
 
     def _create_payload(self, mapped_data):

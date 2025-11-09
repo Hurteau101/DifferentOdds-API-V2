@@ -52,8 +52,8 @@ class Fanatics_SGP(SGPBookBase):
             return None
 
         return {
-            "american_odds": float(odds.get("moneyLine")),
-            "decimal_odds": float(odds.get("decimal")),
+            "american": float(odds.get("moneyLine")),
+            "decimal": float(odds.get("decimal")),
         }
 
 
