@@ -92,12 +92,10 @@ async def get_sgp_odds(books: List[SGP]):
         results = await asyncio.gather(*tasks)
 
         # Merge results with book names
-        merged = [
-            {
-                book.book_name: result,
-            }
+        merged = {
+            book.book_name: result
             for book, result in zip(books, results)
-        ]
+        }
 
         return merged
     else:
