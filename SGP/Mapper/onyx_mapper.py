@@ -7,7 +7,7 @@ from Settings.sgp_mapper_base import SGPMapperBase
 
 class Onyx_Mapper(SGPMapperBase):
     def __init__(self):
-        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="onyx", log_directory="SGP Mapper Logs",
+        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="onyxodds", log_directory="SGP Mapper Logs",
                          log_name="onyx_mapper.log")
 
     async def _get_auth(self):

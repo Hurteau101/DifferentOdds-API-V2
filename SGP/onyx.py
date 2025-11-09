@@ -7,7 +7,7 @@ from Settings.sgp_book_base import SGPBookBase
 
 class Onyx_SGP(SGPBookBase):
     def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="onyx_sgp.log", sportsbook_name="onyx", links=links)
+        super().__init__(SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="onyx_sgp.log", sportsbook_name="onyxodds", links=links)
 
     async def _get_cached_ids(self):
         redis = RedisManager(db=self.redis_db)
