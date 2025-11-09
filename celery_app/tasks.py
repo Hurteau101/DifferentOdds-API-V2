@@ -170,7 +170,7 @@ def run_book(name, redis_db, run_book_type):
         redis_manager = RedisManager(db=redis_db)
 
         lock_key = f"{run_book_type}_lock:{name}"
-        lock = redis_manager.redis_client.lock(lock_key, timeout=700, blocking_timeout=1)
+        lock = redis_manager.redis_client.lock(lock_key, timeout=60, blocking_timeout=1)
 
         if not await lock.acquire(blocking=False):
             logger.info(f"Skipping {run_book_type} book {name}, already running.")
