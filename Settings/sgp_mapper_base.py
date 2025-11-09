@@ -9,3 +9,6 @@ class SGPMapperBase(BookBase, ApiResponseMixin, ABC):
         self.book_data = SportsbookConfig.get_sgp_mapper_provider(sportsbook_name)
         self.key_expiration = key_expiration
         self.redis_db = 2
+
+    def check_api_response(self, sportsbook: str, results: list):
+        return ApiResponseMixin.check_api_response(self, sportsbook, results)

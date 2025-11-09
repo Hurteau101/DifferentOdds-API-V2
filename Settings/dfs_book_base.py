@@ -65,6 +65,9 @@ class DFSBookBase(ApiResponseMixin, BookBase, ABC):
 
         return team_data
 
+    def check_api_response(self, sportsbook: str, results: list):
+        return ApiResponseMixin.check_api_response(self, sportsbook, results)
+
     @staticmethod
     def clean_and_normalize_name(name):
         if name is not None:
