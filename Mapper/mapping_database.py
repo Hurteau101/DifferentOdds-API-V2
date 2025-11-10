@@ -331,6 +331,7 @@ class Mapper:
 
         except json.JSONDecodeError:
             self.file_logger.log(
+                sportsbook="N/A",
                 message=f"Could not parse JSON: {content}",
                 file=self.caller_file_name,
                 level="INFO"

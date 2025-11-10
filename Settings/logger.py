@@ -34,7 +34,7 @@ class FileLogger(BaseLogger):
     def set_log_file(self, path):
         self.log_file = path
 
-    def log(self, sportsbook, message, level="info", **kwargs):
+    def log(self, message, level="info", sportsbook="N/A", **kwargs):
         self.log_file = os.path.normpath(self.log_file)
         directory = os.path.dirname(self.log_file)
         if directory and not os.path.exists(directory):
