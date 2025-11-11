@@ -166,7 +166,12 @@ class Prizepicks(DFSBookBase):
         )
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(
+            total=300,
+            connect=20,
+        )
+
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             proxy_manger = ProxyManager(self.api_caller)
             raw_api_data = await proxy_manger.proxy_controller(
                 session=session,
