@@ -1,3 +1,5 @@
+import json
+
 import aiohttp
 from dotenv import load_dotenv
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
@@ -26,7 +28,6 @@ class FanDuelPicks(DFSBookBase):
         team_b = self.clean_and_normalize_name(team_data.get("awayTeam", {}).get("name"))
         team_b_abbreviation = team_data.get("awayTeam", {}).get("abbreviation", "")
         stat_type = raw_data.get("gameGroupMarket", {}).get("displayName").lower()
-
 
         if team_a and team_b:
             team_key = self._generate_key([team_a, team_b, start_date])
@@ -59,6 +60,7 @@ class FanDuelPicks(DFSBookBase):
                     regular_line=True if direction.get("oddsRangeType") == "REGULAR" else False,
                     optional_stats=OptionalStatInformation(
                         odds_type="Standard" if direction.get("oddsRangeType") == "REGULAR" else "Spicy",
+                        internal_id=direction.get("id")
                     ),
                 )
                 for direction in raw_data.get("gameGroupSelections", [])
@@ -86,6 +88,25 @@ class FanDuelPicks(DFSBookBase):
             headers.update({
                 "Cookie": f"X-Auth-Token={auth_token}"
             })
+
+            # MULTIPLIER ENDPOINT
+
+            # id_list = [
+            #     "019a6998-a9e1-7c39-9dec-21b481810eeb", "019a6865-3586-7551-8b2d-e7955ad9ac88", "019a6865-3586-7650-b111-2036a8029860",
+            # ]
+            #
+            # data = await self.api_caller(
+            #     session=session,
+            #     url=self.book_data.url.get("multi"),
+            #     method=self.book_data.method,
+            #     headers=headers,
+            #     params={
+            #         'lineup': json.dumps(id_list),
+            #         '_data': 'routes/api+/bonus-multiplier'
+            #     }
+            # )
+            #
+            # print(data)
 
             tasks = [
                 self.api_caller(
@@ -137,6 +158,7 @@ class FanDuelPicks(DFSBookBase):
                 }
                 for game, resp in zip(game_ids, results)
             ]
+
 
             player_data_list = {}
 
