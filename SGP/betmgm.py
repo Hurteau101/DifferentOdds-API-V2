@@ -23,6 +23,9 @@ class BetMGM_SGP(SGPBookBase):
                 return None
 
             payload = self._create_payload(mapped_ids)
+            with open("betmgm_sgp_payload.json", "w") as file:
+                import json
+                json.dump(payload, file, indent=2)
 
             api_data = await self.api_caller(
                 session=session,
@@ -44,9 +47,14 @@ class BetMGM_SGP(SGPBookBase):
         # Return SGP Odds
         if not api_data.get("betBuilderPricingGroups"):
             return None
-        odds = next(iter(api_data["betBuilderPricingGroups"].values())).get("odds")
 
-        if not odds:
+        odds_section = next(iter(api_data["betBuilderPricingGroups"].values()))
+        if not odds_section:
+            return None
+
+        odds = odds_section.get("odds")
+
+        if not odds or odds_section.get("suspensionState") == "MarketSuspended":
             return None
 
         return {
@@ -61,11 +69,11 @@ class BetMGM_SGP(SGPBookBase):
                     "fixtureId": data.get("event_id"),
                     "gameId": int(mapped_data.get(str(-int(data.get("bet_id"))), {}).get("game_id")) if mapped_data.get(str(-int(data.get("bet_id"))), {}).get("game_id") else None,
                     "resultId": -int(data.get("bet_id")),
-                    "useLiveFallBack": False,
+                    "useLiveFallback": False,
                     "pickGroupId": mapped_data.get(str(-int(data.get("bet_id"))), {}).get("group_id"),
                 }
                 for data in self.link_data
-            ]
+            ],
         }
 
 
@@ -73,8 +81,8 @@ class BetMGM_SGP(SGPBookBase):
 
 if __name__ == "__main__":
     links = [
-        "https://sports.{state}.betmgm.com/en/sports/events/18037345?options=18037345-1353346646--467397931&type=Single",
-        "https://sports.{state}.betmgm.com/en/sports/events/18037345?options=18037345-1353346662--467397900&type=Single",
+        "https://sports.{state}.betmgm.com/en/sports/events/17551735?options=17551735-1404218998--334805640&type=Single",
+        "https://sports.{state}.betmgm.com/en/sports/events/17551735?options=17551735-1402835870--338381680&type=Single",
     ]
 
 
