@@ -201,7 +201,8 @@ DFS_PROVIDERS = [
         name="fanduel_picks",
         url={
             "main_url": "https://picks.fanduel.com/lobby?sport={league}&_data=routes%2Flobby%2B%2F_route",
-            "stat_url": "https://picks.fanduel.com/api/game-group-props?gameGroupId={game_id}&marketIds=&_data=routes%2Fapi%2B%2Fgame-group-props%2B%2F_resource"
+            "stat_url": "https://picks.fanduel.com/api/game-group-props?gameGroupId={game_id}&marketIds=&_data=routes%2Fapi%2B%2Fgame-group-props%2B%2F_resource",
+            "multi": "https://picks.fanduel.com/api/bonus-multiplier"
         },
         headers={
             'Host': 'picks.fanduel.com',
