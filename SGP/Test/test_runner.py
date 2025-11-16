@@ -147,6 +147,21 @@ class SGPTest:
             for result in results
         ]
 
+
+
+        pass_to_api = [
+            {
+                "book_name": data.get("book_name"),
+                "links": [
+                    additional.get("link")
+                    for additional in data.get("additional_info", [])
+                ]
+            }
+
+            for data in test_data
+        ]
+
+
         if json_path and os.path.isdir(json_path):
             json_path = os.path.join(json_path, json_name)
         else:
@@ -163,6 +178,7 @@ class SGPTest:
         else:
             data_to_write = test_data
 
+
         message_to_display = "• Test data generated successfully. \n" \
             if test_data else ("• No valid test data generated.\n"
                                "• If FanDuel data is empty, ensure that you have a locally redis running to store the "
@@ -174,6 +190,9 @@ class SGPTest:
 
         with open(json_path, "w") as file:
             json.dump(data_to_write, file, indent=indent)
+
+        with open("sgp.json", "w") as file:
+            json.dump(pass_to_api, file, indent=indent)
 
 
 if __name__ == "__main__":
