@@ -14,6 +14,11 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+
+    task_soft_time_limit=90,
+    task_time_limit=180,
+    worker_max_tasks_per_child=50,    #
+    worker_prefetch_multiplier=1,
 )
 
 # Expose the Celery app
