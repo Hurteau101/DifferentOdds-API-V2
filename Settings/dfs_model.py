@@ -16,6 +16,7 @@ class OptionalStatInformation(TypedDict, total=False):
     betlink: Dict[str, str] # Books Using this: (PrizePicks)
     multiplier: float
     odds: Odds
+    internal_id: str # Books Using this: (Fanduel_Picks)
 
 class Discounts(TypedDict, total=False):
     discount_name : str # Books Using this: (PrizePicks, Ownerbox)
