@@ -10,7 +10,7 @@ from Settings.dfs_model import PlayerData, TeamData, Stats, OptionalStatInformat
 import asyncio
 
 class FanDuelPicks(DFSBookBase):
-    VALID_LEAGUES = ["NFL", "MLB"]
+    VALID_LEAGUES = ["NFL", "MLB", "NHL", "NBA"]
     def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="fanduel_picks")
         load_dotenv()
@@ -127,11 +127,12 @@ class FanDuelPicks(DFSBookBase):
 
             game_ids = [
                 {
-                    "league": result.get("sport"),
-                    "game_id": data.get("id")
+                    "league": data.get("shortName"),
+                    "game_id": game_groups.get("id")
                 }
                 for result in results
-                for data in result.get("gameGroupsForCompetition", [])
+                for data in result.get("competitions", [])
+                for game_groups in data.get("availableGameGroups")
             ]
 
             stat_tasks = [
