@@ -7,6 +7,7 @@ from Mapper.static_mapper import STAT_TYPES, LEAGUES
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, Discounts
 
+#### HAVE TO GET ALL MARKET_TYPES OR ALL PLAYERS WON'T SHOW UP ####
 
 class Ownerbox(DFSBookBase):
     def __init__(self):
@@ -65,13 +66,15 @@ class Ownerbox(DFSBookBase):
 
     async def run_book(self):
         links = self._generate_urls()
+        print(links)
+
         async with aiohttp.ClientSession() as session:
-            auth_token = await self.redis.get_auth_token("ownerbox_auth_token")
-            await self.redis.close()
+            # auth_token = await self.redis.get_auth_token("ownerbox_auth_token")
+            # await self.redis.close()
 
             headers = {
                 **self.book_data.headers,
-                'Cookie': f'obauth={auth_token}'
+                # 'Cookie': f'obauth={auth_token}'
             }
 
             tasks = [
@@ -85,19 +88,28 @@ class Ownerbox(DFSBookBase):
             ]
 
             results = await asyncio.gather(*tasks)
+            sportsbook_data = [
+                market
+                for result in results
+                for market in result.get("markets", [])
+                if market
+            ]
 
-            sportsbook_data = self.check_api_response(sportsbook="ownerbox", results=results)
-            if not sportsbook_data:
-                return
+            # sportsbook_data = self.check_api_response(sportsbook="ownerbox", results=results)
 
-            merged_data = [item for res in sportsbook_data if res for item in res.get("data", [])]
-
-            if not merged_data:
-                self._api_call_log(sportsbook="ownerbox", error_details="No data found in API responses")
-                return
+            # print(sportsbook_data)
+            #
+            # if not sportsbook_data:
+            #     return
+            #
+            # merged_data = [item for res in sportsbook_data if res for item in res.get("data", [])]
+            #
+            # if not merged_data:
+            #     self._api_call_log(sportsbook="ownerbox", error_details="No data found in API responses")
+            #     return
 
             player_data_list = {}
-            for game_details in merged_data:
+            for game_details in sportsbook_data:
                 player_data = self._extract_game_data(game_details)
                 if player_data:
                     player_key = (
@@ -113,7 +125,9 @@ class Ownerbox(DFSBookBase):
                         player_data_list[player_key] = player_data
 
             ownerbox_data = list(player_data_list.values())
-            return await self._database_mapper(ownerbox_data)
+            serialize = self.serialize_data(ownerbox_data)
+            self.create_json(serialize, "ownerbox.json")
+            # return await self._database_mapper(ownerbox_data)
 
 if __name__ == "__main__":
     ob = Ownerbox()

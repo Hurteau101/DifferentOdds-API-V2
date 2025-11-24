@@ -118,7 +118,9 @@ DFS_PROVIDERS = [
         title="Ownerbox",
         name="ownerbox",
         url={
-            "main_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}",
+            "main_url": "https://app.ownersbox.com/api/v1/markets?sport={league}",
+            # "main_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}",
+            "test_url": "https://app.ownersbox.com/api/v1/markets?sport=NHL" # PROVIDED THIS ENDPOINT
         },
         headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
