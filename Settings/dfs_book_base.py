@@ -4,7 +4,8 @@ from Settings.book_base import BookBase
 from Settings.sportsbook_config import SportsbookConfig
 import os
 from  Settings.dfs_model import PlayerData
-from Mapper.mapping_database import Mapper
+# from Mapper.mapping_database import Mapper
+from Mapper.mapper import Mapper
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Settings.Mixin.mixins import ApiResponseMixin
 

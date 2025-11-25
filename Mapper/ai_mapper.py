@@ -1,177 +1,17 @@
 import asyncio
 import inspect
 import json
-import multiprocessing
-from concurrent.futures import ThreadPoolExecutor
-import textdistance
-from Settings.logger import FileLogger
-from dotenv import load_dotenv
-from rapidfuzz import fuzz, process
-from Mapper.database import Database
-from openai import AsyncOpenAI, OpenAIError
 import os
-from collections import defaultdict
+from dotenv import load_dotenv
+from openai import AsyncOpenAI, OpenAIError
+from Mapper.database import Database
+from Settings.logger import FileLogger
 
-env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-
-ESPORT_LEAGUES = ["LOL", "CS2", "DOTA2", "VAL", "COD"]
-
-def clean(s: str):
-    return s.strip().replace('\xa0', '').replace('\u200b', '').lower()
-
-def group_teams_by_name(database_teams):
-    normalized = defaultdict(list)
-    received = defaultdict(list)
-    for team in database_teams:
-        normalized[clean(team[0])].append(team)
-        received[clean(team[1])].append(team)
-    return [normalized, received]
-
-def find_matches(args):
-    """Compare names against database and compare common names against RapidFuzz"""
-    team_data = args[0]
-    database_teams = args[1]
-
-    league_upper = team_data.get('league').upper()
-    received_name = team_data.get('team_name').lower()
-    sportsbook = team_data.get('sportsbook', None)
-    SOURCE = "RapidFuzz"
-
-    # Group teams by normalized and received names
-    name_sources = group_teams_by_name(database_teams)
-
-    for name_dict in name_sources:
-        if received_name in name_dict:
-            matched_teams = name_dict[received_name]
-            for matched_team in matched_teams:
-
-                # Check if the league matches or base league.
-                base_league = matched_team[4].split(",") if matched_team[4] else []
-                if matched_team[3].upper() != league_upper and league_upper not in base_league:
-                    continue
-
-                return {
-                    "found": True,
-                    "team_name": matched_team[0],
-                    "league": matched_team[3].upper() if matched_team[3] and matched_team[3] not in ESPORT_LEAGUES else league_upper,
-                    "original_league": league_upper,
-                    "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                    "original_name": received_name,
-                    "update_db": False,
-                    "source": SOURCE,
-                    "sportsbook": sportsbook
-                }
-
-    # Match against normalized and received names first
-    for name_dict in name_sources:
-        match = process.extractOne(received_name.lower(), name_dict.keys(), scorer=fuzz.ratio, score_cutoff=90)
-        if match:
-            matched_str, score, _ = match
-            if 95 <= score <= 100:
-                matched_teams = name_dict[matched_str]
-                for matched_team in matched_teams:
-                    base_league = matched_team[4].split(",") if matched_team[4] else []
-
-
-                    # Check if the league matches or base league.
-                    if matched_team[3].upper() != league_upper and league_upper not in base_league:
-                        continue
-
-                    return {
-                        "found": True,
-                        "team_name": matched_team[0],
-                        "league": matched_team[3].upper() if matched_team[3] and matched_team[3] not in ESPORT_LEAGUES else league_upper,
-                        "original_league": league_upper,
-                        "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                        "original_name": received_name,
-                        "update_db": True,
-                        "source": SOURCE,
-                        "sportsbook": sportsbook
-                    }
-
-
-    other_model = textdistance_match(
-        received_name=received_name,
-        name_sources=name_sources,
-        league_upper=league_upper,
-        sportsbook=sportsbook,
-    )
-
-    if other_model.get("found"):
-        return other_model
-
-    return {
-        "found": False,
-        "team_name": received_name,
-        "league": league_upper,
-        "solo_game": team_data.get("solo_game"),
-        "update_db": False,
-        "source": SOURCE,
-        "sportsbook": sportsbook
-    }
-
-
-def textdistance_match(received_name, name_sources, league_upper, sportsbook):
-    """Use textdistance library for matching using various algorithms"""
-    SOURCE = "RapidFuzz"
-
-    for name_dict in name_sources:
-        for team_name in name_dict.keys():
-            score = textdistance.cosine.similarity(received_name.lower(), team_name)
-            if score > 0.95:
-                matched_teams = name_dict[team_name]
-                for matched_team in matched_teams:
-
-                    # Check if the league matches or base league.
-                    base_league = matched_team[4].split(",") if matched_team[4] else []
-
-                    if matched_team[3].upper() != league_upper and league_upper not in base_league:
-                        continue
-
-                    return {
-                        "found": True,
-                        "team_name": matched_team[0],
-                        "league": matched_team[3].upper() if matched_team[3] and matched_team[3] not in ESPORT_LEAGUES else league_upper,
-                        "original_league": league_upper,
-                        "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                        "original_name": received_name,
-                        "update_db": True,
-                        "source": SOURCE,
-                        "sportsbook": sportsbook
-                    }
-
-            score = textdistance.jaro_winkler.similarity(received_name.lower(), team_name)
-            if score > 0.95:
-                matched_teams = name_dict[team_name]
-                for matched_team in matched_teams:
-
-                    # Check if the league matches or base league.
-                    base_league = matched_team[4].split(",") if matched_team[4] else []
-
-                    if matched_team[3].upper() != league_upper and league_upper not in base_league:
-                        continue
-
-                    return {
-                        "found": True,
-                        "team_name": matched_team[0],
-                        "league": matched_team[3].upper() if matched_team[3] and matched_team[3] not in ESPORT_LEAGUES else league_upper,
-                        "original_league": league_upper,
-                        "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                        "original_name": received_name,
-                        "update_db": True,
-                        "source": SOURCE,
-                        "sportsbook": sportsbook
-                    }
-
-    return {"found": False}
-
-
-class Mapper:
+class AIMapper:
     def __init__(self):
-        load_dotenv(dotenv_path=env_path)
-        self.db = Database()
-        # self.database_teams = self.db.load_teams()
+        load_dotenv()
         self.client = AsyncOpenAI(api_key=os.getenv("OPEN_AI_KEY"))
+        self.db = Database()
         self.file_logger = FileLogger()
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -183,64 +23,65 @@ class Mapper:
         log_path = os.path.join(log_folder, "OpenAI.log")
 
         self.file_logger.set_log_file(log_path)
-        caller_file_full = inspect.stack()[2].filename  # Path of the caller.
-        self.caller_file_name = os.path.basename(caller_file_full) # File name of the caller
 
+    async def run_open_ai(self):
+        # existing = await self.db.get_verification_name_leagues()
+        # ai_teams = await self.db.get_ai_teams()
+        #
+        # ## LOOK INTO
+        # teams_for_ai = [
+        #     row for row in ai_teams
+        #     if (row["team_name"].lower(), row["league"].upper()) not in existing
+        # ]
+        #
+        # if not teams_for_ai:
+        #     return
 
-    async def controller(self, team_data):
-        await self.db.engine.dispose()
-        # database_teams = await self.db.load_teams()
-        database_teams = await self.db.reload_teams()
-        database_teams = [tuple(row) for row in database_teams]
+        existing_map = await self.db.get_verification_league_map()
+        ai_teams = await self.db.get_ai_teams()
 
-        if not database_teams:
-            return []
+        teams_for_ai = []
+        for row in ai_teams:
+            name = row["team_name"].lower()
+            league = row["league"].upper()
 
-        # Run in parallel to find all exact or close matches using RapidFuzz
-        args = [(data, database_teams) for data in team_data]
-        loop = asyncio.get_running_loop()
+            if name not in existing_map:
+                teams_for_ai.append(row)
+                continue
 
-        with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-            results = await loop.run_in_executor(
-                None,
-                lambda: list(executor.map(find_matches, args))
+            seen = existing_map[name]
+
+            if league in seen:
+                continue
+
+            teams_for_ai.append(row)
+
+        tasks = [
+            self.fetch_response(
+                prompt=self._extract_prompt(prompt),
+                prompt_data=prompt
             )
-
-
-        teams_to_return = [result for result in results if result.get("found")] # Return these teams for mapping.
-
-        teams_to_update  = [team for team in teams_to_return if team.get("update_db")] # Update DB with these teams.
-
-
-        # # Bulk update the database with any 'close' RapidFuzz matches.
-        if teams_to_update :
-            await self.db.bulk_update_verification_table(teams_to_update )
-
-        existing_names = await self.db.get_all_received_names()
-
-        if not existing_names:
-            return []
-
-        teams_to_pass_to_ai = [
-            result for result in results
-            if result
-               and not result.get("found")
-               and any(result.values())
-               and result.get('team_name').lower() not in existing_names
+            for prompt in teams_for_ai
         ]
 
-        if teams_to_pass_to_ai:
-            print(f"Passing {len(teams_to_pass_to_ai)} to AI")
-            team = await self.run_open_ai(teams_to_pass_to_ai)
-            if team:
-                teams_to_return.extend(team)
+        try:
+            await asyncio.gather(*tasks)
 
-        # List of teams to return to map back to the original data.
-        return teams_to_return
+            processed_pairs = {
+                (row["team_name"].lower(), row["league"].upper())
+                for row in teams_for_ai
+            }
+
+            # await self.db.delete_ai_rows(processed_pairs)
+
+        except OpenAIError as e:
+            self.file_logger.log(
+                message=f"{e}",
+                level="ERROR"
+            )
 
     async def fetch_response(self, prompt, prompt_data):
         from Settings.dfs_book_base import DFSBookBase
-
         print(f"Running AI {prompt_data.get('team_name')} | {prompt_data.get('league')}")
 
         #### THESE ARE WAY MORE EXPENSIVE SO COMMENTED OUT TO TEST OTHER MODELS.
@@ -339,31 +180,6 @@ class Mapper:
 
             return None
 
-
-
-    async def run_open_ai(self, prompt_data):
-        # Run this Async, to speed up the process.
-        tasks = [
-            self.fetch_response(
-                prompt=self._extract_prompt(prompt),
-                prompt_data=prompt
-            )
-            for prompt in prompt_data
-        ]
-
-        try:
-            results = await asyncio.gather(*tasks)
-            results = [result for result in results if result and any(result.values())]
-            return results
-
-        except OpenAIError as e:
-            self.file_logger.log(
-                message=f"{e}",
-                file=self.caller_file_name,
-                level="ERROR"
-            )
-
-
     def _extract_prompt(self, prompt):
         # Open AI prompts. Using different prompts based on a solo or team game.
         if "/" in prompt.get("team_name"):
@@ -418,5 +234,6 @@ class Mapper:
             )
 
 
-
-
+if __name__ == "__main__":
+    ai_mapper = AIMapper()
+    asyncio.run(ai_mapper.run_open_ai())

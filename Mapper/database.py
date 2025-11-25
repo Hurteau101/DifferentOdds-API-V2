@@ -111,6 +111,14 @@ class Database:
           original_league TEXT NOT NULL,
           created_date    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS AI_Table
+        (
+          id SERIAL PRIMARY KEY,
+          team_name      TEXT NOT NULL,
+          league          TEXT NOT NULL,
+          solo_game     BOOLEAN DEFAULT FALSE,
+          sportsbook      TEXT NOT NULL
+        );
         """
         await self._exec(sql)
 
@@ -123,17 +131,8 @@ class Database:
             )
             return result.fetchall()
 
-    async def get_all_received_names(self):
-        sql = """
-            SELECT received_name FROM verification_table
-        """
-        results = await self._exec(sql, fetch=True)
-        return set(row[0].lower() for row in results)
 
-    async def get_verification_received_names(self):
-        sql = "SELECT received_name FROM verification_table"
-        results = await self._exec(sql, fetch=True)
-        return set(row[0].lower() for row in results)
+    ###################### GET DATA #########################
 
     async def get_all_received_names_and_leagues(self):
         sql = """
@@ -143,6 +142,52 @@ class Database:
         """
         results = await self._exec(sql, fetch=True)
         return set((row[0].lower(), row[1].upper()) for row in results)
+
+    async def get_ai_existing_names_and_leagues(self):
+        sql = """
+            SELECT team_name, league
+            FROM ai_table
+        """
+        results = await self._exec(sql, fetch=True)
+        return set((row[0].lower(), row[1].upper()) for row in results)
+
+    async def get_verification_league_map(self):
+        sql = "SELECT received_name, league, original_league FROM verification_table"
+        rows = await self._exec(sql, fetch=True)
+
+        mapping = {}
+        for name, league, orig in rows:
+            name = name.lower()
+            if name not in mapping:
+                mapping[name] = set()
+
+            mapping[name].add(league.upper())
+            mapping[name].add(orig.upper())
+
+        return mapping
+
+
+    async def get_verification_name_leagues(self):
+        sql = "SELECT received_name, league FROM verification_table"
+        results = await self._exec(sql, fetch=True)
+        return set((row[0].lower(), row[1].upper()) for row in results)
+
+    async def get_ai_teams(self):
+        sql = "SELECT team_name, league, solo_game, sportsbook FROM ai_table"
+        results = await self._exec(sql, fetch=True)
+        return [
+            {
+                "team_name": row[0],
+                "league": row[1],
+                "solo_game": row[2],
+                "sportsbook": row[3],
+            }
+            for row in results
+        ]
+
+    ######################################################
+
+    ################### UPDATE DATA ######################
 
     async def update_verification_table(
             self,
@@ -213,6 +258,102 @@ class Database:
 
         await self._exec(insert_query, rows, many=True)
 
+    async def bulk_update_ai_table(self, data):
+        if not data:
+            return
+
+        existing = await self.get_ai_existing_names_and_leagues()
+
+        rows = []
+        for row in data:
+            team_name = row.get("team_name")
+            league = row.get("league")
+
+            if not team_name or not league:
+                continue
+
+            key = (team_name.lower(), league.upper())
+            if key in existing:
+                continue
+
+            rows.append({
+                "team_name": team_name.lower(),
+                "league": league.upper(),
+                "solo_game": row.get("solo_game"),
+                "sportsbook": row.get("sportsbook"),
+            })
+
+        if not rows:
+            return
+
+        insert_query = """
+            INSERT INTO ai_table (team_name, league, solo_game, sportsbook)
+            VALUES (:team_name, :league, :solo_game, :sportsbook)
+        """
+
+        await self._exec(insert_query, rows, many=True)
+
+    #######################################################
+
+    ################### DELETE DATA ######################
+    async def delete_ai_rows(self, names_and_leagues):
+        if not names_and_leagues:
+            return
+
+        names = [n.lower() for n, _ in names_and_leagues]
+        leagues = [l.upper() for _, l in names_and_leagues]
+
+        sql = """
+            DELETE FROM ai_table
+            WHERE team_name = ANY(:names)
+            AND league = ANY(:leagues)
+        """
+
+        await self._exec(
+            sql,
+            {
+                "names": names,
+                "leagues": leagues
+            }
+        )
+
+    #########################################
+
+    # async def get_ai_name_leagues(self):
+    #     sql = "SELECT team_name, league FROM ai_table"
+    #     rows = await self._exec(sql, fetch=True)
+    #     return set((row[0].lower(), row[1].upper()) for row in rows)
+
+    # async def delete_ai_rows(self, names_and_leagues):
+    #
+    #     if not names_and_leagues:
+    #         return
+    #
+    #     sql = """
+    #         DELETE FROM ai_table
+    #         WHERE (team_name, league) IN (
+    #             SELECT UNNEST(:names), UNNEST(:leagues)
+    #         )
+    #     """
+    #
+    #     names = [n for (n, l) in names_and_leagues]
+    #     leagues = [l for (n, l) in names_and_leagues]
+    #
+    #     await self._exec(sql, {"names": names, "leagues": leagues})
+
+    # async def get_all_received_names(self):
+    #     sql = """
+    #         SELECT received_name FROM verification_table
+    #     """
+    #     results = await self._exec(sql, fetch=True)
+    #     return set(row[0].lower() for row in results)
+
+    # async def get_verification_received_names(self):
+    #     sql = "SELECT received_name FROM verification_table"
+    #     results = await self._exec(sql, fetch=True)
+    #     return set(row[0].lower() for row in results)
+
+
 if __name__ == "__main__":
     async def main(create_api_key=False, client_name=None, extract_api_keys=False):
         db = Database()
@@ -228,9 +369,6 @@ if __name__ == "__main__":
                 print(key)
 
     asyncio.run(main(extract_api_keys=True))
-
-
-
 
 
 
