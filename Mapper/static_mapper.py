@@ -71,6 +71,9 @@ LEAGUES = {
     "nbap": "NBA",
     "nba preseason": "NBA",
     "euro": "EUROLEAGUE",
+    "ncaab": "CBB",
+    "ncaam": "CBB",
+    "cbb2h": "CBB",
 
     # Football
     "cfb2h": "CFB",

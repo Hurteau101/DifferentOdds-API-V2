@@ -75,6 +75,7 @@ class AIMapper:
             await self.db.delete_ai_rows(processed_pairs)
 
         except OpenAIError as e:
+            # print(f"OpenAI Error: {e}")
             self.file_logger.log(
                 message=f"{e}",
                 level="ERROR"
