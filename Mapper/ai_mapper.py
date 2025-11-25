@@ -72,7 +72,7 @@ class AIMapper:
                 for row in teams_for_ai
             }
 
-            # await self.db.delete_ai_rows(processed_pairs)
+            await self.db.delete_ai_rows(processed_pairs)
 
         except OpenAIError as e:
             self.file_logger.log(
