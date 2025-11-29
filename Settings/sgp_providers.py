@@ -97,7 +97,8 @@ SGP_PROVIDERS = [
         },
         regex={
             "bet_id_regex": r"outcomes=([^\s]+)",
-            "event_id_regex": r"event/(\d+)?",
+            # "event_id_regex": r"event/(\d+)?",
+            "event_id_regex": r"outcomes=([^\s]+)",
         },
         headers={
             'x-api-features': '{EnableFullSGPDrivenFlow:true}'
