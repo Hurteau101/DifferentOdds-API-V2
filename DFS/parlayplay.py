@@ -193,6 +193,7 @@ class Parlayplay(DFSBookBase):
                             player_data_list[player_key] = player_data
 
             parlay_data = list(player_data_list.values())
+
             return await self._database_mapper(parlay_data)
 
 if __name__ == "__main__":
