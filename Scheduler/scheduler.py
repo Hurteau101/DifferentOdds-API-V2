@@ -132,6 +132,8 @@ async def dfs_run_book(name, cls):
         except Exception:
             pass
 
+def create_job(name, cls):
+    asyncio.create_task(dfs_run_book(name, cls))
 
 def start_scheduler():
     scheduler = AsyncIOScheduler()
@@ -142,7 +144,7 @@ def start_scheduler():
         print(f"Registering job for {book_name} to run every {interval} seconds")
 
         scheduler.add_job(
-            dfs_run_book,
+            create_job,
             trigger="interval",
             seconds=interval,
             args=[book_name, cls],
