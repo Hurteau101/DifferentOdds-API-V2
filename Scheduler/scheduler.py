@@ -92,6 +92,7 @@ DFS_Books = {
 redis_manager = RedisManager(db=0)
 
 async def dfs_run_book(name, cls):
+    print(f"Running DFS book: {name}")
     lock_key = f"dfs_lock:{name}"
     lock = redis_manager.redis_client.lock(lock_key, timeout=60)
 
