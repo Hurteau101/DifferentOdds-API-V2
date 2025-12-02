@@ -138,6 +138,8 @@ def start_scheduler():
         cls = info["class"]
         interval = info["interval"]
 
+        print(f"Registering job for {book_name} to run every {interval} seconds")
+
         scheduler.add_job(
             dfs_run_book,
             trigger="interval",
@@ -148,8 +150,8 @@ def start_scheduler():
         )
 
     async def runner():
-        scheduler.start()
         print("Async DFS Scheduler started.")
+        scheduler.start()
         await asyncio.Event().wait()
 
     asyncio.run(runner())
