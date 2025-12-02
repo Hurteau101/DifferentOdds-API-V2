@@ -147,9 +147,12 @@ def start_scheduler():
             max_instances=1,
         )
 
-    scheduler.start()
+    async def runner():
+        scheduler.start()
+        print("Async DFS Scheduler started.")
+        await asyncio.Event().wait()
 
-    asyncio.get_event_loop().run_forever()
+    asyncio.run(runner())
 
 if __name__ == "__main__":
     start_scheduler()
