@@ -1,6 +1,9 @@
 import asyncio
+import time
 from datetime import datetime, timezone
 from dataclasses import asdict
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from API.Formatters.dfs_formatter import get_formatter
 from DFS.fanduel_picks import FanDuelPicks
@@ -16,148 +19,95 @@ from DFS.parlaye import Parlaye
 from DFS.parlayplay import Parlayplay
 from DFS.sleeper import Sleeper
 from DFS.epicks import Epicks
-from DFS.splashsports import SplashSports
+# from DFS.splashsports import SplashSports  # if/when you want it
+
 from Redis.redis_manager import RedisManager
 from Settings.dfs_model import BookData
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-DFS_Books = {
-    "underdog": {
-        "class": Underdog,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "prizepicks": {
-        "class": Prizepicks,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "betr": {
-        "class": Betr,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "boom": {
-        "class": Boom,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "dabble": {
-        "class": Dabble,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "drafters": {
-        "class": Drafters,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "draftkings_6": {
-        "class": DraftKingsPickSix,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "ownerbox": {
-        "class": Ownerbox,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "parlaye": {
-        "class": Parlaye,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "parlayplay": {
-        "class": Parlayplay,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "sleeper": {
-        "class": Sleeper,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "fanduel_picks": {
-        "class": FanDuelPicks,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "epicks": {
-        "class": Epicks,
-        "interval": 45,
-        "task": "dfs",
-    }
+
+DFS_BOOKS = {
+    "underdog":      (Underdog, 45),
+    "prizepicks":    (Prizepicks, 45),
+    "betr":          (Betr, 45),
+    "boom":          (Boom, 45),
+    "dabble":        (Dabble, 45),
+    "drafters":      (Drafters, 45),
+    "draftkings_6":  (DraftKingsPickSix, 45),
+    "ownerbox":      (Ownerbox, 45),
+    "parlaye":       (Parlaye, 45),
+    "parlayplay":    (Parlayplay, 45),
+    "sleeper":       (Sleeper, 45),
+    "fanduel_picks": (FanDuelPicks, 45),
+    "epicks":        (Epicks, 45),
+    # "splashsports":  (SplashSports, 45),
+
 }
 
 redis_manager = RedisManager(db=0)
 
-async def dfs_run_book(name, cls):
-    print(f"Running DFS book: {name}")
-    lock_key = f"dfs_lock:{name}"
-    lock = redis_manager.redis_client.lock(lock_key, timeout=60)
 
-    got_lock = await lock.acquire(blocking=False)
-    if not got_lock:
-        print(f"Skipping {name}: lock already acquired")
-        return
+async def dfs_run_book(name: str, cls):
+    start = time.time()
+    print(f"[{name}] START at {datetime.now(timezone.utc).isoformat()}")
 
     try:
         book = cls()
         data = await book.run_book()
-        if data:
-            book_data = BookData(
-                last_refresh=datetime.now(timezone.utc),
-                data=data if data else [],
-            )
+        if not data:
+            print(f"[{name}] No data returned")
+            return
 
-            normalized_data = [asdict(player_data) for player_data in book_data.data]
+        book_data = BookData(
+            last_refresh=datetime.now(timezone.utc),
+            data=data,
+        )
+        normalized = [asdict(player_data) for player_data in book_data.data]
 
-            formatted = {
-                "base": {
-                    "last_refresh": datetime.now(timezone.utc).isoformat(),
-                    "data": get_formatter("base", normalized_data)
-                },
-                "game": get_formatter("game", normalized_data),
-            }
+        formatted = {
+            "base": {
+                "last_refresh": datetime.now(timezone.utc).isoformat(),
+                "data": get_formatter("base", normalized),
+            },
+            "game": get_formatter("game", normalized),
+        }
 
-            for fmt, val in formatted.items():
-                key = f"dfs:{name}:{fmt}"
-                await redis_manager.store_data(key, val, key_expiration=600)
+        for fmt, val in formatted.items():
+            key = f"dfs:{name}:{fmt}"
+            await redis_manager.store_data(key, val, key_expiration=600)
+
+        elapsed = time.time() - start
+        print(f"[{name}] DONE in {elapsed:.2f}s")
 
     except Exception as e:
-        print(f"Error running {name}: {e}")
-    finally:
-        try:
-            await lock.release()
-        except Exception:
-            pass
+        elapsed = time.time() - start
+        print(f"[{name}] ERROR after {elapsed:.2f}s: {e}")
 
-def create_job(name, cls):
-    asyncio.create_task(dfs_run_book(name, cls))
 
 def start_scheduler():
-    scheduler = AsyncIOScheduler()
-    for book_name, info in DFS_Books.items():
-        cls = info["class"]
-        interval = info["interval"]
+    async def main():
+        print("[DFS] Async per-book scheduler starting…")
 
-        print(f"Registering job for {book_name} to run every {interval} seconds")
+        scheduler = AsyncIOScheduler()
 
-        scheduler.add_job(
-            create_job,
-            trigger="interval",
-            seconds=interval,
-            args=[book_name, cls],
-            id=f"dfs_{book_name}_job",
-            max_instances=1,
-        )
+        for name, (cls, interval) in DFS_BOOKS.items():
+            scheduler.add_job(
+                dfs_run_book,
+                trigger="interval",
+                seconds=interval,
+                args=[name, cls],
+                id=f"dfs_{name}",
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=60,
+            )
+            print(f"[DFS] Registered {name} @ every {interval}s")
 
-    async def runner():
-        print("Async DFS Scheduler started.")
         scheduler.start()
+
         await asyncio.Event().wait()
 
-    asyncio.run(runner())
+    asyncio.run(main())
+
 
 if __name__ == "__main__":
     start_scheduler()
