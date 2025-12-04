@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List, Dict
+
 
 @dataclass
 class Markets:
@@ -28,7 +29,8 @@ class GameData:
     team_data: TeamData
     event_name: str
     odds: list[Markets]
+    future: bool = False
+    solo_game: bool = None
     # TESTING BELOW
     league_id: Optional[str] = None
     raw_league_name: Optional[str] = None
-

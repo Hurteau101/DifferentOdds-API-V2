@@ -5,6 +5,9 @@ import aiohttp.client
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+
+from Mapper.mapper import Mapper
+from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Settings.Mixin.mixins import ApiResponseMixin
 from Settings.book_base import BookBase
 from Settings.sportsbook_config import SportsbookConfig
@@ -15,6 +18,9 @@ class SportsbookBase(BookBase, ApiResponseMixin, ABC):
         self.book_data = SportsbookConfig.get_sportsbook_provider(sportsbook_name)
         super().__init__(request_type, log_directory=log_directory, log_name=log_name)
         load_dotenv()
+        self.mapper = Mapper()
+        self.LEAGUE_MAPPING = LEAGUES
+        self.STAT_TYPES = STAT_TYPES
 
     @staticmethod
     def parser(text_data: str, key_name: str = None, is_inner: bool = False) -> dict:
@@ -65,7 +71,6 @@ class SportsbookBase(BookBase, ApiResponseMixin, ABC):
         if params is not None:
             request_args["params"] = params
 
-
         method = method.upper()
         if method == "POST":
             request = session.post
@@ -89,8 +94,8 @@ class SportsbookBase(BookBase, ApiResponseMixin, ABC):
 
                 return json.loads(data)
 
-
-    def _pph_login(self, payload: dict, sportsbook_name: str, additional_headers: dict = None, login_key_word_check: str = None):
+    def _pph_login(self, payload: dict, sportsbook_name: str, additional_headers: dict = None,
+                   login_key_word_check: str = None):
         """
         Used for PPH sportsbooks that require login via ASP.NET forms.
         :param payload: The payload containing login credentials and any additional required fields.
@@ -111,7 +116,6 @@ class SportsbookBase(BookBase, ApiResponseMixin, ABC):
             hidden_tag = soup.find("input", {"name": name})
             return hidden_tag["value"] if hidden_tag else ""
 
-
         starter_payload = {
             "__VIEWSTATE": find_values("__VIEWSTATE"),
             "__VIEWSTATEGENERATOR": find_values("__VIEWSTATEGENERATOR"),
@@ -119,7 +123,6 @@ class SportsbookBase(BookBase, ApiResponseMixin, ABC):
         }
 
         starter_payload.update(payload)
-
 
         if additional_headers:
             self.book_data.headers.update(additional_headers)
@@ -134,3 +137,94 @@ class SportsbookBase(BookBase, ApiResponseMixin, ABC):
             return None
 
         return session.cookies.get_dict()
+
+    def _unique_teams(self, sportsbook_data: list, sportsbook):
+        team_set = set()
+        team_data = []
+
+        for data in sportsbook_data:
+            if not data.solo_game:
+                league = data.league
+                team_a = data.team_data.team_a
+                team_b = data.team_data.team_b
+
+                for team in (team_a, team_b):
+                    key = (team, league)
+                    if key not in team_set:
+                        team_set.add(key)
+                        team_data.append({
+                            "team_name": team.strip(),
+                            "league": league,
+                            "solo_game": data.solo_game,
+                            "sportsbook": sportsbook
+                        })
+
+        return team_data
+
+    # REFORMAT CODE LATER SINCE IT IS SIMILAR TO DFSBOOKBASE _database_mapper
+    async def _database_mapper(self, sportsbook_data: list):
+        sportsbook = self.__class__.__name__
+        unique_data = self._unique_teams(sportsbook_data=sportsbook_data, sportsbook=sportsbook)
+        mapped_teams = await self.mapper.controller(unique_data)
+        team_lookup = {
+            f'{team["original_name"].lower()}-{team["league"]}': team
+            for team in mapped_teams
+        }
+
+        for data in sportsbook_data:
+            if data.future:
+                continue
+
+            for side in ['team_a', 'team_b']:
+                league = data.league
+                team_name_attr = getattr(data.team_data, side)
+                if not team_name_attr:
+                    continue
+
+                team_key = f"{team_name_attr.lower()}-{league}"
+                team = team_lookup.get(team_key)
+                if team:
+                    data.league = team["league"]
+                    setattr(data.team_data, side, team["team_name"])
+                    setattr(data.team_data, f"{side}_abbreviation", team.get("abbreviation"))
+
+        return sportsbook_data
+
+
+    def formatter(self, data):
+        games = {}
+
+        for entry in data:
+            team_data = entry.team_data
+            game_key = team_data.team_key
+
+            games[game_key] = {
+                "league": entry.league,
+                "start_date": entry.start_date,
+                "teams": [
+                    {
+                        "team_a": entry.team_data.team_a,
+                        "team_a_abbreviation": entry.team_data.team_a_abbreviation,
+                        "team_b": entry.team_data.team_b,
+                        "team_b_abbreviation": entry.team_data.team_b_abbreviation,
+                    }
+                ],
+                "solo_game": entry.solo_game,
+                "future": entry.future,
+            }
+
+            for odds in entry.odds:
+                odds_data = {
+                    "market": odds.market,
+                    "american_odds": odds.american_odds,
+                    "bet_team": odds.bet_team,
+                    "bet_type": odds.bet_type,
+                    "line": odds.line,
+                    "bet_player": odds.bet_player,
+                }
+
+                games[game_key].setdefault("odds", []).append(odds_data)
+
+        return games
+
+

@@ -13,6 +13,7 @@ class AIMapper:
         self.client = AsyncOpenAI(api_key=os.getenv("OPEN_AI_KEY"))
         self.db = Database()
         self.file_logger = FileLogger()
+        self.semaphore = asyncio.Semaphore(20)
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         log_folder = os.path.join(current_dir, "Open AI Logs")
@@ -56,30 +57,66 @@ class AIMapper:
 
             teams_for_ai.append(row)
 
-        tasks = [
-            self.fetch_response(
-                prompt=self._extract_prompt(prompt),
-                prompt_data=prompt
-            )
-            for prompt in teams_for_ai
-        ]
+        BATCH_SIZE = 100
 
-        try:
-            await asyncio.gather(*tasks)
+        team_ai_counter = len(teams_for_ai)
 
-            processed_pairs = {
-                (row["team_name"].lower(), row["league"].upper())
-                for row in teams_for_ai
-            }
+        for i in range(0, len(teams_for_ai), BATCH_SIZE):
+            batch = teams_for_ai[i:i + BATCH_SIZE]
 
-            await self.db.delete_ai_rows(processed_pairs)
+            print(f"\n--- Starting batch {i // BATCH_SIZE + 1}  ({len(batch)} items) / {team_ai_counter} Teams ---\n")
+            team_ai_counter = team_ai_counter - BATCH_SIZE
 
-        except OpenAIError as e:
-            # print(f"OpenAI Error: {e}")
-            self.file_logger.log(
-                message=f"{e}",
-                level="ERROR"
-            )
+            tasks = [
+                self.fetch_response(
+                    prompt=self._extract_prompt(row),
+                    prompt_data=row
+                )
+                for row in batch
+            ]
+
+            try:
+                await asyncio.gather(*tasks)
+                processed_pairs = {
+                    (row["team_name"].lower(), row["league"].upper())
+                    for row in teams_for_ai
+                }
+
+                await self.db.delete_ai_rows(processed_pairs)
+
+            except OpenAIError as e:
+                self.file_logger.log(
+                    message=f"OpenAI error during batch {i // BATCH_SIZE + 1}: {e}",
+                    level="ERROR"
+                )
+
+                continue
+
+
+        # tasks = [
+        #     self.fetch_response(
+        #         prompt=self._extract_prompt(prompt),
+        #         prompt_data=prompt
+        #     )
+        #     for prompt in teams_for_ai[0:1]
+        # ]
+        #
+        # try:
+        #     await asyncio.gather(*tasks)
+        #
+        #     processed_pairs = {
+        #         (row["team_name"].lower(), row["league"].upper())
+        #         for row in teams_for_ai
+        #     }
+        #
+        #     await self.db.delete_ai_rows(processed_pairs)
+        #
+        # except OpenAIError as e:
+        #     # print(f"OpenAI Error: {e}")
+        #     self.file_logger.log(
+        #         message=f"{e}",
+        #         level="ERROR"
+        #     )
 
     async def fetch_response(self, prompt, prompt_data):
         from Settings.dfs_book_base import DFSBookBase
@@ -148,34 +185,37 @@ class AIMapper:
                     )
                     return None
 
-            mapped_data = {
-                "found": True,
-                "team_name": DFSBookBase.clean_and_normalize_name(normalized_data.get("full_name")),
-                "league": normalized_data.get("league", prompt_data.get('league').upper()),
-                "original_league": prompt_data.get('league').upper(),
-                "abbreviation": normalized_data.get("abbreviation"),
-                "original_name": prompt_data.get("team_name")
+            try:
+                mapped_data = {
+                    "found": True,
+                    "team_name": DFSBookBase.clean_and_normalize_name(normalized_data.get("full_name")),
+                    "league": normalized_data.get("league", prompt_data.get('league').upper()),
+                    "original_league": prompt_data.get('league').upper(),
+                    "abbreviation": normalized_data.get("abbreviation"),
+                    "original_name": prompt_data.get("team_name")
 
-            }
+                }
 
-            # Update the database with the OpenAI matches.
-            await self.db.update_verification_table(
-                normalized_name=mapped_data.get("team_name"),
-                received_name=prompt_data.get("team_name").lower(),
-                abbreviation=mapped_data.get("abbreviation").upper() if mapped_data.get("abbreviation") else None,
-                league=mapped_data.get("league").upper(),
-                original_league=prompt_data.get("league").upper(),
-                sportsbook=prompt_data.get("sportsbook", "unknown"),
-                source="OpenAI",
-            )
+                # Update the database with the OpenAI matches.
+                await self.db.update_verification_table(
+                    normalized_name=mapped_data.get("team_name"),
+                    received_name=prompt_data.get("team_name").lower(),
+                    abbreviation=mapped_data.get("abbreviation").upper() if mapped_data.get("abbreviation") else None,
+                    league=mapped_data.get("league").upper(),
+                    original_league=prompt_data.get("league").upper(),
+                    sportsbook=prompt_data.get("sportsbook", "unknown"),
+                    source="OpenAI",
+                )
 
-            return mapped_data
+                return mapped_data
+            except Exception as e:
+                print(f"Error updating verification table: {e}")
 
         except json.JSONDecodeError:
             self.file_logger.log(
                 sportsbook="N/A",
                 message=f"Could not parse JSON: {content}",
-                file=self.caller_file_name,
+                # file=self.caller_file_name,
                 level="INFO"
             )
 

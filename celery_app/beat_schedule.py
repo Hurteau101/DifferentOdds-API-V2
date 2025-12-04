@@ -11,6 +11,9 @@ for run_book_type, books in BOOKS.items():
         elif run_book_type == "exchange":
             redis_db = 1
             queue = "exchange"
+        elif run_book_type == "pph":
+            redis_db = 6
+            queue = "pph"
         else:
             continue
 

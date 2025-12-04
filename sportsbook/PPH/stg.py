@@ -336,9 +336,7 @@ class STG(SportsbookBase):
                         if extracted and hasattr(extracted, "odds") and extracted.odds:
                             game_results.append(extracted)
 
-
-            serialize = self.serialize_data(game_results)
-            self.create_json(serialize, "stg.json")
+            return await self._database_mapper(game_results)
 
 
 if __name__ == "__main__":

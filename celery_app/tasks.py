@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from API.Formatters.dfs_formatter import get_formatter
+from API.Formatters.pph_formatter import get_pph_formatter
 from DFS.fanduel_picks import FanDuelPicks
 from DFS.prizepicks import Prizepicks
 from DFS.underdog import Underdog
@@ -29,6 +30,7 @@ from Settings.Auth_Automation.fanduel_picks_auth import generate_fanduel_picks_a
 from Settings.Auth_Automation.onyx_sgp_auth import generate_onyx_auth_token
 from Settings.Auth_Automation.ownerbox_auth import generate_ownerbox_auth_token
 from Settings.dfs_model import BookData
+from sportsbook.PPH.stg import STG
 
 logger = get_task_logger(__name__)
 
@@ -114,9 +116,19 @@ DFS_Books = {
 #     }
 # }
 
+
+PPH_BOOKES = {
+    "stg": {
+        "class": STG,
+        "interval": 60,
+        "task": "pph",
+    },
+}
+
 BOOKS = {
     "dfs": DFS_Books,
     "exchange": {},
+    "pph": {},
 }
 
 @shared_task(ignore_result=True)
@@ -191,12 +203,26 @@ def run_book(name, redis_db, run_book_type):
 
                 normalized_data = [asdict(player_data) for player_data in book_data.data]
 
+                if run_book_type == "dfs":
+                    formatted_versions = {
+                        "base": get_formatter("base", normalized_data),
+                        "game": get_formatter("game", normalized_data),
+                    }
 
-                formatted_versions = {
-                    "base": get_formatter("base", normalized_data),
-                    "game": get_formatter("game", normalized_data),
-                }
+                elif run_book_type == "pph":
+                    formatted_versions = {
+                        "base": get_pph_formatter("base", normalized_data),
+                        "game": get_pph_formatter("game", normalized_data),
+                    }
+                else:
+                    logger.error(f"Unknown run_book_type: {run_book_type}")
+                    return
 
+                # formatted_versions = {
+                #     "base": get_formatter("base", normalized_data),
+                #     "game": get_formatter("game", normalized_data),
+                # }
+                #
                 for fmt, payload in formatted_versions.items():
                     key = f"{run_book_type}:{name}:{fmt}"
 
