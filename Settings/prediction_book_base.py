@@ -18,3 +18,6 @@ class ExchangeBookBase(BookBase, ABC):
         os.makedirs(log_directory, exist_ok=True)
 
         super().__init__(request_type, log_directory=log_directory, log_name=log_name)
+
+    def check_api_response(self, sportsbook: str, results: list):
+        pass

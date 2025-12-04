@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import datetime, date, timezone
 from zoneinfo import ZoneInfo
 from Settings.pph_model import GameData, TeamData, Markets
@@ -34,18 +35,6 @@ class STG(SportsbookBase):
             additional_headers=additional_headers
         )
 
-    # async def post_api_caller(self, session, url, payload, parse_data=True):
-    #     async with session.post(url, data=payload) as resp:
-    #         if resp.status != 200:
-    #             return None
-    #
-    #         raw_text = await resp.text()
-    #         if parse_data:
-    #             return STG.parser(text_data=raw_text, key_name="d", is_inner=True)
-    #
-    #         return raw_text
-
-
     @staticmethod
     def get_line(line_str: str, include_direction: bool = True):
         raw_line = line_str.split(" ")[0]
@@ -78,6 +67,33 @@ class STG(SportsbookBase):
             "american_odds": team_total_data.get("odds", {}).get("OddsValue"),
         }
 
+    def ordinal(self, n):
+        n = int(n)
+        if 10 <= n % 100 <= 20:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+        return f"{n}{suffix}"
+
+    def ordinal_map(self, period_name: str, market_name: str):
+        if not period_name:
+            return market_name
+
+        first_digit = re.search(r'\d', period_name).group()
+        first_letter = re.search(r'[A-Za-z]', period_name).group()
+
+        suffix = self.ordinal(first_digit)
+
+        mapper = {
+            "Q": "Quarter",
+            "H": "Half",
+        }
+
+        return f"{suffix} {mapper.get(first_letter.upper(), market_name)} {market_name}"
+
+
+
+
     def _extract_markets(self, game_data, league):
         # If / not in date and time = Today else format 11/16
         if game_data.get("offline") or not game_data.get("sides"):
@@ -101,15 +117,6 @@ class STG(SportsbookBase):
             team_a = game_data.get("teams").strip()
             team_b = ""
 
-        # odds_data = {
-        #     "start_date": game_date,
-        #     "league": league,
-        #     "team_a": team_a,
-        #     "team_b": team_b,
-        #     "event": f"{team_a} vs. {team_b}",
-        #     "odds": []
-        # }
-
         team_key = self._generate_key([team_a, team_b, game_date])
 
         odds_data = GameData(
@@ -126,73 +133,66 @@ class STG(SportsbookBase):
             odds=[]
         )
 
-
         for side in game_data.get("sides", []):
+
             team = side.get("name")
             if side.get("moneyline"):
                 moneyline_dict = side.get("moneyline")
+                american_odds = moneyline_dict.get("odds",{}).get("OddsValue")
+
+                if not american_odds:
+                    continue
 
                 odds_data.odds.append(Markets(
                     bet_team=team,
-                    market="Moneyline",
+                    market=self.ordinal_map(game_data.get("periodname"), "Moneyline"),
                     bet_type=None,
                     line=None,
-                    american_odds=moneyline_dict.get("odds",{}).get("OddsValue"),
+                    american_odds=american_odds
                 ))
-
-                # odds_data.get("odds").append({
-                #     "bet_team": team,
-                #     "market": "Moneyline",
-                #     "bet_type": None,
-                #     "line": None,
-                #     "american_odds": moneyline_dict.get("odds",{}).get("OddsValue"),
-                # })
 
             if side.get("spread"):
                 spread_dict = side.get("spread")
                 line, _ = STG.get_line(spread_dict.get("line"), include_direction=False)
 
+                american_odds = spread_dict.get("odds", {}).get("OddsValue")
+                if not american_odds:
+                    continue
+
                 odds_data.odds.append(Markets(
                     bet_team=team,
-                    market="Spread",
+                    market=self.ordinal_map(game_data.get("periodname"), "Spread"),
                     bet_type=None,
                     line=line,
-                    american_odds=spread_dict.get("odds",{}).get("OddsValue"),
+                    american_odds=american_odds
                 ))
-
-                # odds_data.get("odds").append({
-                #     "bet_team": team,
-                #     "market": "Spread",
-                #     "bet_type": None,
-                #     "line": line,
-                #     "american_odds": spread_dict.get("odds",{}).get("OddsValue"),
-                # })
 
             if side.get("total"):
                 total_dict = side.get("total")
                 line, direction = STG.get_line(total_dict.get("line"))
 
+                american_odds = total_dict.get("odds", {}).get("OddsValue")
+                if not american_odds:
+                    continue
+
                 odds_data.odds.append(Markets(
                     bet_team=None,
-                    market="Total",
+                    market=self.ordinal_map(game_data.get("periodname"), "Total"),
                     bet_type=direction,
                     line=line,
-                    american_odds=total_dict.get("odds", {}).get("OddsValue"),
+                    american_odds=american_odds,
                 ))
 
-                # odds_data.get("odds").append({
-                #     "bet_team": None,
-                #     "market": "Total",
-                #     "bet_type": direction,
-                #     "line": line,
-                #     "american_odds": total_dict.get("odds", {}).get("OddsValue"),
-                # })
 
             if side.get("ttunder"):
                 data = self._get_team_total(side.get("ttunder"), team)
+
+                if not data.get("american_odds"):
+                    continue
+
                 odds_data.odds.append(Markets(
                     bet_team=team,
-                    market="Team Total",
+                    market=self.ordinal_map(game_data.get("periodname"), "Team Total"),
                     bet_type=data.get("bet_type"),
                     line=data.get("line"),
                     american_odds=data.get("american_odds"),
@@ -202,9 +202,13 @@ class STG(SportsbookBase):
 
             if side.get("ttover"):
                 data = self._get_team_total(side.get("ttover"), team)
+
+                if not data.get("american_odds"):
+                    continue
+
                 odds_data.odds.append(Markets(
                     bet_team=team,
-                    market="Team Total",
+                    market=self.ordinal_map(game_data.get("periodname"), "Team Total"),
                     bet_type=data.get("bet_type"),
                     line=data.get("line"),
                     american_odds=data.get("american_odds"),
@@ -328,7 +332,8 @@ class STG(SportsbookBase):
                 for game in result.get("lines", []):
                     if game:
                         extracted = self._extract_markets(game, league=league_name)
-                        if extracted:
+
+                        if extracted and hasattr(extracted, "odds") and extracted.odds:
                             game_results.append(extracted)
 
 
