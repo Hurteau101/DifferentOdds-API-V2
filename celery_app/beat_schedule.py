@@ -23,10 +23,10 @@ for run_book_type, books in BOOKS.items():
         }
 
 
-beat_schedule["refresh-auths-every-12h"] = {
+beat_schedule["refresh-auths-every-6h"] = {
     "task": "celery_app.tasks.refresh_auths",
-    "schedule": 60 * 60 * 12, # every 12 hours
-    "options": {"queue": "auths", "expires": 60 * 60 * 12 + 300}, # expires after 12h + 5m
+    "schedule": 60 * 60 * 6,  # every 6 hours
+    "options": {"queue": "auths", "expires": 60 * 60 * 6 + 300},  # expires after 6h + 5m
 }
 
 beat_schedule["map-sgp-ids-every-10m"] = {
