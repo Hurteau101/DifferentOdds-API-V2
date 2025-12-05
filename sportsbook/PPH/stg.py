@@ -11,9 +11,10 @@ from Settings.book_base import SportbookRequestType
 import json
 
 class STG(PPHBookBase):
+    VALID_LEAGUES = ["NFL", "NBA", "MLB", "NHL", "NCAA"]
+
     def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="stg")
-
 
     def _get_cookies(self):
         """Returns the cookies after logging in."""
@@ -291,6 +292,7 @@ class STG(PPHBookBase):
 
             results = await asyncio.gather(*tasks)
 
+            # Added league check due to amount of data.
             league_data = [
                 {
                     "sport_id": children.get("IdSport"),
@@ -301,8 +303,9 @@ class STG(PPHBookBase):
                 for result_list in results
                 for result in result_list
                 for children in result.get("Children", [])
-                if children
+                if children and self._format_league(result.get("Name")) in self.VALID_LEAGUES
             ]
+
 
             tasks = [
                self.api_caller(
