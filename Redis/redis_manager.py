@@ -22,6 +22,9 @@ class RedisManager:
             max_connections=max_connections
         )
 
+    def clone_with_db(self, db: int):
+        return RedisManager(db=db)
+
     async def store_auth_token(self, key_name, value, key_expiration=None):
         try:
             if key_expiration:

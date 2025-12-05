@@ -3,25 +3,47 @@ from .tasks import BOOKS
 
 beat_schedule = {}
 
+# for run_book_type, books in BOOKS.items():
+#     for book_name, book_info in books.items():
+#         if run_book_type == "dfs":
+#             redis_db = 0
+#             queue = "dfs"
+#         elif run_book_type == "exchange":
+#             redis_db = 1
+#             queue = "exchange"
+#         elif run_book_type == "pph":
+#             redis_db = 6
+#             queue = "pph"
+#         else:
+#             continue
+#
+#
+#         beat_schedule[f"run-{run_book_type}-{book_name}-every-{book_info['interval']}s"] = {
+#             "task": "celery_app.tasks.run_book",
+#             "schedule": book_info["interval"],
+#             "args": (book_name, redis_db, run_book_type),
+#             "options": {"queue": queue, "expires": book_info["interval"] * 3},
+#         }
+
 for run_book_type, books in BOOKS.items():
     for book_name, book_info in books.items():
+
         if run_book_type == "dfs":
             redis_db = 0
             queue = "dfs"
-        elif run_book_type == "exchange":
-            redis_db = 1
-            queue = "exchange"
+            task_name = "celery_app.tasks.run_book_dfs"
+
         elif run_book_type == "pph":
             redis_db = 6
             queue = "pph"
+            task_name = "celery_app.tasks.run_book_pph"
         else:
             continue
 
-
-        beat_schedule[f"run-{run_book_type}-{book_name}-every-{book_info['interval']}s"] = {
-            "task": "celery_app.tasks.run_book",
+        beat_schedule[f"{run_book_type}-{book_name}-every-{book_info['interval']}s"] = {
+            "task": task_name,
             "schedule": book_info["interval"],
-            "args": (book_name, redis_db, run_book_type),
+            "args": (book_name, redis_db),
             "options": {"queue": queue, "expires": book_info["interval"] * 3},
         }
 

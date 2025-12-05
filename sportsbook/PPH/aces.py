@@ -5,7 +5,7 @@ import aiohttp
 import requests
 from dotenv import load_dotenv
 
-from Settings.sportsbook_base import SportsbookBase
+from Settings.pph_base import SportsbookBase
 from Settings.book_base import SportbookRequestType
 import asyncio
 from bs4 import BeautifulSoup

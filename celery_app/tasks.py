@@ -30,6 +30,7 @@ from Settings.Auth_Automation.fanduel_picks_auth import generate_fanduel_picks_a
 from Settings.Auth_Automation.onyx_sgp_auth import generate_onyx_auth_token
 from Settings.Auth_Automation.ownerbox_auth import generate_ownerbox_auth_token
 from Settings.dfs_model import BookData
+from Settings.pph_model import BookDataPPH
 from sportsbook.PPH.stg import STG
 
 logger = get_task_logger(__name__)
@@ -128,7 +129,7 @@ PPH_BOOKES = {
 BOOKS = {
     "dfs": DFS_Books,
     "exchange": {},
-    "pph": {},
+    "pph": PPH_BOOKES,
 }
 
 @shared_task(ignore_result=True)
@@ -176,74 +177,98 @@ def map_sgp_ids():
 
     async_to_sync(_run)()
 
-@shared_task(ignore_result=True)
-def run_book(name, redis_db, run_book_type):
-    async def _run():
-        redis_manager = RedisManager(db=redis_db)
 
-        lock_key = f"{run_book_type}_lock:{name}"
-        lock = redis_manager.redis_client.lock(lock_key, timeout=60, blocking_timeout=1)
+def dfs_formatter(data):
+    book_data = BookData(
+        last_refresh=datetime.now(timezone.utc),
+        data=data,
+    )
 
-        if not await lock.acquire(blocking=False):
-            logger.info(f"Skipping {run_book_type} book {name}, already running.")
-            return
+    normalized = [asdict(p) for p in book_data.data]
 
-        try:
-            logger.info(f"Starting {run_book_type} book: {name}")
-            cls = BOOKS[run_book_type][name]["class"]
-            book = cls()
+    return {
+        "base": get_formatter("base", normalized),
+        "game": get_formatter("game", normalized),
+    }
 
-            data = await book.run_book()
 
-            if data:
-                book_data = BookData(
-                    last_refresh=datetime.now(timezone.utc),
-                    data=data if data else [],
-                )
+def pph_formatter(data):
+    book_data = BookDataPPH(
+        last_refresh=datetime.now(timezone.utc),
+        data=data,
+    )
 
-                normalized_data = [asdict(player_data) for player_data in book_data.data]
+    normalized = [asdict(p) for p in book_data.data]
 
-                if run_book_type == "dfs":
-                    formatted_versions = {
-                        "base": get_formatter("base", normalized_data),
-                        "game": get_formatter("game", normalized_data),
-                    }
+    return {
+        "base": get_pph_formatter("base", normalized),
+        "game": get_pph_formatter("game", normalized),
+    }
 
-                elif run_book_type == "pph":
-                    formatted_versions = {
-                        "base": get_pph_formatter("base", normalized_data),
-                        "game": get_pph_formatter("game", normalized_data),
+async def _shared_run_book(name, redis_db, run_book_type, formatter_func):
+    redis_manager = RedisManager(db=redis_db)
+
+    lock_key = f"{run_book_type}_lock:{name}"
+    lock = redis_manager.redis_client.lock(lock_key, timeout=60, blocking_timeout=1)
+
+    if not await lock.acquire(blocking=False):
+        logger.info(f"Skipping {run_book_type} book {name}, already running.")
+        return
+
+    try:
+        logger.info(f"Starting {run_book_type} book: {name}")
+        cls = BOOKS[run_book_type][name]["class"]
+        book = cls()
+
+        data = await book.run_book()
+
+        if data:
+            # book_data = BookData(
+            #     last_refresh=datetime.now(timezone.utc),
+            #     data=data if data else [],
+            # )
+
+            # normalized_data = [asdict(player_data) for player_data in book_data.data]
+
+            # formatted_versions = {
+            #     "base": get_formatter("base", normalized_data),
+            #     "game": get_formatter("game", normalized_data),
+            # }
+            #
+
+            formatted_output = formatter_func(data)
+
+            for fmt, payload in formatted_output.items():
+                key = f"{run_book_type}:{name}:{fmt}"
+
+                if fmt == "base":
+                    wrapped_payload = {
+                        "last_refresh": datetime.now(timezone.utc).isoformat(),
+                        "data": payload
                     }
                 else:
-                    logger.error(f"Unknown run_book_type: {run_book_type}")
-                    return
+                    wrapped_payload = payload
 
-                # formatted_versions = {
-                #     "base": get_formatter("base", normalized_data),
-                #     "game": get_formatter("game", normalized_data),
-                # }
-                #
-                for fmt, payload in formatted_versions.items():
-                    key = f"{run_book_type}:{name}:{fmt}"
+                await redis_manager.store_data(key, wrapped_payload, key_expiration=600)
+                logger.info(f"Stored formatted {fmt.upper()} data for {name}")
 
-                    if fmt == "base":
-                        wrapped_payload = {
-                            "last_refresh": datetime.now(timezone.utc).isoformat(),
-                            "data": payload
-                        }
-                    else:
-                        wrapped_payload = payload
-
-                    await redis_manager.store_data(key, wrapped_payload, key_expiration=600)
-                    logger.info(f"Stored formatted {fmt.upper()} data for {name}")
-
-            logger.info(f"Finished {run_book_type} book: {name}")
+        logger.info(f"Finished {run_book_type} book: {name}")
+    except Exception as e:
+        logger.error(f"Error in {run_book_type} book {name}: {e}", exc_info=True)
+    finally:
+        try:
+            await lock.release()
         except Exception as e:
-            logger.error(f"Error in {run_book_type} book {name}: {e}", exc_info=True)
-        finally:
-            try:
-                await lock.release()
-            except Exception as e:
-                logger.error(f"Error releasing lock for {run_book_type} book {name}: {e}")
+            logger.error(f"Error releasing lock for {run_book_type} book {name}: {e}")
 
-    async_to_sync(_run)()
+    # async_to_sync(_run)()
+
+
+@shared_task(ignore_result=True)
+def run_book_dfs(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter)
+
+
+@shared_task(ignore_result=True)
+def run_book_pph(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter)

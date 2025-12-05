@@ -13,9 +13,9 @@ from Settings.book_base import BookBase
 from Settings.sportsbook_config import SportsbookConfig
 
 
-class SportsbookBase(BookBase, ApiResponseMixin, ABC):
+class PPHBookBase(BookBase, ApiResponseMixin, ABC):
     def __init__(self, request_type, sportsbook_name: str, log_directory="Sportsbook Logs", log_name=None):
-        self.book_data = SportsbookConfig.get_sportsbook_provider(sportsbook_name)
+        self.book_data = SportsbookConfig.get_pph_provider(sportsbook_name)
         super().__init__(request_type, log_directory=log_directory, log_name=log_name)
         load_dotenv()
         self.mapper = Mapper()

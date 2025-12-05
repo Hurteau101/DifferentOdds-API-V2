@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 @dataclass
-class SportsbookProvider:
+class PPHProvider:
     title: str
     name: str
     url: dict
@@ -15,7 +15,7 @@ class SportsbookProvider:
     active: Optional[bool] = False
 
 
-SPORTSBOOK_PROVIDERS = [
+PPH_PROVIDERS = [
     # SportsbookProvider(
     #     title="Ace Sportsbook",
     #     name="aces",
@@ -33,7 +33,7 @@ SPORTSBOOK_PROVIDERS = [
     #     method="GET",
     #     active=True
     # ),
-    SportsbookProvider(
+    PPHProvider(
         title="STG",
         name="stg",
         url={
@@ -53,29 +53,29 @@ SPORTSBOOK_PROVIDERS = [
         active=True
 
     ),
-    SportsbookProvider(
-        title="1BV",
-        name="1bv",
-        url={
-            "login_url": "https://everygame247.com/Security/ValidateCredentials",
-            "league_list_url": "https://everygame247.com/Actions/api/Menu/GetMenu",
-            "player_token_url": "https://everygame247.com/Actions/api/Login/PlayerLogin?",
-            "game_markets": "https://everygame247.com/Actions/api/Event/GetEvent"
-
-        },
-        headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': 'https://everygame247.com',
-            'Connection': 'keep-alive',
-            "appToken": os.getenv("BETVEGAS_APP_TOKEN")
-        },
-        method="POST",
-        active=True
-
-    )
+    # PPHProvider(
+    #     title="1BV",
+    #     name="1bv",
+    #     url={
+    #         "login_url": "https://everygame247.com/Security/ValidateCredentials",
+    #         "league_list_url": "https://everygame247.com/Actions/api/Menu/GetMenu",
+    #         "player_token_url": "https://everygame247.com/Actions/api/Login/PlayerLogin?",
+    #         "game_markets": "https://everygame247.com/Actions/api/Event/GetEvent"
+    #
+    #     },
+    #     headers={
+    #         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0',
+    #         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    #         'Accept-Language': 'en-US,en;q=0.5',
+    #         'Accept-Encoding': 'gzip, deflate, br, zstd',
+    #         'Content-Type': 'application/x-www-form-urlencoded',
+    #         'Origin': 'https://everygame247.com',
+    #         'Connection': 'keep-alive',
+    #         "appToken": os.getenv("BETVEGAS_APP_TOKEN")
+    #     },
+    #     method="POST",
+    #     active=False
+    #
+    # )
 
 ]

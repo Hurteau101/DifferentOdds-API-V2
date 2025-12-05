@@ -6,11 +6,11 @@ from zoneinfo import ZoneInfo
 from Settings.pph_model import GameData, TeamData, Markets
 import aiohttp
 import asyncio
-from Settings.sportsbook_base import SportsbookBase
+from Settings.pph_base import PPHBookBase
 from Settings.book_base import SportbookRequestType
 import json
 
-class STG(SportsbookBase):
+class STG(PPHBookBase):
     def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="stg")
 

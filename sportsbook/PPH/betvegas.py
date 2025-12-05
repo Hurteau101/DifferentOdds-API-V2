@@ -6,7 +6,7 @@ import aiohttp
 import requests
 from Settings.book_base import SportbookRequestType
 from Settings.pph_model import GameData, TeamData, Markets
-from Settings.sportsbook_base import SportsbookBase
+from Settings.pph_base import SportsbookBase
 from sportsbook.PPH.pph_mapper import BETVEGAS_LEAGUE_MAPPER
 
 class BetVegas(SportsbookBase):

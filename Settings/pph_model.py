@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional, List, Dict
+
+from pydantic import BaseModel
 
 
 @dataclass
@@ -34,3 +37,8 @@ class GameData:
     # TESTING BELOW
     league_id: Optional[str] = None
     raw_league_name: Optional[str] = None
+
+
+class BookDataPPH(BaseModel):
+    last_refresh: str | datetime | int
+    data: list[GameData]
