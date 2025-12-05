@@ -54,10 +54,6 @@ class Mapper:
         source = "RapidFuzz"
 
         redis_key = f"team_map:{league_upper}:{received_name}"
-        redis_cached = self.redis.get(redis_key)
-
-        if redis_cached:
-            return orjson.loads(redis_cached)
 
         # Only grab leagues that match.
         name_sources = league_index.get(league_upper)
@@ -95,7 +91,6 @@ class Mapper:
                     "sportsbook": sportsbook,
                 }
 
-                self.redis.set(redis_key, orjson.dumps(result), ex=86400)
                 return result
 
 
@@ -130,8 +125,11 @@ class Mapper:
                         "sportsbook": sportsbook,
                     }
 
-                    self.redis.set(redis_key, orjson.dumps(result), ex=86400)
                     return result
+
+        cached_miss = self.redis.get(redis_key)
+        if cached_miss:
+            return orjson.loads(cached_miss)
 
         # No Match Found
         result = {
@@ -167,7 +165,8 @@ class Mapper:
         )
 
         teams_to_return = [result for result in results if result.get("found")] # Return these teams for mapping.
-        teams_to_update  = [team for team in teams_to_return if team.get("update_db")] # Update DB with these teams.
+        teams_to_update = [team for team in teams_to_return if team.get("update_db")] # Update DB with these teams.
+
 
         # # Bulk update the database with any 'close' RapidFuzz matches.
         if teams_to_update :
