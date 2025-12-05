@@ -270,7 +270,7 @@ async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeou
     time_limit=300
 )
 def run_book_dfs(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter, timeout=180, blocking_timeout=3)
+    async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter, timeout=180, blocking_timeout=30)
 
 
 # @shared_task(ignore_result=True)
