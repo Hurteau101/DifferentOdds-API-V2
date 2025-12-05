@@ -269,6 +269,14 @@ def run_book_dfs(name, redis_db):
     async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter)
 
 
-@shared_task(ignore_result=True)
+# @shared_task(ignore_result=True)
+# def run_book_pph(name, redis_db):
+#     async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter)
+
+@shared_task(
+    ignore_result=True,
+    soft_time_limit=180,
+    time_limit=300
+)
 def run_book_pph(name, redis_db):
     async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter)
