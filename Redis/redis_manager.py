@@ -1,4 +1,5 @@
 import redis.asyncio as redis
+import redis as redis_sync
 from orjson import orjson
 from redis.exceptions import LockError, RedisError
 import logging
@@ -82,6 +83,7 @@ class RedisManager:
         except (LockError, RedisError) as e:
             logging.error(f"Redis error storing {key_name}: {e}")
 
+
     async def close(self):
         """Close the Redis connection."""
         await self.redis_client.close()
@@ -93,3 +95,18 @@ class RedisManager:
             return
         except (LockError, RedisError) as e:
             return
+
+class RedisSync:
+    def __init__(self, db=3, host="localhost", port=6379):
+        self.client = redis_sync.Redis(
+            host=host,
+            port=port,
+            db=db,
+            decode_responses=False
+        )
+
+    def get(self, key):
+        return self.client.get(key)
+
+    def set(self, key, value, ex=None):
+        return self.client.set(key, value, ex=ex)

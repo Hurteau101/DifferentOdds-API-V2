@@ -1,170 +1,151 @@
 import asyncio
 import os
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from orjson import orjson
 from Mapper.database import Database
 from rapidfuzz import fuzz, process
-import textdistance
-from concurrent.futures import ThreadPoolExecutor
-from Mapper.ai_mapper import AIMapper
+from Redis.redis_manager import RedisSync
 
 executor = ThreadPoolExecutor(max_workers=os.cpu_count())
-
-ESPORT_LEAGUES = ["LOL", "CS2", "DOTA2", "VAL", "COD"]
-
 
 class Mapper:
     def __init__(self):
         self.db = Database()
+        self.redis = RedisSync(db=3)
 
     def clean(self, s: str):
         return s.strip().replace('\xa0', '').replace('\u200b', '').lower()
 
+    def mapper_process_worker(self, find_fn, args_list):
+        return [find_fn(arg) for arg in args_list]
+
     def group_teams_by_name(self, database_teams):
-        normalized = defaultdict(list)
-        received = defaultdict(list)
+        """
+        Produces:
+        {
+            "NBA": (normalized_dict, received_dict),
+            "NFL": (normalized_dict, received_dict)
+        }
+        """
+        league_map = defaultdict(lambda: [defaultdict(list), defaultdict(list)])
+
         for team in database_teams:
-            normalized[self.clean(team[0])].append(team)
-            received[self.clean(team[1])].append(team)
-        return [normalized, received]
+            # team = (team_name, received_name, abbr, league, base_leagues)
+            league = (team[3] or "").upper()
+
+            # Normalized = Verified Name from DB
+            # Received = Name as received from Sportsbook
+            normalized_dict, received_dict = league_map[league]
+            normalized_dict[self.clean(team[0])].append(team)
+            received_dict[self.clean(team[1])].append(team)
+
+        return league_map
+
 
     def find_matches(self, args):
         """Compare names against database and compare common names against RapidFuzz"""
-        team_data = args[0]
-        database_teams = args[1]
+        team_data, league_index = args
 
-        league_upper = team_data.get('league').upper()
-        received_name = team_data.get('team_name').lower()
-        sportsbook = team_data.get('sportsbook', None)
-        SOURCE = "RapidFuzz"
+        league_upper = team_data.get('league', '').upper()
+        received_name_raw = team_data.get('team_name') or ''
+        received_name = received_name_raw.lower()
+        sportsbook = team_data.get("sportsbook")
+        source = "RapidFuzz"
 
-        # Group teams by normalized and received names
-        name_sources = self.group_teams_by_name(database_teams)
+        redis_key = f"team_map:{league_upper}:{received_name}"
+        redis_cached = self.redis.get(redis_key)
 
-        for name_dict in name_sources:
+        if redis_cached:
+            return orjson.loads(redis_cached)
+
+        # Only grab leagues that match.
+        name_sources = league_index.get(league_upper)
+        if not name_sources:
+            result = {
+                "found": False,
+                "team_name": received_name,
+                "league": league_upper,
+                "solo_game": team_data.get("solo_game"),
+                "update_db": False,
+                "source": source,
+                "sportsbook": sportsbook
+            }
+
+            self.redis.set(redis_key, orjson.dumps(result), ex=86400)
+            return result
+
+        normalized_dict, received_dict = name_sources
+        name_dicts = (normalized_dict, received_dict)
+
+        # Exact Match Check
+        for name_dict in name_dicts:
             if received_name in name_dict:
-                matched_teams = name_dict[received_name]
-                for matched_team in matched_teams:
+                matched_team = name_dict[received_name][0]
 
-                    # Check if the league matches or base league.
-                    base_league = matched_team[4].split(",") if matched_team[4] else []
-                    if matched_team[3].upper() != league_upper and league_upper not in base_league:
-                        continue
+                result = {
+                    "found": True,
+                    "team_name": matched_team[0],
+                    "league": matched_team[3].upper(),
+                    "original_league": league_upper,
+                    "abbreviation": matched_team[2],
+                    "original_name": received_name,
+                    "update_db": False,
+                    "source": source,
+                    "sportsbook": sportsbook,
+                }
 
-                    return {
-                        "found": True,
-                        "team_name": matched_team[0],
-                        "league": matched_team[3].upper() if matched_team[3] and matched_team[
-                            3] not in ESPORT_LEAGUES else league_upper,
-                        "original_league": league_upper,
-                        "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                        "original_name": received_name,
-                        "update_db": False,
-                        "source": SOURCE,
-                        "sportsbook": sportsbook
-                    }
+                self.redis.set(redis_key, orjson.dumps(result), ex=86400)
+                return result
 
-        # Match against normalized and received names first
-        for name_dict in name_sources:
-            match = process.extractOne(received_name.lower(), name_dict.keys(), scorer=fuzz.ratio, score_cutoff=90)
+
+        # Fuzzy Matching (Strict)
+        for name_dict in name_dicts:
+            if not name_dict:
+                continue
+
+
+            match = process.extractOne(
+                received_name,
+                name_dict.keys(),
+                scorer=fuzz.ratio,
+                score_cutoff=95,
+            )
+
             if match:
                 matched_str, score, _ = match
+
                 if 95 <= score <= 100:
-                    matched_teams = name_dict[matched_str]
-                    for matched_team in matched_teams:
-                        base_league = matched_team[4].split(",") if matched_team[4] else []
+                    matched_team = name_dict[matched_str][0]
 
-                        # Check if the league matches or base league.
-                        if matched_team[3].upper() != league_upper and league_upper not in base_league:
-                            continue
+                    result = {
+                        "found": True,
+                        "team_name": matched_team[0],
+                        "league": matched_team[3].upper(),
+                        "original_league": league_upper,
+                        "abbreviation": matched_team[2],
+                        "original_name": received_name,
+                        "update_db": True,
+                        "source": source,
+                        "sportsbook": sportsbook,
+                    }
 
-                        return {
-                            "found": True,
-                            "team_name": matched_team[0],
-                            "league": matched_team[3].upper() if matched_team[3] and matched_team[
-                                3] not in ESPORT_LEAGUES else league_upper,
-                            "original_league": league_upper,
-                            "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                            "original_name": received_name,
-                            "update_db": True,
-                            "source": SOURCE,
-                            "sportsbook": sportsbook
-                        }
+                    self.redis.set(redis_key, orjson.dumps(result), ex=86400)
+                    return result
 
-        other_model = self.textdistance_match(
-            received_name=received_name,
-            name_sources=name_sources,
-            league_upper=league_upper,
-            sportsbook=sportsbook,
-        )
-
-        if other_model.get("found"):
-            return other_model
-
-        return {
+        # No Match Found
+        result = {
             "found": False,
             "team_name": received_name,
             "league": league_upper,
             "solo_game": team_data.get("solo_game"),
             "update_db": False,
-            "source": SOURCE,
-            "sportsbook": sportsbook
+            "source": source,
+            "sportsbook": sportsbook,
         }
 
-    def textdistance_match(self, received_name, name_sources, league_upper, sportsbook):
-        """Use textdistance library for matching using various algorithms"""
-        SOURCE = "RapidFuzz"
-
-        for name_dict in name_sources:
-            for team_name in name_dict.keys():
-                score = textdistance.cosine.similarity(received_name.lower(), team_name)
-                if score > 0.95:
-                    matched_teams = name_dict[team_name]
-                    for matched_team in matched_teams:
-
-                        # Check if the league matches or base league.
-                        base_league = matched_team[4].split(",") if matched_team[4] else []
-
-                        if matched_team[3].upper() != league_upper and league_upper not in base_league:
-                            continue
-
-                        return {
-                            "found": True,
-                            "team_name": matched_team[0],
-                            "league": matched_team[3].upper() if matched_team[3] and matched_team[
-                                3] not in ESPORT_LEAGUES else league_upper,
-                            "original_league": league_upper,
-                            "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                            "original_name": received_name,
-                            "update_db": True,
-                            "source": SOURCE,
-                            "sportsbook": sportsbook
-                        }
-
-                score = textdistance.jaro_winkler.similarity(received_name.lower(), team_name)
-                if score > 0.95:
-                    matched_teams = name_dict[team_name]
-                    for matched_team in matched_teams:
-
-                        # Check if the league matches or base league.
-                        base_league = matched_team[4].split(",") if matched_team[4] else []
-
-                        if matched_team[3].upper() != league_upper and league_upper not in base_league:
-                            continue
-
-                        return {
-                            "found": True,
-                            "team_name": matched_team[0],
-                            "league": matched_team[3].upper() if matched_team[3] and matched_team[
-                                3] not in ESPORT_LEAGUES else league_upper,
-                            "original_league": league_upper,
-                            "abbreviation": matched_team[2].upper() if matched_team[2] else None,
-                            "original_name": received_name,
-                            "update_db": True,
-                            "source": SOURCE,
-                            "sportsbook": sportsbook
-                        }
-
-        return {"found": False}
+        self.redis.set(redis_key, orjson.dumps(result), ex=86400)
+        return result
 
 
     async def controller(self, team_data):
@@ -174,7 +155,9 @@ class Mapper:
         if not database_teams:
             return []
 
-        args = [(data, database_teams) for data in team_data]
+        league_index = self.group_teams_by_name(database_teams)
+
+        args = [(data, league_index) for data in team_data]
 
         loop = asyncio.get_running_loop()
 
@@ -214,17 +197,8 @@ class Mapper:
             teams_to_pass_to_ai.append(result)
 
         if teams_to_pass_to_ai:
+            # await self.redis.bulk_store_data(teams_to_pass_to_ai)
+            # print(teams_to_pass_to_ai)
             await self.db.bulk_update_ai_table(teams_to_pass_to_ai)
 
         return teams_to_return
-
-
-
-
-
-
-
-
-
-
-

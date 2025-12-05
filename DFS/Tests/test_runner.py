@@ -1,4 +1,6 @@
 import asyncio
+import time
+
 from DFS.betr import Betr
 from DFS.boom import Boom
 from DFS.dabble import Dabble
@@ -29,7 +31,7 @@ async def main():
         Dabble(),
         Drafters(),
         DraftKingsPickSix(),
-        Ownerbox(),
+        # Ownerbox(),
         Parlayplay(),
         Parlaye(),
         Prizepicks(),
@@ -47,5 +49,7 @@ async def main():
 
 
 if __name__ == "__main__":
+    start_time = time.perf_counter()
     asyncio.run(main())
-    print("All DFS books have been run successfully.")
+    end_time = time.perf_counter()
+    print(f"Total time taken: {end_time - start_time:.2f} seconds")
