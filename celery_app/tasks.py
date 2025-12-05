@@ -205,11 +205,11 @@ def pph_formatter(data):
         "game": get_pph_formatter("game", normalized),
     }
 
-async def _shared_run_book(name, redis_db, run_book_type, formatter_func):
+async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeout=60, blocking_timeout=1):
     redis_manager = RedisManager(db=redis_db)
 
     lock_key = f"{run_book_type}_lock:{name}"
-    lock = redis_manager.redis_client.lock(lock_key, timeout=60, blocking_timeout=1)
+    lock = redis_manager.redis_client.lock(lock_key, timeout=timeout, blocking_timeout=blocking_timeout)
 
     if not await lock.acquire(blocking=False):
         logger.info(f"Skipping {run_book_type} book {name}, already running.")
@@ -279,4 +279,4 @@ def run_book_dfs(name, redis_db):
     time_limit=300
 )
 def run_book_pph(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter)
+    async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter, timeout=180, blocking_timeout=5)
