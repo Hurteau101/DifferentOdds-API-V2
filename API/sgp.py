@@ -14,6 +14,7 @@ from SGP.novig import Novig_SGP
 from SGP.onyx import Onyx_SGP
 from SGP.prophet import Prophet_SGP
 from Settings.sportsbook_config import SportsbookConfig
+from Redis.redis_manager import RedisRemote
 
 BOOK_INITIALIZERS = {
     "fanduel": Fanduel_SGP,
@@ -102,3 +103,14 @@ async def get_sgp_odds(books: List[SGP]):
         # Single book, no need for concurrency
         result = await fetch_sgp_odds(books[0], single_book=True)
         return {books[0].book_name: result}
+
+
+@router.get("/auto_sgp",
+            summary="Get the Auto SGP Odds",
+            description="Fetch Auto SGP odds from all available sportsbooks.",
+            dependencies=[Depends(get_api_key)]
+            )
+async def get_auto_sgp():
+    sgp_redis = RedisRemote()
+    raw_data = sgp_redis.get_all_key_values()
+    return raw_data
