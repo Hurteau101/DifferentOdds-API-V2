@@ -1,6 +1,6 @@
 import asyncio
-from typing import List
-from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from API.setup import create_logging_setup
 from API.security import get_api_key
@@ -105,12 +105,117 @@ async def get_sgp_odds(books: List[SGP]):
         return {books[0].book_name: result}
 
 
+def filter_redis_keys():
+    redis_client = RedisRemote()
+    redis_data = redis_client.get_all_key_values()
+
+    game_details = []
+
+    for sgp in redis_data:
+        weighted_books = sgp.get("ev_results", {}).get("weighted_book_data")
+        highest_ev = max(odds.get("ev") for odds in weighted_books.values())
+        contained_books = [book for book in sgp.get("sgp_odds")]
+
+        entry = {
+            "game_key": sgp.get("redis_key"),
+            "event": sgp.get("event"),
+            "date": sgp.get("date"),
+            "league": sgp.get("league"),
+            "sgp_odds": sgp.get("sgp_odds"),
+            "sgp_links": sgp.get("sgp_links"),
+            "fair_value": sgp.get("fair_value"),
+            "individual_odds": sgp.get("individual_odds_list"),
+            "time_fetched": sgp.get("time_fetched"),
+            "highest_ev": highest_ev,
+            "book_list": contained_books,
+            "legs": []
+        }
+
+        indices = {
+            int(key.split("_")[-1])
+            for key in sgp.keys()
+            if key.startswith("stat_") and key.split("_")[-1].isdigit()
+        }
+
+        # Build each stat leg
+        for i in sorted(indices):
+            market_type = sgp.get(f"market_type_{i}")
+            if market_type == "player":
+                line = sgp.get(f"stat_type_{i}_line").split(" ")[-1].strip()
+                player_name = " ".join(sgp.get(f"stat_type_{i}_line").split(" ")[:-1]).strip()
+            elif market_type == "team":
+                line = sgp.get(f"stat_type_{i}_line").split(" ")[-1].strip()
+                player_name = None
+            else:
+                line = None
+                player_name = None
+
+            entry["legs"].append({
+                "market_type": sgp.get(f"stat_name_{i}"),
+                "line": float(line) if line else None,
+                "direction": sgp.get(f"stat_{i}_direction"),
+                "team": sgp.get(f"team_{i}"),
+                "player_name": player_name,
+            })
+
+        game_details.append(entry)
+
+    return game_details
+
+
+def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None):
+    if books:
+        if not (set(sgp["book_list"]) & set(books)):
+            return False
+
+    if min_ev is not None:
+        if sgp["highest_ev"] < min_ev:
+            return False
+
+    if leagues:
+        if sgp["league"].lower() not in leagues:
+            return False
+
+    return True
+
 @router.get("/auto_sgp",
             summary="Get the Auto SGP Odds",
             description="Fetch Auto SGP odds from all available sportsbooks.",
             dependencies=[Depends(get_api_key)]
             )
-async def get_auto_sgp():
-    sgp_redis = RedisRemote()
-    raw_data = sgp_redis.get_all_key_values()
-    return raw_data
+async def get_auto_sgp(
+        books: Optional[List[str]] = Query(
+            None, description="Optional list of books that must be included in the SGP"
+        ),
+        leagues: Optional[List[str]] = Query(
+            None, description="Optional list of leagues that must be included in the SGP"
+        ),
+        min_ev: Optional[float] = Query(
+            None, description="Optional Minimum EV required"
+        ),
+        max_results: int = Query(
+            150, description="Optional Maximum number of results to return"
+        )
+):
+    books = [book.lower() for book in books] if books else None
+    leagues = [l.lower() for l in leagues] if leagues else None
+
+    sgp_data = filter_redis_keys()
+
+    results = [
+        sgp for sgp in sgp_data
+        if sgp_matches_filters(
+            sgp,
+            books=books,
+            min_ev=min_ev,
+            leagues=leagues
+        )
+    ]
+
+    if not results:
+        raise HTTPException(status_code=404, detail="No SGP data found for the provided filters.")
+
+    return results[:max_results]
+
+
+
