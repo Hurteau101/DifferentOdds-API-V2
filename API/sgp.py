@@ -113,7 +113,16 @@ def filter_redis_keys():
 
     for sgp in redis_data:
         weighted_books = sgp.get("ev_results", {}).get("weighted_book_data")
-        highest_ev = max(odds.get("ev") for odds in weighted_books.values())
+        # highest_ev = max(odds.get("ev") for odds in weighted_books.values())
+        sorted_books = sorted(
+            weighted_books.items(),
+            key=lambda kv: kv[1].get("ev", float("-inf")),
+            reverse=True
+        )
+
+        highest_ev = sorted_books[0][1].get("ev") if sorted_books else None
+        best_book = sorted_books[0][0] if sorted_books else None
+
         contained_books = [book for book in sgp.get("sgp_odds")]
 
         entry = {
@@ -127,6 +136,8 @@ def filter_redis_keys():
             "individual_odds": sgp.get("individual_odds_list"),
             "time_fetched": sgp.get("time_fetched"),
             "highest_ev": highest_ev,
+            "best_book": best_book,
+            "ev_results": sgp.get("ev_results"),
             "book_list": contained_books,
             "legs": []
         }
@@ -165,7 +176,7 @@ def filter_redis_keys():
     return game_details
 
 
-def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None):
+def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=None):
     if books:
         if not (set(sgp["book_list"]) & set(books)):
             return False
@@ -176,6 +187,10 @@ def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None):
 
     if leagues:
         if sgp["league"].lower() not in leagues:
+            return False
+
+    if best_book:
+        if sgp["best_book"].lower() != best_book.lower():
             return False
 
     return True
@@ -197,6 +212,9 @@ async def get_auto_sgp(
         ),
         max_results: int = Query(
             150, description="Optional Maximum number of results to return"
+        ),
+        best_book: Optional[str] = Query(
+            None, description="Optional filter to only include SGPs where this book is the best book"
         )
 ):
     books = [book.lower() for book in books] if books else None
@@ -210,12 +228,13 @@ async def get_auto_sgp(
             sgp,
             books=books,
             min_ev=min_ev,
-            leagues=leagues
+            leagues=leagues,
+            best_book=best_book
         )
     ]
 
     if not results:
-        raise HTTPException(status_code=404, detail="No SGP data found for the provided filters.")
+        return []
 
     return results[:max_results]
 
