@@ -120,6 +120,11 @@ def filter_redis_keys():
             reverse=True
         )
 
+        ev_results = sgp.get("ev_results", {})
+
+        if "book_data" in ev_results:
+            del ev_results["book_data"]
+
         highest_ev = sorted_books[0][1].get("ev") if sorted_books else None
         best_book = sorted_books[0][0] if sorted_books else None
 
@@ -135,6 +140,7 @@ def filter_redis_keys():
             "fair_value": sgp.get("fair_value"),
             "individual_odds": sgp.get("individual_odds_list"),
             "time_fetched": sgp.get("time_fetched"),
+            "ev_results": ev_results,
             "highest_ev": highest_ev,
             "best_book": best_book,
             "book_list": contained_books,
