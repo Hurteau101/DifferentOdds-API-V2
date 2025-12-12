@@ -176,9 +176,21 @@ def filter_redis_keys():
     return game_details
 
 
-def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=None):
+def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=None, exclusive_books=None,
+                        min_books=None, max_ev=None):
     if books:
         if not (set(sgp["book_list"]) & set(books)):
+            return False
+
+    if exclusive_books:
+        return all(book in sgp["book_list"] for book in exclusive_books)
+
+    if min_books:
+        if len(sgp["book_list"]) <= min_books:
+            return False
+
+    if max_ev:
+        if sgp["highest_ev"] > max_ev:
             return False
 
     if min_ev is not None:
@@ -202,7 +214,7 @@ def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=No
             )
 async def get_auto_sgp(
         books: Optional[List[str]] = Query(
-            None, description="Optional list of books that must be included in the SGP"
+            None, description="Optional list of books to match (ANY): include SGPs that contain at least one of these books"
         ),
         leagues: Optional[List[str]] = Query(
             None, description="Optional list of leagues that must be included in the SGP"
@@ -215,6 +227,15 @@ async def get_auto_sgp(
         ),
         best_book: Optional[str] = Query(
             None, description="Optional filter to only include SGPs where this book is the best book"
+        ),
+        exclusive_books: Optional[List[str]] = Query(
+            None, description="Optional list of books that must all be included in the SGP"
+        ),
+        min_books: Optional[int] = Query(
+            None, description="Optional minimum number of books that must be included in the SGP"
+        ),
+        max_ev: Optional[float] = Query(
+            None, description="Optional Maximum EV allowed"
         )
 ):
     books = [book.lower() for book in books] if books else None
@@ -229,7 +250,10 @@ async def get_auto_sgp(
             books=books,
             min_ev=min_ev,
             leagues=leagues,
-            best_book=best_book
+            best_book=best_book,
+            exclusive_books=exclusive_books,
+            min_books=min_books,
+            max_ev=max_ev
         )
     ]
 
