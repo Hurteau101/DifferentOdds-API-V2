@@ -137,7 +137,6 @@ def filter_redis_keys():
             "time_fetched": sgp.get("time_fetched"),
             "highest_ev": highest_ev,
             "best_book": best_book,
-            "ev_results": sgp.get("ev_results"),
             "book_list": contained_books,
             "legs": []
         }
