@@ -183,7 +183,13 @@ def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=No
             return False
 
     if exclusive_books:
-        return all(book in sgp["book_list"] for book in exclusive_books)
+        required_books = set(exclusive_books)
+        if best_book:
+            required_books.add(best_book.lower())
+
+        if not all(book in [b.lower() for b in sgp["book_list"]] for book in required_books):
+            return False
+
 
     if min_books:
         if len(sgp["book_list"]) <= min_books:
