@@ -20,5 +20,8 @@ Settings/Auth_Automation/Logs/
 SGP/Test/SGP Logs/
 Redis/certs/ca.crt
 
+Prediction/
+SGP/caesar_test.py
+
 .idea/
 Future_Implementation/

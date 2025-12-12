@@ -160,6 +160,8 @@ def filter_redis_keys():
 
         game_details.append(entry)
 
+    game_details = sorted(game_details, key=lambda x: x['highest_ev'], reverse=True)
+
     return game_details
 
 

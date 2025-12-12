@@ -13,6 +13,7 @@ class Kalashi(ExchangeBookBase):
     # These are the sports and markets we are interested in
     SPORTS = ["KXNFLGAME", "KXNFLSPREAD", "KXMLBGAME", "KXNFLTOTAL", "KXNCAAFGAME",
               "KXNCAAFTOTAL", "KXNCAAFSPREAD", "KXNFLANYTD", "KXNFL2TD"]
+
     PLURAL_PLAYER_LINES = ["2td"] # Plural lines will have 1.5 as the line value instead of 0.5
 
     # Markets we want to process
@@ -196,18 +197,27 @@ class Kalashi(ExchangeBookBase):
             )
 
             if not api_data:
-                self._api_call_log("kalashi")
                 return None
 
             series_ticker = self._extract_sports(api_data)
             match_titles = [self._get_match_title(tick, session) for tick in series_ticker]
+
             title_results = await asyncio.gather(*match_titles)
             title_lookup = {k: v for d in title_results for k, v in d.items()}
 
+            if not title_lookup:
+                return
 
             event_results = [self._get_event_details(tick, session, title_lookup) for tick in series_ticker]
             event_details = await asyncio.gather(*event_results)
+
+            if not event_details:
+                return
+
             flatted_events = [event for sublist in event_details for event in sublist]
+
+            if not flatted_events:
+                return
 
 
 
