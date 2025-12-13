@@ -113,7 +113,8 @@ def filter_redis_keys():
 
     for sgp in redis_data:
         weighted_books = sgp.get("ev_results", {}).get("weighted_book_data")
-        # highest_ev = max(odds.get("ev") for odds in weighted_books.values())
+        book_list = [book for book in weighted_books.keys()]
+
         sorted_books = sorted(
             weighted_books.items(),
             key=lambda kv: kv[1].get("ev", float("-inf")),
@@ -123,22 +124,26 @@ def filter_redis_keys():
         highest_ev = sorted_books[0][1].get("ev") if sorted_books else None
         best_book = sorted_books[0][0] if sorted_books else None
 
-        contained_books = [book for book in sgp.get("sgp_odds")]
+        # contained_books = [book for book in sgp.get("sgp_odds")]
 
         entry = {
             "game_key": sgp.get("redis_key"),
             "event": sgp.get("event"),
             "date": sgp.get("date"),
             "league": sgp.get("league"),
-            "sgp_odds": sgp.get("sgp_odds"),
+            # "sgp_odds": sgp.get("sgp_odds"),
+            "sgp_odds": sgp.get("filtered_sgp_odds"),
+            "median_books": sgp.get("non_met_books"),
             "sgp_links": sgp.get("sgp_links"),
             "fair_value": sgp.get("fair_value"),
-            "individual_odds": sgp.get("individual_odds_list"),
+            # "individual_odds": sgp.get("individual_odds_list"),
+            "individual_odds": sgp.get("filtered_individual_odds"),
             "time_fetched": sgp.get("time_fetched"),
             "weighted_fair_value": sgp.get("ev_results", {}).get("weighted_fair_value", None),
             "highest_ev": highest_ev,
             "best_book": best_book,
-            "book_list": contained_books,
+            # "book_list": contained_books,
+            "book_list": book_list,
             "legs": []
         }
 
@@ -192,7 +197,7 @@ def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=No
 
 
     if min_books:
-        if len(sgp["book_list"]) <= min_books:
+        if len(sgp["book_list"]) < min_books:
             return False
 
     if max_ev:
@@ -263,10 +268,16 @@ async def get_auto_sgp(
         )
     ]
 
-    if not results:
+    sorted_results = sorted(
+        results,
+        key=lambda x: max(x['sgp_odds'].values()),
+        reverse=True
+    )
+
+    if not sorted_results:
         return []
 
-    return results[:max_results]
+    return sorted_results[:max_results]
 
 
 
