@@ -158,6 +158,21 @@ SGP_PROVIDERS = [
         headers={
             'Content-Type': 'application/json'
         },
+
+        method="POST",
+        active=True,
+    ),
+    SGPProvider(
+        title="The Score",
+        name="thescore",
+        url={
+            "anonymous_token_url": "https://sportsbook.ca-default.thescore.bet/graphql/persisted_queries/e8fa300a9384c89576e6bec55cf1a4fc97a3e15255571cf9f841515abfb7c382?extensions=%7B%22clientLibrary%22:%7B%22name%22:%22apollo-ios%22,%22version%22:%221.21.0%22%7D,%22persistedQuery%22:%7B%22sha256Hash%22:%22e8fa300a9384c89576e6bec55cf1a4fc97a3e15255571cf9f841515abfb7c382%22,%22version%22:1%7D%7D&operationName=Startup&variables=%7B%22connectToken%22:null,%22globalRedirect%22:false,%22isMedia%22:false,%22latLongParams%22:%7B%22accuracy%22:35,%22latitude%22:51.166784592498459,%22longitude%22:-114.14382905748789%7D,%22logoHeight%22:24,%22toolbarIconMaxHeight%22:20%7D",
+            "graph_url": "https://sportsbook.ca-default.thescore.bet/graphql",
+        },
+        headers={
+            "User-Agent": "theScore Bet/25.23.2 iPadOS/17.7.10 (iPhone; Retina, 750x1334, mobile)",
+            "x-platform": "ios",
+        },
         method="POST",
         active=True,
     )

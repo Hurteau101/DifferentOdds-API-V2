@@ -13,6 +13,7 @@ from SGP.kambi import Kambi_SGP
 from SGP.novig import Novig_SGP
 from SGP.onyx import Onyx_SGP
 from SGP.prophet import Prophet_SGP
+from SGP.thescore import Score_SGP
 from Settings.sportsbook_config import SportsbookConfig
 from Redis.redis_manager import RedisRemote
 
@@ -26,6 +27,7 @@ BOOK_INITIALIZERS = {
     "onyxodds": Onyx_SGP,
     "prophetx": Prophet_SGP,
     "novig": Novig_SGP,
+    "thescore": Score_SGP,
 }
 
 file_logger = create_logging_setup(folder_name="sgp", file_name="sgp_api.log")

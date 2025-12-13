@@ -10,9 +10,9 @@ from Settings.Mixin.mixins import ApiResponseMixin
 
 class SGPBookBase(ApiResponseMixin, BookBase, ABC):
     """Base class for SGP books, inheriting from SportsbookBase."""
-    def __init__(self, request_type, sportsbook_name: str, links, log_directory="SGP Logs", log_name=None, decode_url=False):
+    def __init__(self, request_type, sportsbook_name: str, links, log_directory="SGP Logs", log_name=None, decode_url=False, skip_link_validation=False):
         self.book_data = SportsbookConfig.get_sgp_provider(sportsbook_name)
-        self.link_data = self._extract_link_details(links, decode_url=decode_url)
+        self.link_data = self._extract_link_details(links, decode_url=decode_url, skip_link_validation=skip_link_validation)
         self.redis_db = 2
         super().__init__(request_type, log_directory=log_directory, log_name=log_name)
 
@@ -53,8 +53,11 @@ class SGPBookBase(ApiResponseMixin, BookBase, ABC):
             return await func(self)
         return wrapper
 
-    def _extract_link_details(self, links, decode_url):
+    def _extract_link_details(self, links, decode_url, skip_link_validation):
         """ Extract bet_id and event_id from the provided links."""
+        if skip_link_validation:
+            return links
+
         link_data = []
 
         for link in links:
