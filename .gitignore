@@ -15,13 +15,11 @@ SGP/SGP Logs
 *.log
 DFS/chalkboard.py
 Internal_Docs/
-Settings/Auth_Automation/caesars_sgp_auth.py
 Settings/Auth_Automation/Logs/
 SGP/Test/SGP Logs/
 Redis/certs/ca.crt
-
 Prediction/
-SGP/caesar_test.py
+
 
 .idea/
 Future_Implementation/
