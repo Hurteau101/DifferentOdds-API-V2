@@ -23,6 +23,8 @@ def get_waf_token(
                 wait_until="networkidle"
             )
 
+            page.locator("//div[normalize-space()='Betslip']").wait_for(state="visible", timeout=15000)
+
             for _ in range(max_retries):
                 cookies = context.cookies()
                 waf_token = next(
