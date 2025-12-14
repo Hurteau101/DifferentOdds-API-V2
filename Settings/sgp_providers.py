@@ -175,6 +175,29 @@ SGP_PROVIDERS = [
         },
         method="POST",
         active=True,
+    ),
+    SGPProvider(
+        title="Caesars Sportsbook",
+        name="caesars",
+        url={
+            "main_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb/v2/bets/details"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'content-type': 'application/json',
+            'X-Unique-Device-Id': '53c26028-d052-4871-83e7-a6cbf3686f57',
+            'X-Platform': 'cordova-desktop',
+            'X-App-Version': '7.38.0',
+        },
+        regex={
+            "bet_id_regex": r'selectionIds=([0-9a-fA-F-]+)', # bet_id will be the selection_id
+            "event_id_regex": r'selectionIds=([0-9a-fA-F-]+)',  # Use event_id same as bet_id as don't need event_id
+        },
+        method="POST",
+        active=True,
     )
 
 ]

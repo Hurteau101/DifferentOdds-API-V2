@@ -50,5 +50,30 @@ SGP_MAPPER_PROVIDERS = [
             'Origin': 'https://www.on.betmgm.ca',
         },
         method="GET",
+    ),
+    SGPMapperProviders(
+        title="Caesars Sportsbook",
+        name="caesars",
+        url={
+            "event_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb/v4/sports/{sport}/tabs",
+            "game_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb/v4/events/{event_id}?useEventPayloadWithTabNav=true"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Referer': 'https://sportsbook.caesars.com/',
+            'content-type': 'application/json',
+            'x-app-version': '7.38.0',
+            'x-platform': 'cordova-desktop',
+            'x-unique-device-id': '53c26028-d052-4871-83e7-a6cbf3686f57',
+            'Origin': 'https://sportsbook.caesars.com',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
+        },
+        method="GET",
     )
 ]
