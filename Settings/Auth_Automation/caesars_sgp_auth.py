@@ -22,8 +22,8 @@ def get_waf_token(
                 "https://sportsbook.caesars.com/us/az/bet/",
                 wait_until="networkidle"
             )
-
-            page.locator("//div[normalize-space()='Betslip']").wait_for(state="visible", timeout=15000)
+            page.screenshot(path="debug.png", full_page=True)
+            page.locator("//div[normalize-space()='Betslip']").wait_for(state="visible", timeout=120000)
 
             for _ in range(max_retries):
                 cookies = context.cookies()
