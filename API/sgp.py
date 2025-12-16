@@ -140,6 +140,7 @@ def filter_redis_keys():
             "median_books": sgp.get("non_met_books"),
             "sgp_links": sgp.get("sgp_links"),
             "fair_value": sgp.get("fair_value"),
+            "game_keys": sgp.get("game_keys", []),
             # "individual_odds": sgp.get("individual_odds_list"),
             "individual_odds": sgp.get("filtered_individual_odds"),
             "time_fetched": sgp.get("time_fetched"),
