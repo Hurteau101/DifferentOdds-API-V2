@@ -2,6 +2,18 @@ from playwright.sync_api import sync_playwright
 from Redis.redis_manager import RedisSync
 import time
 
+import logging
+
+logging.basicConfig(
+    filename="/home/administrator/caesar_auth.log",
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+
+
+logging.info("Starting Caesars WAF token fetch")
+
 def get_waf_token(
     redis_client: RedisSync,
     ttl: int = 600,
@@ -33,6 +45,7 @@ def get_waf_token(
                 )
 
                 if waf_token:
+                    logging.info("WAF token stored in Redis")
                     redis_client.set(
                         "caesars_sgp_waf_token",
                         waf_token,
@@ -43,6 +56,7 @@ def get_waf_token(
 
                 time.sleep(retry_delay)
 
+            logging.warning("Failed to obtain WAF token")
             return None
 
         finally:
