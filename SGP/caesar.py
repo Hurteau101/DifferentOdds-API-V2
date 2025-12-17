@@ -68,14 +68,6 @@ class Caesars_SGP(SGPBookBase):
         ceasar_mapping = Caesar_Mapper(waf_token)
         mapped_ids = await ceasar_mapping.run_book()
 
-        # with open("mapper.json", "w") as file:
-        #     import json
-        #     json.dump(mapped_ids, file, indent=4)
-
-        with open("mapper.json", "r") as file:
-            import json
-            mapped_ids = json.load(file)
-
         if not mapped_ids:
             print("No mapped IDs")
             return None
