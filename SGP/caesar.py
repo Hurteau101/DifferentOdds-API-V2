@@ -68,6 +68,14 @@ class Caesars_SGP(SGPBookBase):
         ceasar_mapping = Caesar_Mapper(waf_token)
         mapped_ids = await ceasar_mapping.run_book()
 
+        # with open("mapper.json", "w") as file:
+        #     import json
+        #     json.dump(mapped_ids, file, indent=4)
+
+        with open("mapper.json", "r") as file:
+            import json
+            mapped_ids = json.load(file)
+
         if not mapped_ids:
             print("No mapped IDs")
             return None
@@ -102,12 +110,21 @@ class Caesars_SGP(SGPBookBase):
             if not raw_api_data or not raw_api_data.get("parlays", []):
                 return None
 
+            errors = next((
+                parlay.get("errors")
+                for parlay in raw_api_data.get("parlays", [])
+            ), 0)
+
+            if errors and len(errors) > 0:
+                return None
+
             odds = next((
                 {
                     "decimal": parlay.get("price", {}).get("decimal"),
                     "american": float(parlay.get("price", {}).get("american")),
                 }
                 for parlay in raw_api_data.get("parlays", [])
+                if not "error" in parlay or not len(parlay.get("errors")) > 0
             ), None)
 
             return odds if odds else None
@@ -115,10 +132,8 @@ class Caesars_SGP(SGPBookBase):
 
 if __name__ == "__main__":
     links = [
-        # Hawks Moneyline
-        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=76b97749-592d-3333-9809-cbd520506695",
-        # Onyeka Okongwu Under 3.5 Assists
-        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=6373df9b-f967-39cf-81f8-9f62ea8a6260",
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=9abd86f0-9d92-3903-9a8c-5f6fb4af9f93",
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=6f991f7f-5e9c-38c8-a2d2-fffef10035a8"
     ]
     caesar_sgp = Caesars_SGP(links=links)
     odds = asyncio.run(caesar_sgp.run_book())
