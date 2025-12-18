@@ -16,7 +16,7 @@ class SportbookRequestType(Enum):
 
 # This is the base class for all sportsbook books, providing common functionality
 class BookBase(ABC):
-    def __init__(self, request_type: SportbookRequestType, log_directory=None, log_name=None):
+    def __init__(self, request_type: SportbookRequestType, log_directory=None, log_name=None, **kwargs):
         if not isinstance(request_type, SportbookRequestType):
             raise ValueError(
                 f"Invalid request type: {request_type}. Valid options are: {', '.join([item.value for item in SportbookRequestType])}."
