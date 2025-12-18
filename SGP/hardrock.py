@@ -3,8 +3,8 @@ from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase
 
 class Hardrock_SGP(SGPBookBase):
-    def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="hardrock", links=links, log_directory="SGP Logs", log_name="hardrock_sgp.log", decode_url=True)
+    def __init__(self, links, **kwargs):
+        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="hardrock", links=links, log_directory="SGP Logs", log_name="hardrock_sgp.log", decode_url=True, **kwargs)
 
     @staticmethod
     def convert_decimal_to_american(decimal_odds):

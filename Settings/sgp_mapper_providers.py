@@ -56,7 +56,8 @@ SGP_MAPPER_PROVIDERS = [
         name="caesars",
         url={
             "event_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb/v4/sports/{sport}/tabs",
-            "game_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb/v4/events/{event_id}?useEventPayloadWithTabNav=true"
+            "game_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb/v4/events/{event_id}?useEventPayloadWithTabNav=true",
+            "market_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb{path}",
         },
         headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0',

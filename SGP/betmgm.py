@@ -5,8 +5,8 @@ from Settings.book_base import SportbookRequestType
 from Settings.sgp_book_base import SGPBookBase
 
 class BetMGM_SGP(SGPBookBase):
-    def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="betmgm_sgp.log", sportsbook_name="betmgm", links=links)
+    def __init__(self, links, **kwargs):
+        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="betmgm_sgp.log", sportsbook_name="betmgm", links=links, **kwargs)
 
     async def _get_cached_ids(self):
         redis = RedisManager(db=self.redis_db)

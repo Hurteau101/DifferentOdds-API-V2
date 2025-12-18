@@ -5,8 +5,8 @@ import websockets
 import asyncio
 
 class Fanatics_SGP(SGPBookBase):
-    def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="fanatics_sgp.log", sportsbook_name="fanatics", links=links, decode_url=True)
+    def __init__(self, links, **kwargs):
+        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="fanatics_sgp.log", sportsbook_name="fanatics", links=links, decode_url=True, **kwargs)
 
     @SGPBookBase.require_link_data
     async def run_book(self):

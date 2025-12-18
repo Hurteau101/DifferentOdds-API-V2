@@ -6,8 +6,8 @@ from Settings.sgp_book_base import SGPBookBase
 import asyncio
 
 class Score_SGP(SGPBookBase):
-    def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="thescore_sgp.log", sportsbook_name="thescore", links=links, skip_link_validation=True)
+    def __init__(self, links, **kwargs):
+        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="thescore_sgp.log", sportsbook_name="thescore", links=links, skip_link_validation=True, **kwargs)
 
     @SGPBookBase.require_link_data
     async def run_book(self):

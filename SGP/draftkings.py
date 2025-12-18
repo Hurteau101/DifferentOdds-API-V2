@@ -4,8 +4,8 @@ from Settings.sgp_book_base import SGPBookBase
 
 
 class Draftkings_SGP(SGPBookBase):
-    def __init__(self, links):
-        super().__init__(request_type=SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="draftkings_sgp.log", sportsbook_name="draftkings", links=links)
+    def __init__(self, links, **kwargs):
+        super().__init__(request_type=SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="draftkings_sgp.log", sportsbook_name="draftkings", links=links, **kwargs)
 
     def format_selections(self):
         selections = []

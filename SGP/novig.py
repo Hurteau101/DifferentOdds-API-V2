@@ -4,8 +4,8 @@ from Settings.sgp_book_base import SGPBookBase
 import asyncio
 
 class Novig_SGP(SGPBookBase):
-    def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="novig_sgp.log", sportsbook_name="novig", links=links)
+    def __init__(self, links, **kwargs):
+        super().__init__(SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="novig_sgp.log", sportsbook_name="novig", links=links, **kwargs)
 
     @staticmethod
     def convert_probability_to_american_odds(probability_str):

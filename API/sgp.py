@@ -39,6 +39,7 @@ router = APIRouter(prefix="/sgp", tags=["SGP"])
 class SGP(BaseModel):
     book_name: str
     links: List[str]
+    lines: Optional[dict] = None
 
 class Books(BaseModel):
     title: str
@@ -70,7 +71,7 @@ async def get_sgp_odds(books: List[SGP]):
     async def fetch_sgp_odds(book, timeout=15, single_book=False):
         book_class = BOOK_INITIALIZERS.get(book.book_name.lower())
         if book_class:
-            book_instance = book_class(links=book.links)
+            book_instance = book_class(links=book.links, lines=book.lines)
             try:
                 return await asyncio.wait_for(book_instance.run_book(), timeout=timeout)
             except asyncio.TimeoutError:

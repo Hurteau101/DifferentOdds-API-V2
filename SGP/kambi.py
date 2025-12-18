@@ -7,8 +7,8 @@ from Settings.sgp_book_base import SGPBookBase
 import asyncio
 
 class Kambi_SGP(SGPBookBase):
-    def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="kambi_sgp.log", sportsbook_name="kambi", links=links)
+    def __init__(self, links, **kwargs):
+        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="kambi_sgp.log", sportsbook_name="kambi", links=links, **kwargs)
         load_dotenv()
 
     @SGPBookBase.require_link_data

@@ -13,9 +13,9 @@ from SGP.Mapper.caesar_mapper import Caesar_Mapper
 
 
 class Caesars_SGP(SGPBookBase):
-    def __init__(self, links, additional_info: dict = None):
-        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="caesars_sgp.log", sportsbook_name="caesars", links=links,
-                         additional_info=additional_info)
+    def __init__(self, links, lines: dict = None, **kwargs):
+        self.lines = lines
+        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="caesars_sgp.log", sportsbook_name="caesars", links=links, **kwargs)
 
     def _create_payload(self, mapped_link_data: list):
         return {
@@ -115,8 +115,7 @@ class Caesars_SGP(SGPBookBase):
             return
 
 
-        line_data = self._lines_extraction(self.additional_info.get("lines", {}) if self.additional_info else {})
-
+        line_data = self._lines_extraction(self.lines if self.lines else {})
         ceasar_mapping = Caesar_Mapper(waf_token)
         mapped_ids = await ceasar_mapping.run_book()
 
@@ -132,7 +131,6 @@ class Caesars_SGP(SGPBookBase):
             )
             for data in self.link_data
         ]
-
 
         if not mapped_data or any(data for data in mapped_data if not any([data.get("marketId"), data.get("selectionId"), data.get("eventId")])):
             print("No mapped data")
@@ -182,7 +180,7 @@ if __name__ == "__main__":
     additional_information = {
         "lines": {
             "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=03ea80fc-6859-3ccf-acf9-7346d56bca06": 10.5,
-            "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=9cde3b80-4348-3f94-991e-3f2068c6475c": 20.5
+            "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=9cde3b80-4348-3f94-991e-3f2068c6475c": None
         }
     }
 

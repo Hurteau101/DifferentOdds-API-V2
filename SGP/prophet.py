@@ -6,9 +6,9 @@ from Settings.sgp_book_base import SGPBookBase
 import asyncio
 
 class Prophet_SGP(SGPBookBase):
-    def __init__(self, links):
+    def __init__(self, links, **kwargs):
         load_dotenv()
-        super().__init__(request_type=SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="prophet_sgp.log", sportsbook_name="prophetx", links=links)
+        super().__init__(request_type=SportbookRequestType.ASYNC, log_directory="SGP Logs", log_name="prophet_sgp.log", sportsbook_name="prophetx", links=links, **kwargs)
 
     @SGPBookBase.require_link_data
     async def run_book(self):

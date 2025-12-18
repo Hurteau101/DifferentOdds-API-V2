@@ -68,6 +68,32 @@ class Caesar_Mapper(SGPMapperBase):
                 for event in event_ids
             ]
 
+            paths = set()
+
+            raw_results = await asyncio.gather(*tasks)
+            for result in raw_results:
+                if result and result.get("event", {}).get("id"):
+                    paths.update(
+                        tab.get("dataPath")
+                        for tab in result.get("tabs", [])
+                        if tab.get("dataPath")
+                    )
+
+                # paths[result.get("event", {}).get("id")] = tabs
+
+            if not paths:
+                return
+
+            tasks = [
+                self.api_caller(
+                    session=session,
+                    url=self.book_data.url.get("market_url").format(path=path),
+                    method=self.book_data.method,
+                    headers={**self.book_data.headers, "x-aws-waf-token": self.waf_token}
+                )
+                for path in paths
+            ]
+
             raw_results = await asyncio.gather(*tasks)
 
             mapping = {}
@@ -78,14 +104,17 @@ class Caesar_Mapper(SGPMapperBase):
 
             if mapping:
                 return mapping
-                # redis = RedisManager(db=self.redis_db)
-                # await redis.store_data(
-                #     key_name="caesars_ids",
-                #     data_to_store=mapping,
-                #     key_expiration=self.key_expiration
-                # )
+
 
 
 if __name__ == "__main__":
-    mapper = Caesar_Mapper()
+    token = "b248b453-de6d-45cd-99b4-1f9375c50a8f:MAoAeq96jBUmAAAA:jDXIMHWM7hkEUzIVkOFFy2Z5GtkKvYq/GGcuMIFZGAp++Np4SAQElOPBU1PO9yEkCZnS7qybPnHEMWPa0hMRp7YsWGQl9soIXv4Lznf00Fyp7rccX7+uUBj2jFYcLCQpnInaUz1styLfSYq7JSJv+AO/g3blFvHSkbTuSaamy8d+W/ucqYlFByiQ3T/1roRDbeYXDoB6O+CPYBgQ1TBkljiAQdSDqkVtCh94LW/PY4Vgksdi/XObqbaFqSc="
+    mapper = Caesar_Mapper(waf_token=token)
     asyncio.run(mapper.run_book())
+    # with open("caesar_mapped_ids.json", "w") as f:
+    #     import json
+    #     json.dump(test, f, indent=2)
+
+    # with open("caesar_mapped_ids.json", "w") as f:
+    #     import json
+    #     json.dump(test, f, indent=2)
