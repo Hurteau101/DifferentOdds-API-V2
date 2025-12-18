@@ -1,4 +1,5 @@
 import json
+import re
 
 import aiohttp
 from orjson import orjson
@@ -8,10 +9,13 @@ from Settings.sgp_book_base import SGPBookBase
 import asyncio
 from SGP.Mapper.caesar_mapper import Caesar_Mapper
 
+### PASS IN A LINE INSTEAD OF USING MAPPER, THIS WILL PREVENT IT FROM USING THE WRONG LINE IN API CALL.
+
 
 class Caesars_SGP(SGPBookBase):
-    def __init__(self, links):
-        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="caesars_sgp.log", sportsbook_name="caesars", links=links)
+    def __init__(self, links, additional_info: dict = None):
+        super().__init__(SportbookRequestType.ASYNC,  log_directory="SGP Logs", log_name="caesars_sgp.log", sportsbook_name="caesars", links=links,
+                         additional_info=additional_info)
 
     def _create_payload(self, mapped_link_data: list):
         return {
@@ -56,14 +60,62 @@ class Caesars_SGP(SGPBookBase):
             for data in self.link_data
         ]
 
+    def _lines_extraction(self, lines_dict: dict):
+        """Extract line data from the provided lines dictionary."""
+        line_data = {}
+
+        for link, line in lines_dict.items():
+            selection_id = re.search(self.book_data.regex.get("bet_id_regex"), link)
+            if not selection_id:
+                return None
+
+            line_data[selection_id.group(1)] = line
+
+        return line_data
+
+    def _add_lines(self, mapped_data: dict, line_data: dict, link_data: dict):
+        """Add lines to the mapped data based on link data and line data."""
+        selection = link_data.get("bet_id")
+
+        if line_data:
+            line = line_data.get(selection)
+            return float(line) if line is not None else None
+
+        return float(mapped_data.get(selection, {}).get("line")) if mapped_data.get(selection, {}).get("line") is not None else None
+
+
+    def _create_actual_mapping(self, mapped_data: dict, line_data: dict, link_data: dict):
+        """Create the actual mapping for a single link data entry."""
+        line = self._add_lines(
+            mapped_data=mapped_data,
+            line_data=line_data,
+            link_data=link_data,
+        )
+
+        mapped_entry = {
+            "selectionId": mapped_data.get(link_data.get("bet_id"), {}).get("selection_id"),
+            "eventId": mapped_data.get(link_data.get("bet_id"), {}).get("event_id"),
+            "marketId": mapped_data.get(link_data.get("bet_id"), {}).get("market_id"),
+            "stakePerLine": 0,
+        }
+
+        if line is not None:
+            mapped_entry["line"] = line
+
+        return mapped_entry
 
     @SGPBookBase.require_link_data
     async def run_book(self):
         redis_waf = RedisManager(db=5)
         waf_token = await redis_waf.get_auth_token("caesars_sgp_waf_token")
+        await redis_waf.close()
+
         if not waf_token:
             print("No WAF Token")
             return
+
+
+        line_data = self._lines_extraction(self.additional_info.get("lines", {}) if self.additional_info else {})
 
         ceasar_mapping = Caesar_Mapper(waf_token)
         mapped_ids = await ceasar_mapping.run_book()
@@ -73,16 +125,14 @@ class Caesars_SGP(SGPBookBase):
             return None
 
         mapped_data = [
-            {
-                "selectionId": mapped_ids.get(data.get("bet_id"), {}).get("selection_id"),
-                "eventId": mapped_ids.get(data.get("bet_id"), {}).get("event_id"),
-                "marketId": mapped_ids.get(data.get("bet_id"), {}).get("market_id"),
-                "stakePerLine": 0,
-                **({"line": float(mapped_ids.get(data.get("bet_id"), {}).get("line"))} if mapped_ids.get(data.get("bet_id"), {}).get("line") is not None else {})
-
-            }
+            self._create_actual_mapping(
+                mapped_data=mapped_ids,
+                line_data=line_data,
+                link_data=data
+            )
             for data in self.link_data
         ]
+
 
         if not mapped_data or any(data for data in mapped_data if not any([data.get("marketId"), data.get("selectionId"), data.get("eventId")])):
             print("No mapped data")
@@ -124,9 +174,18 @@ class Caesars_SGP(SGPBookBase):
 
 if __name__ == "__main__":
     links = [
-        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=9abd86f0-9d92-3903-9a8c-5f6fb4af9f93",
-        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=6f991f7f-5e9c-38c8-a2d2-fffef10035a8"
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=03ea80fc-6859-3ccf-acf9-7346d56bca06", # 0.5
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=9cde3b80-4348-3f94-991e-3f2068c6475c" # 7.5
     ]
-    caesar_sgp = Caesars_SGP(links=links)
+
+
+    additional_information = {
+        "lines": {
+            "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=03ea80fc-6859-3ccf-acf9-7346d56bca06": 10.5,
+            "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=9cde3b80-4348-3f94-991e-3f2068c6475c": 20.5
+        }
+    }
+
+    caesar_sgp = Caesars_SGP(links=links, additional_info=additional_information)
     odds = asyncio.run(caesar_sgp.run_book())
     print(odds)

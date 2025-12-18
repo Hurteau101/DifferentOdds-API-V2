@@ -1,18 +1,8 @@
 from playwright.sync_api import sync_playwright
 from Redis.redis_manager import RedisSync
 import time
+from Discord_Logger.discord_log import DiscordLog
 
-import logging
-
-logging.basicConfig(
-    filename="/home/administrator/caesar_auth.log",
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
-
-
-
-logging.info("Starting Caesars WAF token fetch")
 
 def get_waf_token(
     redis_client: RedisSync,
@@ -20,6 +10,8 @@ def get_waf_token(
     max_retries: int = 5,
     retry_delay: float = 0.5,
 ) -> str | None:
+    discord_logger = DiscordLog(channel_name="auth")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
@@ -45,7 +37,6 @@ def get_waf_token(
                 )
 
                 if waf_token:
-                    logging.info("WAF token stored in Redis")
                     redis_client.set(
                         "caesars_sgp_waf_token",
                         waf_token,
@@ -56,7 +47,30 @@ def get_waf_token(
 
                 time.sleep(retry_delay)
 
-            logging.warning("Failed to obtain WAF token")
+            discord_logger.send_logger(
+                log_name="Caesars WAF Token Retrieval Failed",
+                log_message="WAF token not found after maximum retries.",
+                key_name="caesars_auth",
+                role_name="caesars",
+                key_value="error",
+                key_expiration=300
+            )
+
+            return None
+        except Exception as e:
+            discord_logger.send_logger(
+                log_name="Caesars WAF Token Retrieval Failed",
+                log_message=f"An error occurred while retrieving the WAF token",
+                role_name="caesars",
+                additional_fields={
+                    "name": "Error Details",
+                    "value": str(e),
+                    "inline": False
+                },
+                key_name="caesars_auth",
+                key_value="error",
+                key_expiration=300
+            )
             return None
 
         finally:
