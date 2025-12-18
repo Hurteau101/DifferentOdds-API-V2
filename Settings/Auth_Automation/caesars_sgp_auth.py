@@ -3,6 +3,15 @@ from Redis.redis_manager import RedisSync
 import time
 from Discord_Logger.discord_log import DiscordLog
 
+import logging
+
+logging.basicConfig(
+    filename="/home/administrator/caesar_auth.log",
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+logging.info("Starting Caesars WAF token fetch")
 
 def get_waf_token(
     redis_client: RedisSync,
@@ -74,6 +83,7 @@ def get_waf_token(
             return None
 
         finally:
+            logging.info("Finished Logging Caesars WAF token fetch")
             browser.close()
 
 if __name__ == "__main__":
