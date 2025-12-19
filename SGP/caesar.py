@@ -29,36 +29,36 @@ class Caesars_SGP(SGPBookBase):
             "channelDetail": "cordova-desktop",
         }
 
-    async def _mapped_data(self):
-        redis_client = RedisManager(db=self.redis_db)
-        mapped_ids = await redis_client.fetch_data("caesars_ids")
-
-        if isinstance(mapped_ids, bytes):
-            mapped_ids = orjson.loads(mapped_ids)
-        if isinstance(mapped_ids, str):
-            mapped_ids = json.loads(mapped_ids)
-
-        if not mapped_ids:
-            self.file_logger.log(
-                sportsbook="caesars",
-                message="No mapped IDs found in Redis",
-                level="ERROR",
-            )
-
-            return None
-
-
-        return [
-            {
-                "selectionId": mapped_ids.get(data.get("bet_id"), {}).get("selection_id"),
-                "eventId": mapped_ids.get(data.get("bet_id"), {}).get("event_id"),
-                "marketId": mapped_ids.get(data.get("bet_id"), {}).get("market_id"),
-                "stakePerLine": 0,
-                **({"line": mapped_ids.get(data.get("line"), {}).get("line")} if mapped_ids.get(data.get("line"), {}).get("line") is not None else {})
-
-            }
-            for data in self.link_data
-        ]
+    # async def _mapped_data(self):
+    #     redis_client = RedisManager(db=self.redis_db)
+    #     mapped_ids = await redis_client.fetch_data("caesars_ids")
+    #
+    #     if isinstance(mapped_ids, bytes):
+    #         mapped_ids = orjson.loads(mapped_ids)
+    #     if isinstance(mapped_ids, str):
+    #         mapped_ids = json.loads(mapped_ids)
+    #
+    #     if not mapped_ids:
+    #         self.file_logger.log(
+    #             sportsbook="caesars",
+    #             message="No mapped IDs found in Redis",
+    #             level="ERROR",
+    #         )
+    #
+    #         return None
+    #
+    #
+    #     return [
+    #         {
+    #             "selectionId": mapped_ids.get(data.get("bet_id"), {}).get("selection_id"),
+    #             "eventId": mapped_ids.get(data.get("bet_id"), {}).get("event_id"),
+    #             "marketId": mapped_ids.get(data.get("bet_id"), {}).get("market_id"),
+    #             "stakePerLine": 0,
+    #             **({"line": mapped_ids.get(data.get("line"), {}).get("line")} if mapped_ids.get(data.get("line"), {}).get("line") is not None else {})
+    #
+    #         }
+    #         for data in self.link_data
+    #     ]
 
     def _lines_extraction(self, lines_dict: dict):
         """Extract line data from the provided lines dictionary."""
@@ -69,6 +69,9 @@ class Caesars_SGP(SGPBookBase):
             if not selection_id:
                 return None
 
+            if line == 0.5:
+                line = None
+
             line_data[selection_id.group(1)] = line
 
         return line_data
@@ -76,6 +79,7 @@ class Caesars_SGP(SGPBookBase):
     def _add_lines(self, mapped_data: dict, line_data: dict, link_data: dict):
         """Add lines to the mapped data based on link data and line data."""
         selection = link_data.get("bet_id")
+
 
         if line_data:
             line = line_data.get(selection)
@@ -91,6 +95,7 @@ class Caesars_SGP(SGPBookBase):
             line_data=line_data,
             link_data=link_data,
         )
+
 
         mapped_entry = {
             "selectionId": mapped_data.get(link_data.get("bet_id"), {}).get("selection_id"),
@@ -114,9 +119,7 @@ class Caesars_SGP(SGPBookBase):
             print("No WAF Token")
             return
 
-
         line_data = self._lines_extraction(self.lines if self.lines else {})
-
         redis_client = RedisManager(db=2)
         mapped_ids = await redis_client.fetch_data(key_name="caesar_mapped_ids")
 
@@ -156,8 +159,6 @@ class Caesars_SGP(SGPBookBase):
                 for parlay in raw_api_data.get("parlays", [])
             ), 0)
 
-            print(errors)
-
             if errors and len(errors) > 0:
                 return None
 
@@ -187,6 +188,9 @@ if __name__ == "__main__":
         }
     }
 
-    caesar_sgp = Caesars_SGP(links=links, additional_info=additional_information)
+    caesar_sgp = Caesars_SGP(links=links, lines={
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=8b805086-e4a5-3780-9de2-cd4895583cc6": 2.5,
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=0ab1d2e0-7985-352d-b9fb-26aeb149a2f7": 0.5
+    })
     odds = asyncio.run(caesar_sgp.run_book())
     print(odds)
