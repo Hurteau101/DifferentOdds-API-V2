@@ -1,8 +1,6 @@
 import asyncio
 from itertools import chain
-
 import aiohttp
-
 from Redis.redis_manager import RedisManager
 from Settings.book_base import SportbookRequestType
 from Settings.sgp_mapper_base import SGPMapperBase
@@ -10,7 +8,7 @@ from Settings.sgp_mapper_base import SGPMapperBase
 # Key selection ID
 
 class Caesar_Mapper(SGPMapperBase):
-    VALID_SPORTS = ["basketball", "baseball", "boxing", "football", "hockey", "soccer", "ufcmma"]
+    VALID_SPORTS = ["basketball", "baseball", "boxing", "football", "icehockey", "soccer", "ufcmma"]
     def __init__(self, waf_token):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="caesars", log_directory="SGP Mapper Logs",
                          log_name="caesar_mapper.log")
@@ -79,10 +77,9 @@ class Caesar_Mapper(SGPMapperBase):
                         if tab.get("dataPath")
                     )
 
-                # paths[result.get("event", {}).get("id")] = tabs
-
             if not paths:
                 return
+
 
             tasks = [
                 self.api_caller(
@@ -103,14 +100,32 @@ class Caesar_Mapper(SGPMapperBase):
                     mapping.update(self._create_mapping(result))
 
             if mapping:
-                return mapping
-
+                redis = RedisManager(db=self.redis_db)
+                await redis.store_data(
+                    key_name="caesar_mapped_ids",
+                    data_to_store=mapping,
+                    key_expiration=self.key_expiration
+                )
 
 
 if __name__ == "__main__":
-    token = "b248b453-de6d-45cd-99b4-1f9375c50a8f:MAoAeq96jBUmAAAA:jDXIMHWM7hkEUzIVkOFFy2Z5GtkKvYq/GGcuMIFZGAp++Np4SAQElOPBU1PO9yEkCZnS7qybPnHEMWPa0hMRp7YsWGQl9soIXv4Lznf00Fyp7rccX7+uUBj2jFYcLCQpnInaUz1styLfSYq7JSJv+AO/g3blFvHSkbTuSaamy8d+W/ucqYlFByiQ3T/1roRDbeYXDoB6O+CPYBgQ1TBkljiAQdSDqkVtCh94LW/PY4Vgksdi/XObqbaFqSc="
-    mapper = Caesar_Mapper(waf_token=token)
+    async def main():
+        redis_manager = RedisManager(db=5)
+        return await redis_manager.get_auth_token("caesars_sgp_waf_token")
+
+
+    waf_token = asyncio.run(main())
+    mapper = Caesar_Mapper(waf_token=waf_token)
     asyncio.run(mapper.run_book())
+
+    async def main():
+        redis_client = RedisManager(db=2)
+        mapped_data = await redis_client.fetch_data(key_name="caesar_mapped_ids")
+        print(mapped_data)
+
+
+    asyncio.run(main())
+
     # with open("caesar_mapped_ids.json", "w") as f:
     #     import json
     #     json.dump(test, f, indent=2)

@@ -116,8 +116,9 @@ class Caesars_SGP(SGPBookBase):
 
 
         line_data = self._lines_extraction(self.lines if self.lines else {})
-        ceasar_mapping = Caesar_Mapper(waf_token)
-        mapped_ids = await ceasar_mapping.run_book()
+
+        redis_client = RedisManager(db=2)
+        mapped_ids = await redis_client.fetch_data(key_name="caesar_mapped_ids")
 
         if not mapped_ids:
             print("No mapped IDs")
@@ -155,6 +156,8 @@ class Caesars_SGP(SGPBookBase):
                 for parlay in raw_api_data.get("parlays", [])
             ), 0)
 
+            print(errors)
+
             if errors and len(errors) > 0:
                 return None
 
@@ -172,15 +175,15 @@ class Caesars_SGP(SGPBookBase):
 
 if __name__ == "__main__":
     links = [
-        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=03ea80fc-6859-3ccf-acf9-7346d56bca06", # 0.5
-        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=9cde3b80-4348-3f94-991e-3f2068c6475c" # 7.5
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=8b805086-e4a5-3780-9de2-cd4895583cc6",
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=0ab1d2e0-7985-352d-b9fb-26aeb149a2f7"
     ]
 
 
     additional_information = {
         "lines": {
-            "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=03ea80fc-6859-3ccf-acf9-7346d56bca06": 10.5,
-            "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=9cde3b80-4348-3f94-991e-3f2068c6475c": None
+             "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=8b805086-e4a5-3780-9de2-cd4895583cc6": 2.5,
+             "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=0ab1d2e0-7985-352d-b9fb-26aeb149a2f7": 0.5
         }
     }
 
