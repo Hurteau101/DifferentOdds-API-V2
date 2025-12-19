@@ -104,7 +104,7 @@ class Caesar_Mapper(SGPMapperBase):
                 await redis.store_data(
                     key_name="caesar_mapped_ids",
                     data_to_store=mapping,
-                    key_expiration=self.key_expiration
+                    key_expiration=600
                 )
 
 
@@ -113,18 +113,11 @@ if __name__ == "__main__":
         redis_manager = RedisManager(db=5)
         return await redis_manager.get_auth_token("caesars_sgp_waf_token")
 
-
     waf_token = asyncio.run(main())
     mapper = Caesar_Mapper(waf_token=waf_token)
     asyncio.run(mapper.run_book())
 
-    async def main():
-        redis_client = RedisManager(db=2)
-        mapped_data = await redis_client.fetch_data(key_name="caesar_mapped_ids")
-        print(mapped_data)
 
-
-    asyncio.run(main())
 
     # with open("caesar_mapped_ids.json", "w") as f:
     #     import json
