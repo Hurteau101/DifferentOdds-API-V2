@@ -3,13 +3,15 @@ from Settings.sgp_providers import SGPProvider, SGP_PROVIDERS
 from Settings.prediction_providers import EXCHANGE_PROVIDERS, ExchangeProvider
 from Settings.sgp_mapper_providers import SGPMapperProviders, SGP_MAPPER_PROVIDERS
 from Settings.pph_providers import PPH_PROVIDERS, PPHProvider
+from Settings.Liquidity_Settings.liquidity_providers import LIQUIDITY_PROVIDERS, LiquidityProvider
 
 NAMES_MAPPER = {
     "dfs": DFS_PROVIDERS,
     "sgp": SGP_PROVIDERS,
     "exchange": EXCHANGE_PROVIDERS,
     "sgp_mapper": SGP_MAPPER_PROVIDERS,
-    "pph": PPH_PROVIDERS
+    "pph": PPH_PROVIDERS,
+    "liquidity": LIQUIDITY_PROVIDERS
 }
 
 # This module provides configuration for DFS, Sportsbooks, Exchanges & SGP Mapper Provders.
@@ -56,6 +58,12 @@ class SportsbookConfig:
         except StopIteration:
             raise ValueError(f"PPH provider '{name}' not found.")
 
+    @classmethod
+    def get_liquidity_provider(cls, name: str) -> LiquidityProvider:
+        try:
+            return next(provider for provider in LIQUIDITY_PROVIDERS if provider.name == name)
+        except StopIteration:
+            raise ValueError(f"Liquidity provider '{name}' not found.")
 
     @staticmethod
     def get_book_info(book_type):

@@ -31,7 +31,9 @@ from Settings.Auth_Automation.onyx_sgp_auth import generate_onyx_auth_token
 from Settings.Auth_Automation.ownerbox_auth import generate_ownerbox_auth_token
 from Settings.dfs_model import BookData
 from Settings.pph_model import BookDataPPH
+from Settings.Liquidity_Settings.novig_model import BookDataLiquidity
 from sportsbook.PPH.stg import STG
+from Liquidity.novig import Novig
 
 logger = get_task_logger(__name__)
 
@@ -118,6 +120,14 @@ DFS_Books = {
 # }
 
 
+LIQUIDITY_BOOKS = {
+    "novig": {
+        "class": Novig,
+        "interval": 60,
+        "task": "liquidity",
+    }
+}
+
 PPH_BOOKES = {
     "stg": {
         "class": STG,
@@ -130,6 +140,7 @@ BOOKS = {
     "dfs": DFS_Books,
     "exchange": {},
     "pph": PPH_BOOKES,
+    "liquidity": LIQUIDITY_BOOKS,
 }
 
 @shared_task(ignore_result=True)
@@ -192,6 +203,13 @@ def dfs_formatter(data):
     }
 
 
+def liquidity_formatter(data):
+    normalized = [asdict(g) for g in data]
+
+    return {
+        "game": normalized
+    }
+
 def pph_formatter(data):
     book_data = BookDataPPH(
         last_refresh=datetime.now(timezone.utc),
@@ -205,7 +223,7 @@ def pph_formatter(data):
         "game": get_pph_formatter("game", normalized),
     }
 
-async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeout=60, blocking_timeout=1):
+async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeout=60, blocking_timeout=1, modified_key=None):
     redis_manager = RedisManager(db=redis_db)
 
     lock_key = f"{run_book_type}_lock:{name}"
@@ -239,7 +257,7 @@ async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeou
             formatted_output = formatter_func(data)
 
             for fmt, payload in formatted_output.items():
-                key = f"{run_book_type}:{name}:{fmt}"
+                key = f"{run_book_type}:{name}:{fmt}" if not modified_key else modified_key
 
                 if fmt == "base":
                     wrapped_payload = {
@@ -271,6 +289,15 @@ async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeou
 )
 def run_book_dfs(name, redis_db):
     async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter, timeout=180, blocking_timeout=30)
+
+
+@shared_task(
+    ignore_result=True,
+    soft_time_limit=180,
+    time_limit=300
+)
+def run_book_liquidity(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "liquidity", liquidity_formatter, timeout=180, blocking_timeout=30, modified_key="liquidity_data")
 
 
 # @shared_task(ignore_result=True)

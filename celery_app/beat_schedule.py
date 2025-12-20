@@ -37,6 +37,10 @@ for run_book_type, books in BOOKS.items():
             redis_db = 6
             queue = "pph"
             task_name = "celery_app.tasks.run_book_pph"
+        if run_book_type == "liquidity":
+            redis_db = 4
+            queue = "liquidity"
+            task_name = "celery_app.tasks.run_book_liquidity"
         else:
             continue
 

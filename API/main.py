@@ -6,6 +6,7 @@ from Redis.redis_manager import RedisManager
 from . import dfs
 from . import sgp
 from . import pph
+from . import liquidity
 from contextlib import asynccontextmanager
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -48,5 +49,7 @@ async def custom_docs():
 app.include_router(dfs.router)
 app.include_router(sgp.router)
 app.include_router(pph.router)
+app.include_router(liquidity.router)
+
 
 
