@@ -118,7 +118,7 @@ async def get_liquidity_data(
 
     books = [book.lower() for book in books] if books else None
     leagues = [league.lower() for league in leagues] if leagues else None
-    raw_odds = await get_redis_liquidity(books, request)
+    raw_odds = await get_redis_liquidity(request)
     if not raw_odds:
         return []
 
