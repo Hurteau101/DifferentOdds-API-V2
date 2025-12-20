@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from pydantic import BaseModel
 from API.common import FormatHeader, validate_format_header, Books, get_cached_books
+from API.security import get_api_key
 from Redis.redis_manager import RedisManager
 from Settings.sportsbook_config import SportsbookConfig
 
@@ -27,7 +28,7 @@ async def get_book_list():
     return {"liquidity_books": result}
 
 
-async def get_redis_liquidity(books, request):
+async def get_redis_liquidity(request):
     redis = request.app.state.redis.clone_with_db(4)
     return await redis.fetch_data("liquidity_data")
     if not liquidity_data:
@@ -86,7 +87,7 @@ def liquidity_matches_filters(liquidity_data, leagues=None, min_liquidity=None, 
 @router.get("/odds",
             summary="Get Liquidity Odds",
             description="Fetch Liquidity odds from specified sportsbooks.",
-            dependencies=[Depends(validate_format_header)]
+            dependencies=[Depends(get_api_key)]
             )
 
 async def get_liquidity_data(
