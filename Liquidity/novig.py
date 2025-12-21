@@ -1,16 +1,12 @@
 from collections import defaultdict
-from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import chain
 import aiohttp
 from Settings.Liquidity_Settings.novig_model import Game, Order, OutcomeSide
 import asyncio
-
-
 from Settings.Liquidity_Settings.liquidity_book_base import LiquidityBookBase
 from Settings.book_base import SportbookRequestType
 from Liquidity.novig_api_helper import NovigApiHelper
-from Redis.redis_manager import RedisManager
 
 
 class Novig(LiquidityBookBase):
@@ -95,7 +91,7 @@ class Novig(LiquidityBookBase):
                 line=None,
                 player=None,
                 liquidity_difference=None,
-                fetched_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                fetched_time=self.cache_time(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")),
                 outcomes={},
             )
         )
@@ -160,7 +156,7 @@ class Novig(LiquidityBookBase):
                         "stat_type": market_name,
                         "bet_info": outcome.get("description") if outcome.get("description") else None,
                         "line": market.get("strike") if market.get("strike") != 0 else None,
-                        "event_date": event.get("game", {}).get("scheduled_start"),
+                        "event_date": self.cache_time(event.get("game", {}).get("scheduled_start")),
                         "key_name": key_name,
                         "orders": [
                             {
@@ -168,7 +164,7 @@ class Novig(LiquidityBookBase):
                                 "qty": order.get("qty"),
                                 "decimal_price": order.get("price"),
                                 "original_qty": order.get("originalQty"),
-                                "created_at": order.get("created_at"),
+                                "created_at": self.cache_time(order.get("created_at")),
                                 "price": order.get("price"),
                                 "american_price": self.price_to_american(order.get("price")),
                                 "total_win": round(order.get("qty") / 100,2),
