@@ -7,7 +7,7 @@ import asyncio
 from Settings.Liquidity_Settings.liquidity_book_base import LiquidityBookBase
 from Settings.book_base import SportbookRequestType
 from Liquidity.novig_api_helper import NovigApiHelper
-
+from collections.abc import Iterable
 
 class Novig(LiquidityBookBase):
     def __init__(self):
@@ -81,7 +81,11 @@ class Novig(LiquidityBookBase):
 
         return league_set
 
-    async def _group_data(self, market_data: list):
+    async def _group_data(self, market_data: list) -> Iterable[Game]:
+        """
+        Organize the data into groups based on the bet_info.
+        :param market_data: List of market data.
+        """
         grouped_data = defaultdict(
             lambda: Game(
                 league=None,
@@ -138,7 +142,12 @@ class Novig(LiquidityBookBase):
 
         return grouped_data.values()
 
-    async def _filter_data(self, event_data: list, league_name: str):
+    async def _filter_data(self, event_data: list, league_name: str) -> Iterable[Game]:
+        """
+        Filters through the market data and extracts necessary data to create a Game object.
+        :param event_data: List of market data.
+        :param league_name: Name of the league.
+        """
         market_data = []
 
         for event in event_data:
@@ -184,7 +193,14 @@ class Novig(LiquidityBookBase):
         return await self._group_data(market_data)
 
     async def _fetch_and_filter_markets(self, session: aiohttp.ClientSession, novig_api_helper: NovigApiHelper,
-                                        event_id: str, league_name: str):
+                                        event_id: str, league_name: str) -> Iterable[Game] | None:
+        """
+        Fetches and filters market data from Novig API.
+        :param session: aiohttp ClientSession for making requests.
+        :param novig_api_helper: NovigApiHelper instance.
+        :param event_id: ID of the event.
+        :param league_name: Name of the league.
+        """
         markets = await self.api_caller(
             session=session,
             url=self.book_data.url.get("base_url"),
