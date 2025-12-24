@@ -154,10 +154,10 @@ def refresh_auths():
             await generate_fanduel_picks_auth_token()
         except Exception as e:
             logger.error(f"Error generating Fanduel Picks auth token: {e}")
-        try:
-            await generate_ownerbox_auth_token()
-        except Exception as e:
-            logger.error(f"Error generating Ownerbox auth token: {e}")
+        # try:
+        #     await generate_ownerbox_auth_token()
+        # except Exception as e:
+        #     logger.error(f"Error generating Ownerbox auth token: {e}")
 
     async_to_sync(_run)()
 

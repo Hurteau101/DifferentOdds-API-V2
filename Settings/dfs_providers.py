@@ -118,15 +118,18 @@ DFS_PROVIDERS = [
         title="Ownerbox",
         name="ownerbox",
         url={
-            "main_url": "https://app.ownersbox.com/api/v1/markets?sport={league}",
+            "stat_url": "https://app.ownersbox.com/fsp/marketType/active?sport={league}",
+            "game_url": "https://app.ownersbox.com/fsp/v4/market?sport=NFL&marketTypeId={market_id}"
             # "main_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}",
-            "test_url": "https://app.ownersbox.com/api/v1/markets?sport=NHL" # PROVIDED THIS ENDPOINT
+            # "main_url": "https://app.ownersbox.com/api/v1/markets?sport={league}",
+            # "main_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}",
+            # "test_url": "https://app.ownersbox.com/api/v1/markets?sport=NHL" # PROVIDED THIS ENDPOINT
         },
         headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            # 'Accept-Encoding': 'gzip, deflate, br, zstd',
             'OwnersBox-Client-Type': 'web',
             'OwnersBox-Client-Version': '1.11.4',
             'Connection': 'keep-alive',
@@ -189,15 +192,15 @@ DFS_PROVIDERS = [
         method="GET",
         active=True
     ),
-    # DFSProvider(
-    #     title="Chalkboard",
-    #     name="chalkboard",
-    #     url={
-    #         "main_url": "https://firestore.googleapis.com/v1/projects/taild-262305/databases/(default)/documents:runQuery"
-    #     },
-    #     method="POST",
-    #     active=True
-    # ),
+    DFSProvider(
+        title="Chalkboard",
+        name="chalkboard",
+        url={
+            "main_url": "https://firestore.googleapis.com/v1/projects/taild-262305/databases/(default)/documents:runQuery"
+        },
+        method="POST",
+        active=True
+    ),
     DFSProvider(
         title="FanDuel Picks",
         name="fanduel_picks",

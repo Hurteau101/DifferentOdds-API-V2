@@ -3,13 +3,28 @@ from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 import asyncio
 from Redis.redis_manager import RedisManager
+import random
 
-load_dotenv()
-EMAIL = os.getenv("OWNERBOX_EMAIL")
-PASSWORD = os.getenv("OWNERBOX_PASSWORD")
+
+def _randomize_login():
+    load_dotenv()
+    emails = os.getenv("OWNERBOX_EMAILS")
+    if not emails:
+        return ""
+
+    password = os.getenv("OWNERBOX_PASSWORD")
+
+    email_list = emails.split(",")
+    random_email = random.choice(email_list)
+
+    return random_email, password
 
 async def generate_ownerbox_auth_token():
     redis = RedisManager(db=5)
+    email, password = _randomize_login()
+
+    if not email or not password:
+        return
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False)
@@ -20,8 +35,8 @@ async def generate_ownerbox_auth_token():
         await page.goto("https://app.ownersbox.com/wfs/login", timeout=60000)
 
         # Fill in login form
-        await page.fill("//input[@placeholder='Enter your Email']", EMAIL)
-        await page.fill("//input[@placeholder='Enter your password']", PASSWORD)
+        await page.fill("//input[@placeholder='Enter your Email']", email)
+        await page.fill("//input[@placeholder='Enter your password']", password)
 
         # Click login
         await page.click("//button[@class='ob-btn-primary']")

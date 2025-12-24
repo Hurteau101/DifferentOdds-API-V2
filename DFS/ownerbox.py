@@ -17,11 +17,38 @@ class Ownerbox(DFSBookBase):
         ]
         self.redis = RedisManager(db=5)
 
-    def _generate_urls(self):
-        return [
-            self.book_data.url.get("main_url").format(league=league)
-            for league in self.LEAGUES
+    async def get_game_data(self, session: aiohttp.ClientSession, headers: dict, league: str):
+        stats = await self.api_caller(
+            session=session,
+            url=self.book_data.url.get("stat_url").format(league=league),
+            method=self.book_data.method,
+            headers=headers
+        )
+
+        if not stats or len(stats.get("data", [])) == 0:
+            return []
+
+        valid_stats = [
+            stat.get("id")
+            for stat in stats.get("data", [])
         ]
+
+        if not valid_stats:
+            return []
+
+        tasks = [
+            self.api_caller(
+                session=session,
+                url=self.book_data.url.get("game_url").format(market_id=stat),
+                method=self.book_data.method,
+                headers=headers
+            )
+
+            for stat in valid_stats
+        ]
+
+        return await asyncio.gather(*tasks)
+
 
     def _extract_game_data(self, game_data):
         team_a = game_data.get("game", {}).get("homeTeam", {}).get("alias")
@@ -36,7 +63,11 @@ class Ownerbox(DFSBookBase):
             team_key = self._generate_key([player_name, start_date])
 
         options = ["over", "under"] if game_data.get("pickOptions") == "MORE_OR_LESS" else ["over"]
-        discounts = Discounts(discount_name="Discount") if game_data.get("isDiscounted") else {}
+        discounts = Discounts(
+            discount_name="Discount",
+            discount_percentage=game_data.get("discount", {}).get("discountPercentage"),
+            discount_expiry=self.cache_time(datetime.fromtimestamp(game_data.get("discount", {}).get("expiry") / 1000).isoformat())
+        ) if game_data.get("isDiscounted") else {}
 
         return PlayerData(
             player_name=self.clean_and_normalize_name(player_name),
@@ -52,7 +83,7 @@ class Ownerbox(DFSBookBase):
             stats=[
                 Stats(
                    stat_type=STAT_TYPES.get(game_data.get("marketType").get("name").lower(), game_data.get("marketType").get("name")),
-                    line=game_data.get("line").get("balancedLine"),
+                    line=game_data.get("line").get("balancedLine") if not game_data.get("isDiscounted") else game_data.get("discount").get("discountLine"),
                     bet_direction=option,
                     regular_line=not game_data.get("isDiscounted"),
                     discounts=discounts
@@ -65,51 +96,41 @@ class Ownerbox(DFSBookBase):
 
 
     async def run_book(self):
-        links = self._generate_urls()
-        print(links)
-
         async with aiohttp.ClientSession() as session:
-            # auth_token = await self.redis.get_auth_token("ownerbox_auth_token")
-            # await self.redis.close()
+            auth_token = await self.redis.get_auth_token("ownerbox_auth_token")
+            await self.redis.close()
 
             headers = {
                 **self.book_data.headers,
-                # 'Cookie': f'obauth={auth_token}'
+                'Cookie': f'obauth={auth_token}'
             }
 
             tasks = [
-                self.api_caller(
+                self.get_game_data(
                     session=session,
-                    url=link,
-                    method=self.book_data.method,
-                    headers=headers
+                    headers=headers,
+                    league=league
                 )
-                for link in links
+                for league in self.LEAGUES
             ]
 
-            results = await asyncio.gather(*tasks)
-            sportsbook_data = [
-                market
-                for result in results
-                for market in result.get("markets", [])
-                if market
+            game_data = await asyncio.gather(*tasks)
+
+            merged_data = [
+                game for response in game_data
+                if response
+                for sublist in response
+                if sublist
+                for game in sublist.get("data", [])
+                if game
             ]
 
-            # sportsbook_data = self.check_api_response(sportsbook="ownerbox", results=results)
-
-            # print(sportsbook_data)
-            #
-            # if not sportsbook_data:
-            #     return
-            #
-            # merged_data = [item for res in sportsbook_data if res for item in res.get("data", [])]
-            #
-            # if not merged_data:
-            #     self._api_call_log(sportsbook="ownerbox", error_details="No data found in API responses")
-            #     return
+            if not merged_data:
+                self._api_call_log(sportsbook="ownerbox", error_details="No data found in API responses")
+                return
 
             player_data_list = {}
-            for game_details in sportsbook_data:
+            for game_details in merged_data:
                 player_data = self._extract_game_data(game_details)
                 if player_data:
                     player_key = (
@@ -125,9 +146,7 @@ class Ownerbox(DFSBookBase):
                         player_data_list[player_key] = player_data
 
             ownerbox_data = list(player_data_list.values())
-            serialize = self.serialize_data(ownerbox_data)
-            self.create_json(serialize, "ownerbox.json")
-            # return await self._database_mapper(ownerbox_data)
+            return await self._database_mapper(ownerbox_data)
 
 if __name__ == "__main__":
     ob = Ownerbox()
