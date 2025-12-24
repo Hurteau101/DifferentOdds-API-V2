@@ -27,7 +27,7 @@ async def generate_ownerbox_auth_token():
         return
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=True)
         context = await browser.new_context()
         page = await context.new_page()
 
@@ -55,7 +55,7 @@ async def generate_ownerbox_auth_token():
                 await redis.store_auth_token(
                     key_name="ownerbox_auth_token",
                     value=auth_token,
-                    key_expiration=46800
+                    key_expiration=300
                 )
                 await redis.close()
 

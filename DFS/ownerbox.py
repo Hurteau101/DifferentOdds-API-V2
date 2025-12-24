@@ -100,6 +100,9 @@ class Ownerbox(DFSBookBase):
             auth_token = await self.redis.get_auth_token("ownerbox_auth_token")
             await self.redis.close()
 
+            if not auth_token:
+                return
+
             headers = {
                 **self.book_data.headers,
                 'Cookie': f'obauth={auth_token}'
