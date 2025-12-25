@@ -13,13 +13,11 @@ API/API Logs/sgp
 DFS/DFS Logs
 SGP/SGP Logs
 *.log
-DFS/chalkboard.py
+DFS/chalkboard_old.py
 Internal_Docs/
 Settings/Auth_Automation/Logs/
 SGP/Test/SGP Logs/
 Redis/certs/ca.crt
 Prediction/
-
-
 .idea/
 Future_Implementation/

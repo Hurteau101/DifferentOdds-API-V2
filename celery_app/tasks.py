@@ -14,6 +14,7 @@ from DFS.parlaye import Parlaye
 from DFS.parlayplay import Parlayplay
 from DFS.sleeper import Sleeper
 from DFS.epicks import Epicks
+from DFS.chalkboard import Chalkboard
 from DFS.splashsports import SplashSports
 from datetime import datetime, timezone
 from celery.utils.log import get_task_logger
@@ -75,7 +76,7 @@ DFS_Books = {
     },
     "ownerbox": {
         "class": Ownerbox,
-        "interval": 45,
+        "interval": 60,
         "task": "dfs",
     },
     "parlaye": {
@@ -100,6 +101,11 @@ DFS_Books = {
     },
     "epicks": {
         "class": Epicks,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "chalkboard": {
+        "class": Chalkboard,
         "interval": 45,
         "task": "dfs",
     }
