@@ -6,6 +6,7 @@ from Settings.dfs_book_base import DFSBookBase
 from DFS.chalkboard_league_data import chalkboard_leagues
 from Redis.redis_manager import RedisManager
 from Settings.dfs_model import PlayerData, Stats, TeamData, Discounts
+import asyncio
 
 class Chalkboard(DFSBookBase):
     def __init__(self):
@@ -193,7 +194,5 @@ class Chalkboard(DFSBookBase):
 
 
 if __name__ == "__main__":
-    import asyncio
-
     chalk = Chalkboard()
     asyncio.run(chalk.run_book())
