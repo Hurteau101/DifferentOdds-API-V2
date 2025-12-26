@@ -60,6 +60,12 @@ class Chalkboard(DFSBookBase):
         }
 
     def _extract_game_data(self, game_data):
+        document_name = game_data.get("document", {}).get("name", "")
+
+        # There were duplicates, so add this logic check. Will have to check if this affects other leagues in the future.
+        if not document_name.endswith("guaranteed-2"):
+            return None
+
         base_map = game_data.get("document", {}).get("fields", {})
         if base_map.get("isLive", {}).get("booleanValue"):
             return None
@@ -187,9 +193,11 @@ class Chalkboard(DFSBookBase):
                         else:
                             player_data_dict[player_key] = player_data
 
-            # self.stat_counter(player_data_dict)
+            self.stat_counter(player_data_dict)
 
             chalkboard_data = list(player_data_dict.values())
+            ser = self.serialize_data(data=chalkboard_data)
+            self.create_json(data=ser, file_name="chalkboard_data.json")
             return await self._database_mapper(chalkboard_data)
 
 

@@ -196,7 +196,7 @@ DFS_PROVIDERS = [
         title="Chalkboard",
         name="chalkboard",
         url={
-            "main_url": "https://firestore.googleapis.com/v1/projects/taild-262305/databases/(default)/documents:runQuery"
+            "main_url": os.getenv("CHALKBOARD_URL")
         },
         method="POST",
         active=True
