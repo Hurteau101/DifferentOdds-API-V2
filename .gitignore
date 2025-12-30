@@ -18,6 +18,7 @@ Internal_Docs/
 Settings/Auth_Automation/Logs/
 SGP/Test/SGP Logs/
 Redis/certs/ca.crt
-Prediction/
+Prediction/old_kalashi.py
 .idea/
 Future_Implementation/
+Cross_Market [RENAMED] [DELETE]/
