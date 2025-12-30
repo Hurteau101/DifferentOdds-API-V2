@@ -1,6 +1,7 @@
 from dataclasses import asdict
 from API.Formatters.dfs_formatter import get_formatter
 from API.Formatters.pph_formatter import get_pph_formatter
+from API.Formatters.prediction_formatter import get_prediction_formatter
 from DFS.fanduel_picks import FanDuelPicks
 from DFS.prizepicks import Prizepicks
 from DFS.underdog import Underdog
@@ -19,7 +20,8 @@ from DFS.splashsports import SplashSports
 from datetime import datetime, timezone
 from celery.utils.log import get_task_logger
 from celery import shared_task
-# from Prediction.kalashi import Kalashi
+
+from Prediction.kalshi import Kalshi
 from Redis.redis_manager import RedisManager
 from asgiref.sync import async_to_sync
 
@@ -30,6 +32,7 @@ from SGP.onyx import Onyx_SGP
 from Settings.Auth_Automation.fanduel_picks_auth import generate_fanduel_picks_auth_token
 from Settings.Auth_Automation.onyx_sgp_auth import generate_onyx_auth_token
 from Settings.Auth_Automation.ownerbox_auth import generate_ownerbox_auth_token
+from Settings.Prediction_Settings.prediction_model import BookDataPrediction
 from Settings.dfs_model import BookData
 from Settings.pph_model import BookDataPPH
 from Settings.Liquidity_Settings.novig_model import BookDataLiquidity
@@ -117,13 +120,14 @@ DFS_Books = {
     # },
 }
 
-# EXCHANGE_BOOKS = {
-#     "kalashi" :{
-#         "class": Kalashi,
-#         "interval": 15,
-#         "task": "exchange",
-#     }
-# }
+
+PREDICTION_BOOKS = {
+    "kalshi" :{
+        "class": Kalshi,
+        "interval": 45,
+        "task": "prediction",
+    }
+}
 
 
 LIQUIDITY_BOOKS = {
@@ -134,7 +138,7 @@ LIQUIDITY_BOOKS = {
     }
 }
 
-PPH_BOOKES = {
+PPH_BOOKS = {
     "stg": {
         "class": STG,
         "interval": 60,
@@ -144,9 +148,9 @@ PPH_BOOKES = {
 
 BOOKS = {
     "dfs": DFS_Books,
-    "exchange": {},
-    "pph": PPH_BOOKES,
+    "pph": PPH_BOOKS,
     "liquidity": LIQUIDITY_BOOKS,
+    "prediction": PREDICTION_BOOKS,
 }
 
 @shared_task(ignore_result=True)
@@ -215,6 +219,21 @@ def liquidity_formatter(data):
     return {
         "game": normalized
     }
+
+def prediction_formatter(data):
+    book_data = BookDataPrediction(
+        last_refresh=datetime.now(timezone.utc),
+        data=data,
+    )
+
+    normalized = [asdict(p) for p in book_data.data]
+
+    return {
+        "base": get_prediction_formatter("base", normalized),
+        "game": get_prediction_formatter("game", normalized),
+    }
+
+
 
 def pph_formatter(data):
     book_data = BookDataPPH(
@@ -294,7 +313,7 @@ async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeou
     time_limit=300
 )
 def run_book_dfs(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter, timeout=180, blocking_timeout=30)
+    async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter, timeout=180, blocking_timeout=30,)
 
 
 @shared_task(
@@ -306,9 +325,13 @@ def run_book_liquidity(name, redis_db):
     async_to_sync(_shared_run_book)(name, redis_db, "liquidity", liquidity_formatter, timeout=180, blocking_timeout=30, modified_key="liquidity_data")
 
 
-# @shared_task(ignore_result=True)
-# def run_book_pph(name, redis_db):
-#     async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter)
+@shared_task(
+    ignore_result=True,
+    soft_time_limit=180,
+    time_limit=300
+)
+def run_book_prediction(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "prediction", prediction_formatter, timeout=180, blocking_timeout=30)
 
 @shared_task(
     ignore_result=True,

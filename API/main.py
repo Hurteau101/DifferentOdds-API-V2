@@ -7,6 +7,7 @@ from . import dfs
 from . import sgp
 from . import pph
 from . import liquidity
+from . import prediction
 from contextlib import asynccontextmanager
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -50,6 +51,6 @@ app.include_router(dfs.router)
 app.include_router(sgp.router)
 app.include_router(pph.router)
 app.include_router(liquidity.router)
-
+app.include_router(prediction.router)
 
 

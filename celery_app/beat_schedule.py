@@ -28,19 +28,23 @@ beat_schedule = {}
 for run_book_type, books in BOOKS.items():
     for book_name, book_info in books.items():
 
-        if run_book_type == "dfs":
-            redis_db = 0
-            queue = "dfs"
-            task_name = "celery_app.tasks.run_book_dfs"
-
-        elif run_book_type == "pph":
-            redis_db = 6
-            queue = "pph"
-            task_name = "celery_app.tasks.run_book_pph"
-        elif run_book_type == "liquidity":
-            redis_db = 4
-            queue = "liquidity"
-            task_name = "celery_app.tasks.run_book_liquidity"
+        # if run_book_type == "dfs":
+        #     redis_db = 0
+        #     queue = "dfs"
+        #     task_name = "celery_app.tasks.run_book_dfs"
+        #
+        # elif run_book_type == "pph":
+        #     redis_db = 6
+        #     queue = "pph"
+        #     task_name = "celery_app.tasks.run_book_pph"
+        # elif run_book_type == "liquidity":
+        #     redis_db = 4
+        #     queue = "liquidity"
+        #     task_name = "celery_app.tasks.run_book_liquidity"
+        if run_book_type == "prediction":
+            redis_db = 1
+            queue = "prediction"
+            task_name = "celery_app.tasks.run_book_prediction"
         else:
             continue
 

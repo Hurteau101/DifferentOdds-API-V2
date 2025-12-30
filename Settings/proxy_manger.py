@@ -55,7 +55,7 @@ class ProxyManager:
         return f"http://{username}:{password}@{ip}:{port}"
 
 
-    async def proxy_caller_async(self, session, url, method, headers, sportsbook=None):
+    async def proxy_caller_async(self, session, url, method, headers, avoid_single_log=False, params=None, sportsbook=None):
         for i in range(self.proxy_amount):
             proxy = self._cycle_proxies()
             if proxy:
@@ -65,14 +65,22 @@ class ProxyManager:
                         url=url,
                         method=method,
                         proxy=proxy,
-                        headers=headers
+                        headers=headers,
+                        params=params
                     )
+
+
+                    if not api_data.get("success"):
+                        continue
 
                     if api_data:
                         return api_data
 
                     continue
                 except ClientHttpProxyError as e:
+                    if avoid_single_log:
+                        continue
+
                     self.file_logger.log(
                         message=f"Proxies Issue",
                         sportsbook=sportsbook,
@@ -81,7 +89,16 @@ class ProxyManager:
                         proxy_message=e,
                         level="INFO"
                     )
+
                     continue
+
+        self.file_logger.log(
+            message=f"Proxies Issue",
+            sportsbook=sportsbook,
+            file=f"{self.caller_file_name}",
+            proxy_message="All proxies failed",
+            level="INFO"
+        )
 
     async def proxy_caller_spoof(self, url, method, headers, client_identifier="chrome_114", sportsbook=None):
         for i in range(self.proxy_amount):

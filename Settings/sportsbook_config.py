@@ -1,6 +1,6 @@
 from Settings.dfs_providers import DFS_PROVIDERS, DFSProvider
 from Settings.sgp_providers import SGPProvider, SGP_PROVIDERS
-from Settings.prediction_providers import EXCHANGE_PROVIDERS, ExchangeProvider
+from Settings.Prediction_Settings.prediction_providers import PREDICTION_PROVIDERS, PredictionProvider
 from Settings.sgp_mapper_providers import SGPMapperProviders, SGP_MAPPER_PROVIDERS
 from Settings.pph_providers import PPH_PROVIDERS, PPHProvider
 from Settings.Liquidity_Settings.liquidity_providers import LIQUIDITY_PROVIDERS, LiquidityProvider
@@ -8,7 +8,7 @@ from Settings.Liquidity_Settings.liquidity_providers import LIQUIDITY_PROVIDERS,
 NAMES_MAPPER = {
     "dfs": DFS_PROVIDERS,
     "sgp": SGP_PROVIDERS,
-    "exchange": EXCHANGE_PROVIDERS,
+    "prediction": PREDICTION_PROVIDERS,
     "sgp_mapper": SGP_MAPPER_PROVIDERS,
     "pph": PPH_PROVIDERS,
     "liquidity": LIQUIDITY_PROVIDERS
@@ -24,11 +24,11 @@ class SportsbookConfig:
             raise ValueError(f"DFS provider '{name}' not found.")
 
     @classmethod
-    def get_exchange_provider(cls, name: str) -> ExchangeProvider:
+    def get_prediction_provider(cls, name: str) -> PredictionProvider:
         try:
-            return next(provider for provider in EXCHANGE_PROVIDERS if provider.name == name)
+            return next(provider for provider in PREDICTION_PROVIDERS if provider.name == name)
         except StopIteration:
-            raise ValueError(f"Exchange provider '{name}' not found.")
+            raise ValueError(f"Prediction provider '{name}' not found.")
 
     @classmethod
     def get_sgp_provider(cls, name:str) -> SGPProvider:
