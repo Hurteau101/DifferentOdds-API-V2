@@ -71,7 +71,7 @@ async def get_odds(books, request, fmt):
 @router.get(
     "/odds",
     summary="Get Prediction Odds",
-    # dependencies=[Depends(get_api_key)]
+    dependencies=[Depends(get_api_key)]
     )
 async def get_book_data(
         request: Request,
