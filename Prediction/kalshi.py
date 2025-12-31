@@ -264,7 +264,7 @@ class Kalshi(PredictionBookBase):
                     key=key,
                     event=formatted_data.get("event"),
                     start_date=formatted_data["date"],
-                    league=LEAGUES.get(formatted_data.get("league").upper(), formatted_data.get("league").upper()),
+                    league=LEAGUES.get(formatted_data.get("league").lower(), formatted_data.get("league").upper()),
                     team_1=formatted_data.get("team_1").lower(),
                     team_2=formatted_data.get("team_2").lower(),
                     orders=[]
