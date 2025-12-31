@@ -22,6 +22,7 @@ from celery.utils.log import get_task_logger
 from celery import shared_task
 
 from Prediction.kalshi import Kalshi
+from Prediction.fourcx import FourCX
 from Redis.redis_manager import RedisManager
 from asgiref.sync import async_to_sync
 
@@ -125,6 +126,11 @@ PREDICTION_BOOKS = {
     "kalshi" :{
         "class": Kalshi,
         "interval": 120,
+        "task": "prediction",
+    },
+    "4cx": {
+        "class": FourCX,
+        "interval": 45,
         "task": "prediction",
     }
 }

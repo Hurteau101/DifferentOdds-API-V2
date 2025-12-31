@@ -7,12 +7,12 @@ from pydantic import BaseModel
 
 @dataclass
 class Order:
-    price: float
     liquidity: float
     american_odds: float | int
-    is_best: bool
     market: str
     bet_info: str
+    is_best: Optional[bool] = None
+    price: Optional[float] = None
     line: Optional[float] = None
     player: Optional[str] = None
     player_team: Optional[str] = None
@@ -25,7 +25,9 @@ class Game:
     start_date: str
     league: str
     team_1: Optional[str] = None
+    team_1_abbreviation: Optional[str] = None
     team_2: Optional[str] = None
+    team_2_abbreviation: Optional[str] = None
     orders: list[Order] = None
 
 

@@ -51,14 +51,13 @@ class PredictionBookBase(BookBase, ABC):
 
         for data in sportsbook_data:
             for team_selector in ["team_1", "team_2"]:
-                league = data.league
+                original_league = data.league
                 team_name_attr = getattr(data, team_selector)
                 if not team_name_attr:
                     continue
 
-                team_key = f"{team_name_attr.lower()}-{league}"
+                team_key = f"{team_name_attr.lower()}-{original_league}"
                 team = team_lookup.get(team_key)
-
                 if team:
                     for order in data.orders:
                         original_team = team.get("original_name") or ""
