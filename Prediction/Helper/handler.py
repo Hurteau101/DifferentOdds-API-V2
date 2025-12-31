@@ -1,6 +1,8 @@
 import re
 from abc import ABC, abstractmethod
 
+import unicodedata
+
 
 class MarketHandler(ABC):
     def __init__(self, event_data: dict):
@@ -24,6 +26,45 @@ class MarketHandler(ABC):
             "team_2": self.team_2,
         })
 
+    def clean_and_normalize_name(self, name):
+        if not name:
+            return name
+
+        nfkd_form = unicodedata.normalize('NFD', name)
+        return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+
+
+    def _extract_player_data(self, opposite: bool, line=None):
+        player = self.event_data.get("yes_sub_title", "")
+        direction = "over" if not opposite else "under"
+
+        if not line:
+            raw_line = re.findall(r'-?\d+\.?\d*', self.event_data.get("yes_sub_title", ""))
+
+            # If line is None or empty - Means its a 0.5 line
+            if not raw_line:
+                line = 0.5
+            else:
+                line = float(raw_line[0]) if raw_line else None
+
+                # Since Kalshi uses lines of 35+ we need to subtract 0.5 to make an over/under line.
+                if line and "+" in self.event_data.get("yes_sub_title", ""):
+                    line -= 0.5
+
+
+
+        if ":" in player:
+            player = player.split(":", 1)[0].strip()
+
+        bet_info = f"{direction} {line}" if line is not None else ""
+        # player_team = self.event_data.get("ticker").split("-")[-1][0:3] if self.event_data.get("ticker") else ""
+
+        # CHECK THIS ONCE TD LINES ARE OUT
+        player_team = self.event_data.get("ticker").split("-", 3)[2][0:3] if self.event_data.get("ticker") else ""
+
+        return {"player": self.clean_and_normalize_name(player), "line": line, "bet_info": bet_info, "player_team": player_team}
+
+
     def _generate_key(self, event_name, date, league) -> str:
         """Generate a unique key for the event based on its name and date."""
         modified_event_name = event_name.replace(" ", "_").lower()
@@ -33,7 +74,10 @@ class MarketHandler(ABC):
 
     def _clean_event_name(self, event_name) -> str:
         """Remove market name and unnecessary characters from event name."""
-        return event_name.replace(self.market_name, "").replace(":", "").strip().replace(" at ", " vs ")
+        # return event_name.replace(self.market_name, "").replace(":", "").strip().replace(" at ", " vs ")
+        event_name = event_name.split(":")[0]
+        return event_name.replace(" at ", " vs ").strip()
+
 
     def _split_teams(self, event_name: str) -> dict:
         """Split event name into two teams based on common delimiters."""
@@ -110,17 +154,24 @@ class TotalLineHandler(MarketHandler):
 @register_handler("Anytime Touchdown Scorer")
 class AnytimeTDdownHandler(MarketHandler):
     def format_data(self, **kwargs):
+        ##### COMMENT OUT ONCE TD LINES ARE OUT ##
         player = self.event_data.get("yes_sub_title", "")
-        market_name = self.event_data.get("common", {}).get("market")
         direction = "over" if not kwargs.get("opposite") else "under"
+        market_name = self.event_data.get("common", {}).get("market")
         line = 0.5 if market_name == "Anytime Touchdown Scorer" else 1.5 if market_name is not None else None
         bet_info = f"{direction} {line}" if line is not None else ""
-
         player_team = self.event_data.get("ticker").split("-")[-1][0:3] if self.event_data.get("ticker") else ""
 
         self.event_data.get("common", {}).update(
             {"player": player, "line": line, "bet_info": bet_info, "player_team": player_team}
         )
+        ##########################################
+        ##### UNCOMMENT ONCE TD LINES ARE OUT ##
+        # market_name = self.event_data.get("common", {}).get("market")
+        # line = 0.5 if market_name == "Anytime Touchdown Scorer" else 1.5 if market_name is not None else None
+        # player_data = self._extract_player_data(opposite=kwargs.get("opposite"), line=line)
+        # self.event_data.get("common", {}).update(player_data)
+        ############################################
 
         return {
             "key": self.key,
@@ -130,6 +181,46 @@ class AnytimeTDdownHandler(MarketHandler):
 
 @register_handler("Two or More Touchdowns Scorer")
 class TwoPlusTDdownHandler(AnytimeTDdownHandler):
+    pass
+
+@register_handler("Player Markets")
+class PlayerMarkets(MarketHandler):
+    def format_data(self, **kwargs):
+        player_data = self._extract_player_data(opposite=kwargs.get("opposite"))
+        self.event_data.get("common", {}).update(player_data)
+
+        return {
+            "key": self.key,
+            "event": self.event_data.get("event", ""),
+            **self.event_data.get("common", {}),
+        }
+
+@register_handler("Points")
+class PlayerPoints(PlayerMarkets):
+    pass
+
+@register_handler("Assists")
+class PlayerAssists(PlayerMarkets):
+    pass
+
+@register_handler("Rebounds")
+class PlayerRebounds(PlayerMarkets):
+    pass
+
+@register_handler("Three Pointers")
+class PlayerThrees(PlayerMarkets):
+    pass
+
+@register_handler("Double Doubles")
+class PlayerDD(PlayerMarkets):
+    pass
+
+@register_handler("First Goal Scorer")
+class PlayerFirstGoalScorer(PlayerMarkets):
+    pass
+
+@register_handler("Anytime Goal")
+class PlayerAnytimeGoal(PlayerMarkets):
     pass
 
 @register_handler("Moneyline")

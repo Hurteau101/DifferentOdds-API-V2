@@ -124,7 +124,7 @@ DFS_Books = {
 PREDICTION_BOOKS = {
     "kalshi" :{
         "class": Kalshi,
-        "interval": 45,
+        "interval": 120,
         "task": "prediction",
     }
 }
@@ -335,8 +335,8 @@ def run_book_prediction(name, redis_db):
 
 @shared_task(
     ignore_result=True,
-    soft_time_limit=180,
-    time_limit=300
+    soft_time_limit=220,
+    time_limit=400
 )
 def run_book_pph(name, redis_db):
     async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter, timeout=180, blocking_timeout=5)

@@ -29,6 +29,15 @@ class Kalshi(PredictionBookBase):
             "leagues": ["NFL", "NCAAF"],
             "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_ANYTD", "KX_2TD"],
         },
+
+        "basketball": {
+            "leagues": ["NCAAMB", "NCAAWB", "NBA", "WNBA"],
+            "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_PTS", "KX_AST", "KX_REB", "KX_3PT", "KX_2D"],
+        },
+        "hockey": {
+            "leagues": ["NHL"],
+            "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_FIRSTGOAL", "KX_GOAL", "KX_PTS", "KX_AST"],
+        }
     }
 
     MAPPER = {
@@ -48,6 +57,28 @@ class Kalshi(PredictionBookBase):
         "KX_2TD": {
             "kalshi_market_name": "Two or More Touchdowns Scorer",
             "actual_name": "2TD+"
+        },
+        "KX_PTS": {
+            "kalshi_market_name": "Points",
+        },
+        "KX_AST": {
+            "kalshi_market_name": "Assists",
+        },
+        "KX_REB": {
+            "kalshi_market_name": "Rebounds",
+        },
+        "KX_3PT": {
+            "kalshi_market_name": "Three Pointers",
+            "actual_name": "3PT Made"
+        },
+        "KX_2D": {
+            "kalshi_market_name": "Double Doubles",
+        },
+        "KX_FIRSTGOAL": {
+            "kalshi_market_name": "First Goal Scorer",
+        },
+        "KX_GOAL": {
+            "kalshi_market_name": "Anytime Goal",
         },
     }
 
@@ -218,6 +249,7 @@ class Kalshi(PredictionBookBase):
             params={}
         )
 
+
         if api_data and api_data.get("orderbook", {}):
             liquidity_list = {}
 
@@ -335,7 +367,8 @@ class Kalshi(PredictionBookBase):
             if not self.proxy_list:
                 raise ValueError("No proxies available for Kalshi API calls.")
 
-            sem = asyncio.Semaphore(len(self.proxy_list))
+            sem_length = len(self.proxy_list) * 4
+            sem = asyncio.Semaphore(sem_length)
 
             tasks = [
                 self._run_league_tasks(
@@ -381,7 +414,6 @@ class Kalshi(PredictionBookBase):
 
             kalshi_data = list(game_data.values())
             return await self._database_mapper(sportsbook_data=kalshi_data)
-
 
 if __name__ == "__main__":
     kalshi = Kalshi()
