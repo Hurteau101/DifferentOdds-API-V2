@@ -60,9 +60,9 @@ class MarketHandler(ABC):
         # player_team = self.event_data.get("ticker").split("-")[-1][0:3] if self.event_data.get("ticker") else ""
 
         # CHECK THIS ONCE TD LINES ARE OUT
-        player_team = self.event_data.get("ticker").split("-", 3)[2][0:3] if self.event_data.get("ticker") else ""
-
-        return {"player": self.clean_and_normalize_name(player), "line": line, "bet_info": bet_info, "player_team": player_team}
+        # player_team = self.event_data.get("ticker").split("-", 3)[2][0:3] if self.event_data.get("ticker") else ""
+        return {"player": self.clean_and_normalize_name(player), "line": line, "bet_info": bet_info}
+        # return {"player": self.clean_and_normalize_name(player), "line": line, "bet_info": bet_info, "player_team": player_team}
 
 
     def _generate_key(self, event_name, date, league) -> str:
@@ -160,11 +160,16 @@ class AnytimeTDdownHandler(MarketHandler):
         market_name = self.event_data.get("common", {}).get("market")
         line = 0.5 if market_name == "Anytime Touchdown Scorer" else 1.5 if market_name is not None else None
         bet_info = f"{direction} {line}" if line is not None else ""
-        player_team = self.event_data.get("ticker").split("-")[-1][0:3] if self.event_data.get("ticker") else ""
+        # player_team = self.event_data.get("ticker").split("-")[-1][0:3] if self.event_data.get("ticker") else ""
+
+        # self.event_data.get("common", {}).update(
+        #     {"player": player, "line": line, "bet_info": bet_info, "player_team": player_team}
+        # )
 
         self.event_data.get("common", {}).update(
-            {"player": player, "line": line, "bet_info": bet_info, "player_team": player_team}
+            {"player": player, "line": line, "bet_info": bet_info}
         )
+
         ##########################################
         ##### UNCOMMENT ONCE TD LINES ARE OUT ##
         # market_name = self.event_data.get("common", {}).get("market")

@@ -70,13 +70,13 @@ class PredictionBookBase(BookBase, ABC):
                                 flags=re.IGNORECASE
                             )
 
-                        if order.player_team and original_team and original_team.lower() in order.player_team.lower():
-                            order.player_team = re.sub(
-                                re.escape(original_team),
-                                team["team_name"],
-                                order.player_team,
-                                flags=re.IGNORECASE
-                            )
+                        # if order.player_team and original_team and original_team.lower() in order.player_team.lower():
+                        #     order.player_team = re.sub(
+                        #         re.escape(original_team),
+                        #         team["team_name"],
+                        #         order.player_team,
+                        #         flags=re.IGNORECASE
+                        #     )
 
                     data.league = team["league"]
                     setattr(data, team_selector, team["team_name"])
