@@ -7,7 +7,6 @@ from Mapper.static_mapper import STAT_TYPES, LEAGUES
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, Discounts
 
-#### HAVE TO GET ALL MARKET_TYPES OR ALL PLAYERS WON'T SHOW UP ####
 
 class Ownerbox(DFSBookBase):
     def __init__(self):
@@ -28,10 +27,10 @@ class Ownerbox(DFSBookBase):
         if not stats or len(stats.get("data", [])) == 0:
             return []
 
-        valid_stats = [
-            stat.get("id")
+        valid_stats = {
+            stat.get("id"): stat.get("sport")
             for stat in stats.get("data", [])
-        ]
+            }
 
         if not valid_stats:
             return []
@@ -39,12 +38,12 @@ class Ownerbox(DFSBookBase):
         tasks = [
             self.api_caller(
                 session=session,
-                url=self.book_data.url.get("game_url").format(market_id=stat),
+                url=self.book_data.url.get("game_url").format(market_id=stat, league=league),
                 method=self.book_data.method,
                 headers=headers
             )
 
-            for stat in valid_stats
+            for stat, league in valid_stats.items()
         ]
 
         return await asyncio.gather(*tasks)

@@ -119,7 +119,7 @@ DFS_PROVIDERS = [
         name="ownerbox",
         url={
             "stat_url": "https://app.ownersbox.com/fsp/marketType/active?sport={league}",
-            "game_url": "https://app.ownersbox.com/fsp/v4/market?sport=NFL&marketTypeId={market_id}"
+            "game_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}&marketTypeId={market_id}"
             # "main_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}",
             # "main_url": "https://app.ownersbox.com/api/v1/markets?sport={league}",
             # "main_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}",
