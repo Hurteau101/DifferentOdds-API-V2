@@ -145,9 +145,9 @@ class Chalkboard(DFSBookBase):
                     bet_direction=direction,
                     regular_line=False,
                     optional_stats={
-                        "probabilities": stat.get("mapValue", {}).get("fields", {}).get("probabilities", {}).get("doubleValue"),
+                        # "probabilities": stat.get("mapValue", {}).get("fields", {}).get("probabilities", {}).get("doubleValue"),
                         "odds": stat.get("mapValue", {}).get("fields", {}).get("odds", {}).get("stringValue"),
-                        "ui_multiplier": self._calculate_ui(
+                        "multiplier": self._calculate_ui(
                             margin=margin_value,
                             odds=float(stat.get("mapValue", {}).get("fields", {}).get("odds", {}).get("stringValue", 0))
                         )
