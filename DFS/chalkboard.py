@@ -3,7 +3,7 @@ from typing import Dict
 
 import aiohttp
 from dotenv import load_dotenv
-from Mapper.static_mapper import LEAGUES
+from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from DFS.chalkboard_league_data import chalkboard_leagues
@@ -140,7 +140,7 @@ class Chalkboard(DFSBookBase):
             future=False,
             stats=[
                 Stats(
-                    stat_type=stat.get("mapValue", {}).get("fields", {}).get("statisticName", {}).get("stringValue"),
+                    stat_type=STAT_TYPES.get(stat.get("mapValue", {}).get("fields", {}).get("statisticName", {}).get("stringValue").lower(), stat.get("mapValue", {}).get("fields", {}).get("statisticName", {}).get("stringValue")),
                     line=stat.get("mapValue", {}).get("fields", {}).get("value", {}).get("doubleValue"),
                     bet_direction=direction,
                     regular_line=False,
