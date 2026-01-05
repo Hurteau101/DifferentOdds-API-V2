@@ -25,6 +25,9 @@ LEAGUES = {
     'valorant champions tour': "VAL",
     'valorant': "VAL",
 
+    # COD
+    "callofduty": "COD",
+
     # Dota2
     "dota": "DOTA2",
     'dota 2': "DOTA2",
@@ -34,6 +37,7 @@ LEAGUES = {
     'apex legends global series': 'APEX',
     'r6 esports': 'R6',
     'rainbow six pro league': 'R6',
+    'rl': "Rocket League",
 
     # Golf
     'pga tour': 'PGA',
@@ -291,6 +295,8 @@ STAT_TYPES = {
     "Fantasy Points on Maps 1+2": "Maps 1-2 Fantasy Score",
     "assists on maps 1+2": "Maps 1-2 Assists",
     "assists on maps 1+2+3": "Maps 1-3 Assists",
+    "map 1-2 kills": "Maps 1-2 Kills",
+    "map 1-2 headshots": "Maps 1-2 Headshots",
 
     # Darts
     "1st leg checkout total": "1st Leg Checkout Total",
