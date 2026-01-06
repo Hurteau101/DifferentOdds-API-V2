@@ -123,8 +123,14 @@ class PredictionBookBase(BookBase, ABC):
                     data.league = team["league"]
                     setattr(data, team_selector, team["team_name"])
 
+
             if sportsbook.lower() in special_date_mapper_books:
                 self._special_date_mapper(market_data=data, mapped_data=mapped_dates)
+
+            teams = sorted([data.team_1, data.team_2])
+            data.event = f" vs ".join(sorted(teams))
+            data.key = self._generate_key([data.event, data.league, data.start_date])
+
 
         return sportsbook_data
 
