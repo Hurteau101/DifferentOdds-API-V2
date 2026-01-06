@@ -71,7 +71,7 @@ class PredictionBookBase(BookBase, ABC):
         ), None)
 
         if matched_key_date:
-            market_data.start_date = matched_key_date
+            market_data.start_date = self.cache_time(matched_key_date)
 
 
     async def _database_mapper(self, sportsbook_data: list):
