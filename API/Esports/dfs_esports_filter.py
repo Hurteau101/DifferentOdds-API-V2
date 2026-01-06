@@ -49,6 +49,8 @@ def create_differences(esports_data):
             for stat in entry.get("stats", []):
                 stat_type = stat.get("stat_type").lower()
                 stat_key = f"{player_key}-{stat_type}-{opponent.lower()}"
+                team_list = sorted([team_a.lower(), team_b.lower()])
+                game = " vs ".join(team_list)
 
                 if stat_key not in differences:
                     stat_details = {
@@ -57,6 +59,7 @@ def create_differences(esports_data):
                         "league": league,
                         "player_team": player_team,
                         "opponent": opponent,
+                        "game": game,
                         "stat_type": stat_type,
                         "books": []
                     }
