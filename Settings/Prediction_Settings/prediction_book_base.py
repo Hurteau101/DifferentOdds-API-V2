@@ -1,5 +1,11 @@
 import os
 import re
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+
+from orjson import orjson
+
+from Redis.redis_manager import RedisSync
 from Settings.book_base import BookBase
 from abc import ABC
 from Settings.sportsbook_config import SportsbookConfig
@@ -39,6 +45,35 @@ class PredictionBookBase(BookBase, ABC):
             for team in (sportsbook.team_1, sportsbook.team_2)
         ]
 
+    def _special_date_mapper(self, market_data, mapped_data):
+        """Used when a prediction market doesn't offer valid game dates"""
+        if not mapped_data:
+            return
+
+        game_key = " vs ".join(sorted([
+            market_data.team_1,
+            market_data.team_2
+        ])).replace(" ", "_")
+
+        raw_date = datetime.strptime(market_data.start_date, "%Y-%m-%d")
+
+        # Create key list, since books like Kalshi don't give any indication of the timezone, nor do they provide
+        # any times, to switch the timezone to UTC. This should cover those cases.
+        key_list = [
+            f"{game_key}_{market_data.league}_{(raw_date + timedelta(days=i)).date()}".lower()
+            for i in range(0, 2)
+        ]
+
+        matched_key_date = next((
+            mapped_data.get(key)
+            for key in key_list
+            if key in mapped_data
+        ), None)
+
+        if matched_key_date:
+            market_data.start_date = matched_key_date
+
+
     async def _database_mapper(self, sportsbook_data: list):
         sportsbook = self.__class__.__name__
         teams = self._extract_teams(sportsbook_data, sportsbook)
@@ -47,6 +82,14 @@ class PredictionBookBase(BookBase, ABC):
             f'{team["original_name"].lower()}-{team["league"]}': team
             for team in mapped_teams
         }
+
+
+        special_date_mapper_books = ["kalshi"]
+        if sportsbook.lower() in special_date_mapper_books:
+            redis = RedisSync(db=2)
+            games_data = redis.get("espn_games")
+            if games_data:
+                mapped_dates = orjson.loads(games_data)
 
 
         for data in sportsbook_data:
@@ -79,6 +122,9 @@ class PredictionBookBase(BookBase, ABC):
 
                     data.league = team["league"]
                     setattr(data, team_selector, team["team_name"])
+
+            if sportsbook.lower() in special_date_mapper_books:
+                self._special_date_mapper(market_data=data, mapped_data=mapped_dates)
 
         return sportsbook_data
 

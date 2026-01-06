@@ -80,6 +80,7 @@ LEAGUES = {
     "ncaab": "CBB",
     "ncaam": "CBB",
     "cbb2h": "CBB",
+    "ncaaw": "WCBB",
 
     # Football
     "cfb2h": "CFB",

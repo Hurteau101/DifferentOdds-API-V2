@@ -26,18 +26,20 @@ def is_rate_limited(result: dict) -> bool:
 class Kalshi(PredictionBookBase):
     SPORTS = {
         "football": {
-            "leagues": ["NFL", "NCAAF"],
-            "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_ANYTD", "KX_2TD"],
+            # "leagues": ["NFL", "NCAAF"],
+            # "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_ANYTD", "KX_2TD"],
+            "leagues": ["NFL"],
+            "markets": ["KX_GAME"],
         },
 
-        "basketball": {
-            "leagues": ["NCAAMB", "NCAAWB", "NBA", "WNBA"],
-            "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_PTS", "KX_AST", "KX_REB", "KX_3PT", "KX_2D"],
-        },
-        "hockey": {
-            "leagues": ["NHL"],
-            "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_FIRSTGOAL", "KX_GOAL", "KX_PTS", "KX_AST"],
-        }
+        # "basketball": {
+        #     "leagues": ["NCAAMB", "NCAAWB", "NBA", "WNBA"],
+        #     "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_PTS", "KX_AST", "KX_REB", "KX_3PT", "KX_2D"],
+        # },
+        # "hockey": {
+        #     "leagues": ["NHL"],
+        #     "markets": ["KX_GAME", "KX_SPREAD", "KX_TOTAL", "KX_FIRSTGOAL", "KX_GOAL", "KX_PTS", "KX_AST"],
+        # }
     }
 
     MAPPER = {
