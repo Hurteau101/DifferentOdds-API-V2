@@ -72,7 +72,9 @@ class PredictionBookBase(BookBase, ABC):
 
         if matched_key_date:
             market_data.start_date = self.cache_time(matched_key_date)
-
+        else:
+            modified_date = datetime.strptime(market_data.start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            market_data.start_date = self.cache_time(modified_date.strftime("%Y-%m-%dT%H:%M:%SZ"))
 
     async def _database_mapper(self, sportsbook_data: list):
         sportsbook = self.__class__.__name__
