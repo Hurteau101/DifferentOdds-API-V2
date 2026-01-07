@@ -295,7 +295,7 @@ STAT_TYPES = {
     "headshots map 1": "Map 1 Headshots",
     "headshots maps 1 2": "Maps 1-2 Headshots",
     "headshots on maps 1+2": "Maps 1-2 Headshots",
-    "headshots Map 1+2": "Maps 1-2 Headshots",
+    "headshots map 1+2": "Maps 1-2 Headshots",
     "fantasy points in games 1+2": "Maps 1-2 Fantasy Score",
     "Fantasy Points on Maps 1+2": "Maps 1-2 Fantasy Score",
     "assists on maps 1+2": "Maps 1-2 Assists",

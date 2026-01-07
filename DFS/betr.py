@@ -220,7 +220,7 @@ class Betr(DFSBookBase):
 
             results.append(
                 PlayerData(
-                    player_name=player_name,
+                    player_name=self.clean_and_normalize_name(player_name),
                     league=league,
                     start_date=game_date,
                     team_data=TeamData(
