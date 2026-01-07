@@ -46,7 +46,7 @@ class Sleeper(DFSBookBase):
             team_a = team_information.get("metadata").get("home_team").get("team")
             team_b = team_information.get("metadata").get("away_team").get("team")
 
-        player_team = self.clean_and_normalize_name(player_details.get("subject_team"))
+        player_team = self.clean_and_normalize_name(player_details.get("team"))
         start_date = self.cache_time(datetime.fromtimestamp(team_information.get('start_time') / 1000).isoformat())
 
         team_a = self.clean_and_normalize_name(team_a)
