@@ -34,6 +34,7 @@ class Betr(DFSBookBase):
                     }
                     ... on TeamVersusEvent {
                       teams {
+                        name
                         ...TeamInfoWithPlayers
                         __typename
                       }
@@ -130,7 +131,6 @@ class Betr(DFSBookBase):
                 "variables": {"ids": list(league)},
             }
 
-
         raw_game_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
@@ -150,6 +150,7 @@ class Betr(DFSBookBase):
 
     def _extract_teams(self, data, player_name=None):
         # Extract team names and generate a unique key for the match up
+
         if data.get("playerStructure") == "TEAM":
             team_a, team_b = data.get("name").split("@")
             team_a = self.clean_and_normalize_name(team_a.strip())
@@ -171,14 +172,13 @@ class Betr(DFSBookBase):
         }
 
 
-    def _extract_projections(self, players, league, game_date, team_names=None, solo_game=False,):
+    def _extract_projections(self, players, player_team_name, league, game_date, team_names=None, solo_game=False,):
         def stat_type_helper(stat_types):
             """Conflict with other books on some stat types, so we need to manually adjust them here."""
             if stat_types.lower() == "strikeouts":
                 stat_types = "batter strikeouts"
 
             return STAT_TYPES.get(stat_types.lower(), stat_types.title())
-
 
         option_mapper = {
             "more": "over",
@@ -187,11 +187,13 @@ class Betr(DFSBookBase):
 
         results = []
 
+
         # Iterate through player list.
         for player in players:
             stats = []
             player_name = self.clean_and_normalize_name(f"{player.get('firstName')} {player.get('lastName')}")
-            player_team = player.get("name") if not solo_game else player_name
+            # player_team = player.get("name") if not solo_game else player_name
+            player_team = player_team_name if not solo_game else player_name
 
             # If it's a solo game, we extract team names based on the player name.
             if solo_game:
@@ -240,12 +242,12 @@ class Betr(DFSBookBase):
             self._api_call_log(sportsbook="betr", error_details="No teams found in team game extraction.")
             return []
 
-
         return [
             item
             for team in teams
             for item in self._extract_projections(
                 players=team.get("players", []),
+                player_team_name=team.get("name", ""),
                 league=league,
                 game_date=game_date,
                 team_names=team_names
@@ -269,7 +271,7 @@ class Betr(DFSBookBase):
         # Conditional check as Solo and Team games have a different structure.
         if game.get("playerStructure") == "INDIVIDUAL":
             results.extend(
-                self._extract_projections(game.get("players", []), league, game_date, solo_game=True)
+                self._extract_projections(game.get("players", []), game.get("name", ""), league, game_date, solo_game=True)
             )
         elif game.get("playerStructure") == "TEAM":
             team_names = self._extract_teams(game)
