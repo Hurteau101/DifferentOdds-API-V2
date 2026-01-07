@@ -46,6 +46,7 @@ def create_differences(esports_data):
 
             opponent = team_b if player_team.lower() != team_b.lower() else team_a
 
+
             for stat in entry.get("stats", []):
                 stat_type = stat.get("stat_type").lower()
                 stat_key = f"{player_key}-{stat_type}-{opponent.lower()}"
@@ -84,7 +85,7 @@ def create_differences(esports_data):
                 if book_name == "prizepicks":
                     multiplier = 1 if stat.get("regular_line") else 1.01 # Using 1.01 to indicate a non-regular line
                 else:
-                    multiplier = stat.get("optional_stats", {}).get("multiplier")
+                    multiplier = stat.get("optional_stats", {}).get("multiplier") if stat.get("optional_stats", {}).get("multiplier") else 1
 
                 book_entry["directions"].append({
                     "bet_direction": stat.get("bet_direction"),
