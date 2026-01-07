@@ -280,6 +280,8 @@ STAT_TYPES = {
     "kills in game 1": "Map 1 Kills",
     "game 1 kills": "Map 1 Kills",
     "game 2 kills": "Map 2 Kills",
+    "kills map 1": "Map 1 Kills",
+    "kills map 1+2": "Maps 1-2 Kills",
     "kills on maps 1+2": "Maps 1-2 Kills",
     "kills in game 1+2": "Maps 1-2 Kills",
     "kills in maps 1+2": "Maps 1-2 Kills",
@@ -290,14 +292,17 @@ STAT_TYPES = {
     "1st 2 maps  kills": "Maps 1-2 Kills",
     "kills": "Maps 1-2 Kills", # Double Check its 1-2 for maps
     "1st 2 maps headshots": "Maps 1-2 Headshots",
+    "headshots map 1": "Map 1 Headshots",
     "headshots maps 1 2": "Maps 1-2 Headshots",
     "headshots on maps 1+2": "Maps 1-2 Headshots",
+    "headshots Map 1+2": "Maps 1-2 Headshots",
     "fantasy points in games 1+2": "Maps 1-2 Fantasy Score",
     "Fantasy Points on Maps 1+2": "Maps 1-2 Fantasy Score",
     "assists on maps 1+2": "Maps 1-2 Assists",
     "assists on maps 1+2+3": "Maps 1-3 Assists",
     "map 1-2 kills": "Maps 1-2 Kills",
     "map 1-2 headshots": "Maps 1-2 Headshots",
+
 
     # Darts
     "1st leg checkout total": "1st Leg Checkout Total",
