@@ -125,11 +125,7 @@ class Chalkboard(DFSBookBase):
             "under": market_base.get("under", {})
         }
 
-        if (
-                (not stat_options.get("over") or stat_options["over"].get("nullValue"))
-                and
-                (not stat_options.get("under") or stat_options["under"].get("nullValue"))
-        ):
+        if "nullValue" in stat_options.get("over") and "nullValue" in stat_options.get("under"):
             return None
 
 
@@ -162,6 +158,7 @@ class Chalkboard(DFSBookBase):
                     }
                 )
                 for direction, stat in stat_options.items()
+                if stat.get("mapValue", {}).get("fields", {}).get("statisticName", {}).get("stringValue") is not None
             ],
             solo_game=False if all([team_a, team_b]) else True,
             combo=False,
