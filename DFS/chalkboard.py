@@ -125,6 +125,14 @@ class Chalkboard(DFSBookBase):
             "under": market_base.get("under", {})
         }
 
+        if (
+                (not stat_options.get("over") or stat_options["over"].get("nullValue"))
+                and
+                (not stat_options.get("under") or stat_options["under"].get("nullValue"))
+        ):
+            return None
+
+
         return PlayerData(
             player_name=player_name,
             league=league,
