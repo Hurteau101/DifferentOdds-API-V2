@@ -106,11 +106,11 @@ class PredictionBookBase(BookBase, ABC):
                 if team:
                     for order in data.orders:
                         original_team = team.get("original_name") or ""
-                        if order.bet_info and original_team and original_team.lower() in order.bet_info.lower():
-                            order.bet_info = re.sub(
+                        if order.bet_team and original_team and original_team.lower() in order.bet_team.lower():
+                            order.bet_team = re.sub(
                                 re.escape(original_team),
                                 team["team_name"],
-                                order.bet_info,
+                                order.bet_team,
                                 flags=re.IGNORECASE
                             )
 

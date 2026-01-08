@@ -128,11 +128,11 @@ PREDICTION_BOOKS = {
         "interval": 120,
         "task": "prediction",
     },
-    "4cx": {
-        "class": FourCX,
-        "interval": 45,
-        "task": "prediction",
-    }
+    # "4cx": {
+    #     "class": FourCX,
+    #     "interval": 45,
+    #     "task": "prediction",
+    # }
 }
 
 

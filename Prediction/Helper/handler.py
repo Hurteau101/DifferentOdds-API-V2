@@ -16,7 +16,7 @@ class MarketHandler(ABC):
                                  self.event_data.get("common", {}).get("league", ""))
 
         self.event_data.update(**self._split_teams(self.event_data.get("event", "")))
-        self.line = self.event_data.get("common", {}).get("line")
+        self.line = self.event_data.get("line")
 
 
         self.team_1 = self.event_data.get("team_1", "")
@@ -56,12 +56,11 @@ class MarketHandler(ABC):
         if ":" in player:
             player = player.split(":", 1)[0].strip()
 
-        bet_info = f"{direction} {line}" if line is not None else ""
         # player_team = self.event_data.get("ticker").split("-")[-1][0:3] if self.event_data.get("ticker") else ""
 
         # CHECK THIS ONCE TD LINES ARE OUT
         # player_team = self.event_data.get("ticker").split("-", 3)[2][0:3] if self.event_data.get("ticker") else ""
-        return {"player": self.clean_and_normalize_name(player), "line": line, "bet_info": bet_info}
+        return {"player": self.clean_and_normalize_name(player), "line": line, "bet_type": direction.title()}
         # return {"player": self.clean_and_normalize_name(player), "line": line, "bet_info": bet_info, "player_team": player_team}
 
 
@@ -120,17 +119,18 @@ def make_handler(market_name: str, event_data: dict) -> MarketHandler:
 class SpreadHandler(MarketHandler):
     def format_data(self, **kwargs):
         if kwargs.get("opposite"):
-            primary_team = self.team_1 if self.team_1 not in self.event_data.get("yes_sub_title", "") else self.team_2
-            bet_info = f"+{self.line} {primary_team}"
+            bet_team = self.team_1 if self.team_1 not in self.event_data.get("yes_sub_title", "") else self.team_2
+            line = self.line
         else:
-            primary_team = self.team_1 if self.team_1 in self.event_data.get("yes_sub_title", "") else self.team_2
-            bet_info = f"-{self.line} {primary_team}"
+            bet_team = self.team_1 if self.team_1 in self.event_data.get("yes_sub_title", "") else self.team_2
+            line = -self.line
 
         return {
             "key": self.key,
             "event": self.event_data.get("event", ""),
             **self.event_data.get("common", {}),
-            "bet_info": bet_info,
+            "line": line,
+            "bet_team": bet_team
         }
 
 @register_handler("Total Points")
@@ -140,15 +140,16 @@ class TotalLineHandler(MarketHandler):
 
         if kwargs.get("opposite"):
             opposite_direction = "under" if direction == "over" else "over"
-            bet_info = f"{opposite_direction} {self.line}"
+            bet_type = opposite_direction
         else:
-            bet_info = f"{direction} {self.line}"
+            bet_type = direction
 
         return {
             "key": self.key,
             "event": self.event_data.get("event", ""),
             **self.event_data.get("common", {}),
-            "bet_info": bet_info,
+            "line": self.line,
+            "bet_type": bet_type.title(),
         }
 
 @register_handler("Anytime Touchdown Scorer")
@@ -159,7 +160,7 @@ class AnytimeTDdownHandler(MarketHandler):
         direction = "over" if not kwargs.get("opposite") else "under"
         market_name = self.event_data.get("common", {}).get("market")
         line = 0.5 if market_name == "Anytime Touchdown Scorer" else 1.5 if market_name is not None else None
-        bet_info = f"{direction} {line}" if line is not None else ""
+        # bet_info = f"{direction} {line}" if line is not None else ""
         # player_team = self.event_data.get("ticker").split("-")[-1][0:3] if self.event_data.get("ticker") else ""
 
         # self.event_data.get("common", {}).update(
@@ -167,7 +168,7 @@ class AnytimeTDdownHandler(MarketHandler):
         # )
 
         self.event_data.get("common", {}).update(
-            {"player": player, "line": line, "bet_info": bet_info}
+            {"player": player, "line": line, "bet_type": direction.title()}
         )
 
         ##########################################

@@ -1,5 +1,4 @@
 import os
-import time
 import aiohttp
 import asyncio
 from aiolimiter import AsyncLimiter
@@ -170,12 +169,12 @@ class Kalshi(PredictionBookBase):
                     "yes_sub_title": market.get("yes_sub_title"),
                     "run_opposite": True if mapped_name.get("kalshi_market_name") != "Moneyline" else False,
                     "kalshi_market_name": mapped_name.get("kalshi_market_name"),
+                    "line": market.get("floor_strike", None),
                     "common": {
                         "date": self.game_date_from_event_ticker(market.get("ticker")),
                         "league": league,
-                        "line": market.get("floor_strike", None),
                         "market": mapped_name.get("actual_name", mapped_name.get("kalshi_market_name")),
-                        "player": None
+                        "bet_player": None
                     },
                 })
 
@@ -299,8 +298,9 @@ class Kalshi(PredictionBookBase):
                         is_best=(bid_price_cents == no_bids[-1][0]),
                         line=formatted_data.get("line"),
                         market=STAT_TYPES.get(formatted_data.get("market").lower(), formatted_data.get("market")),
-                        player=formatted_data.get("player"),
-                        bet_info=formatted_data.get("bet_info").lower() if formatted_data.get("bet_info") else None,
+                        bet_player=formatted_data.get("bet_player"),
+                        bet_team=formatted_data.get("bet_team"),
+                        bet_type=formatted_data.get("bet_type"),
                         player_team=formatted_data.get("player_team").lower() if formatted_data.get("player_team") else None,
                     )
 
@@ -324,8 +324,9 @@ class Kalshi(PredictionBookBase):
                         is_best=(bid_price_cents == yes_bids[-1][0]),
                         line=formatted_data.get("line"),
                         market=formatted_data.get("market"),
-                        player=formatted_data.get("player"),
-                        bet_info=formatted_data.get("bet_info"),
+                        bet_player=formatted_data.get("bet_player"),
+                        bet_team=formatted_data.get("bet_team"),
+                        bet_type=formatted_data.get("bet_type"),
                         player_team=formatted_data.get("player_team"),
                     )
 
@@ -413,6 +414,7 @@ class Kalshi(PredictionBookBase):
 
             kalshi_data = list(game_data.values())
             return await self._database_mapper(sportsbook_data=kalshi_data)
+
 
 if __name__ == "__main__":
     kalshi = Kalshi()
