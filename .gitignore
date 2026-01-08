@@ -14,6 +14,7 @@ DFS/DFS Logs
 SGP/SGP Logs
 *.log
 DFS/chalkboard_old.py
+DFS/chalkboard_all_lines_testing.py
 Internal_Docs/
 Settings/Auth_Automation/Logs/
 SGP/Test/SGP Logs/
@@ -21,4 +22,4 @@ Redis/certs/ca.crt
 Prediction/old_kalashi.py
 .idea/
 Future_Implementation/
-Cross_Market [RENAMED] [DELETE]/
+Cross_Market\ \[RENAMED\]\ \[DELETE\]/
