@@ -254,7 +254,7 @@ def pph_formatter(data):
         "game": get_pph_formatter("game", normalized),
     }
 
-async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeout=60, blocking_timeout=1, modified_key=None):
+async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeout=60, blocking_timeout=1, modified_key=None, key_expiration=600):
     redis_manager = RedisManager(db=redis_db)
 
     lock_key = f"{run_book_type}_lock:{name}"
@@ -298,7 +298,7 @@ async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeou
                 else:
                     wrapped_payload = payload
 
-                await redis_manager.store_data(key, wrapped_payload, key_expiration=600)
+                await redis_manager.store_data(key, wrapped_payload, key_expiration=key_expiration)
                 logger.info(f"Stored formatted {fmt.upper()} data for {name}")
 
         logger.info(f"Finished {run_book_type} book: {name}")
@@ -337,7 +337,7 @@ def run_book_liquidity(name, redis_db):
     time_limit=300
 )
 def run_book_prediction(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "prediction", prediction_formatter, timeout=180, blocking_timeout=30)
+    async_to_sync(_shared_run_book)(name, redis_db, "prediction", prediction_formatter, timeout=180, blocking_timeout=30, key_expiration=1200)
 
 @shared_task(
     ignore_result=True,
