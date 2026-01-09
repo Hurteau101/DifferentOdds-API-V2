@@ -80,6 +80,7 @@ LEAGUES = {
     "euro": "EUROLEAGUE",
     "ncaab": "CBB",
     "ncaam": "CBB",
+    "ncaamb": "CBB",
     "cbb2h": "CBB",
     "ncaaw": "WCBB",
     "nba-props": "NBA",
