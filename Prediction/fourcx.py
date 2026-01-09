@@ -170,7 +170,7 @@ class FourCX(PredictionBookBase):
 
             leagues = raw_leagues.get("data", {}).get("availableLeagues", [])
             leagues = self._filter_leagues(leagues)
-            leagues = ["nfl-props"]
+
             orders = [
                 self.api_caller(
                     session=session,
