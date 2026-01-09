@@ -82,7 +82,7 @@ class FourCX(PredictionBookBase):
         """
         if is_player_prop:
             name = re.findall(r"\((.*?)\)", event_name)
-            return name[0] if name else None
+            return STAT_TYPES.get(name[0].lower(), name[0].title()) if name else None
 
         market_name = order.get("type", "")
 
@@ -111,17 +111,17 @@ class FourCX(PredictionBookBase):
             for team in teams.values()
         ])
 
-        league = LEAGUES.get(league.lower(), league.upper())
+        modified_league = LEAGUES.get(league.lower(), league.upper())
         game_date = self.cache_time(game.get("start"))
 
         team_keys = "_".join(team_list).replace(" ", "_")
-        key = f"{league}_{team_keys}_{game_date}".lower()
+        key = f"{modified_league}_{team_keys}_{game_date}".lower()
 
         return Game(
             key=key,
             event=" vs ".join(team_list) if len(team_list) == 2 else game.get("eventName"),
             start_date=game_date,
-            league=league,
+            league=modified_league,
             team_1=team_list[0],
             team_2=team_list[1] if len(team_list) == 2 else None,
             orders=[
@@ -170,7 +170,7 @@ class FourCX(PredictionBookBase):
 
             leagues = raw_leagues.get("data", {}).get("availableLeagues", [])
             leagues = self._filter_leagues(leagues)
-
+            leagues = ["nfl-props"]
             orders = [
                 self.api_caller(
                     session=session,
@@ -194,7 +194,6 @@ class FourCX(PredictionBookBase):
                     data = self._extract_order_details(game)
                     if data:
                         key = data.key
-
                         if key in game_data:
                             game_data[key].orders.extend(data.orders)
                         else:
