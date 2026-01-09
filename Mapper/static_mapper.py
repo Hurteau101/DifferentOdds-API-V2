@@ -46,6 +46,7 @@ LEAGUES = {
     "nhl1p": "NHL",
     "nhl2p": "NHL",
     "nhl3p": "NHL",
+    "nhl-props": "NHL",
 
     # Baseball
     "mlbcombos": "MLB",
@@ -81,6 +82,8 @@ LEAGUES = {
     "ncaam": "CBB",
     "cbb2h": "CBB",
     "ncaaw": "WCBB",
+    "nba-props": "NBA",
+
 
     # Football
     "cfb2h": "CFB",
@@ -89,6 +92,7 @@ LEAGUES = {
     'cfb2q': 'CFB',
     'cfb3q': 'CFB',
     'cfb4q': 'CFB',
+    "ncaaf-props": "CFB",
     'nfl2h': 'NFL',
     'nfl 2h': 'NFL',
     'nfl1h': 'NFL',
@@ -97,9 +101,11 @@ LEAGUES = {
     'nfl2q': 'NFL',
     'nfl3q': 'NFL',
     'nfl4q': 'NFL',
+    "nfl-props": "NFL",
     "big 12": "CFB",
     "ncaaf": "CFB",
     "ncaafb": "CFB",
+
 
     # Futures
     # 'wnbasr': 'WNBA',
@@ -112,6 +118,7 @@ LEAGUES = {
     # Fightning
     "mma": "UFC",
     "wba": "BOXING",
+    "ufcmma": "UFC",
 
 
     # Other Sports
@@ -151,16 +158,20 @@ STAT_TYPES = {
     "pass tds": "Passing TDs",
     "passing td": "Passing TDs",
     'passing touchdowns': "Passing TDs",
+    "total touchdown passes": "Passing TDs",
     "pass touchdowns": "Passing TDs",
     "pass yards": "Passing Yards",
     "passing yds": "Passing Yards",
+    "total passing yards": "Passing Yards",
     "1st half passing yards": "1H Passing Yards",
     "passing yards + rushing yards": "Passing + Rushing Yards",
     "pass yards (combo)": "Passing Yards (Combo)",
     "receiving yds": "Receiving Yards",
+    "total receiving yards": "Receiving Yards",
     "rec yards": "Receiving Yards",
     "rush yards": "Rushing Yards",
     "rushing yds": "Rushing Yards",
+    "total rushing yards": "Rushing Yards",
     "rush tds": "Rushing TDs",
     "rushing touchdowns": "Rushing TDs",
     "rush+rec touchdowns": "Rushing + Receiving TDs",
@@ -275,6 +286,18 @@ STAT_TYPES = {
     "touchdowns": "Anytime TD",
     "anytime touchdowns": "Anytime TD",
     "Kicker Extra Points": "XP Made",
+    "1h spread": "1st Half Spread",
+    "2h spread": "2nd Half Spread",
+    "1q spread": "1st Quarter Spread",
+    "2q spread": "2nd Quarter Spread",
+    "3q spread": "3rd Quarter Spread",
+    "4q spread": "4th Quarter Spread",
+    "1h moneyline": "1st Half Moneyline",
+    "2h moneyline": "2nd Half Moneyline",
+    "1q moneyline": "1st Quarter Moneyline",
+    "2q moneyline": "2nd Quarter Moneyline",
+    "3q moneyline": "3rd Quarter Moneyline",
+    "4q moneyline": "4th Quarter Moneyline",
 
     # Esports
     "kills in game 1": "Map 1 Kills",

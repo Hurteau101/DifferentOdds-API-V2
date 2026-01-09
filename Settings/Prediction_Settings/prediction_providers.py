@@ -27,8 +27,8 @@ PREDICTION_PROVIDERS = [
         title="4cx",
         name="4cx",
         url={
-            "games": "https://api.4cx.io/exchange/getOrderbookPaginated?leagueRequested={league}&sportRequested={sport}",
-            "orders": "https://api.4cx.io/exchange/getSingleOrderbook"
+            "games": "https://api.4cx.io/exchange/getLeagues",
+            "orders": "https://api.4cx.io/exchange/getOrderbook"
         },
         headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0',

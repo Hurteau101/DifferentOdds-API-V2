@@ -1,28 +1,50 @@
-import json
-
-from Mapper.static_mapper import LEAGUES, STAT_TYPES
-from Settings.Prediction_Settings.prediction_model import Game, Order
+import re
 import aiohttp
+import asyncio
+from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Redis.redis_manager import RedisSync
 from Settings.Prediction_Settings.prediction_book_base import PredictionBookBase
+from Settings.Prediction_Settings.prediction_model import Game, Order
 from Settings.book_base import SportbookRequestType
-import asyncio
+
+# Session Expiry is 2 months typically.
 
 class FourCX(PredictionBookBase):
-    SPORTS = {
-        "basketball": ["NBA", "NCAAB"],
-        "football": ["NFL", "NCAAF"],
-        "hockey": ["NHL"],
-        "soccer": ["PREMIER-LEAGUE", "SERIE-A", "LA-LIGA", "BUNDESLIGA"]
-    }
+    INVALID_LEAGUES = ["live", "custom", "superbowl", "nfc", "afc"] # Avoid these leagues or anything with these keywords
 
-    def __init__(self, log_directory=None, log_name=None):
+    def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="4cx")
 
-    ### SESSION EXPIRY IS 2 MONTHS
+    async def _get_leagues(self, session: aiohttp.ClientSession) -> dict:
+        leagues = await self.api_caller(
+                    session=session,
+                    url=self.book_data.url.get("games"),
+                    headers=self.book_data.headers,
+                    method=self.book_data.method,
+                )
 
-    def _get_market_data(self, game_data):
-        game_keys = list(game_data.keys())
+        return leagues
+
+    @staticmethod
+    def remove_ordinal(market_name: str, return_ordinal: bool = False) -> str | tuple[str, str | None] | None:
+        """
+        Removes ordinal indicators from market names.
+        @param market_name: The market name string.
+        @param return_ordinal: Whether to return the found ordinal.
+        """
+        if not market_name:
+            return market_name
+
+        ordinal = ["1h", "2h", "3h", "4h", "1q", "2q", "3q", "4q"]
+        find_ordinal = next((oq for oq in ordinal if oq in market_name.lower()), None)
+        if find_ordinal:
+            modified_name = market_name.lower().replace(find_ordinal, "").replace("-", "").strip()
+            return (modified_name, find_ordinal) if return_ordinal else modified_name
+
+        return (market_name, None) if return_ordinal else market_name
+
+    def _get_markets(self, game: dict) -> list[dict]:
+        game_keys = list(game.keys())
 
         # All markets must contain these keys, else ignore
         required_keys = {"sumUntaken", "odds"}
@@ -30,7 +52,7 @@ class FourCX(PredictionBookBase):
         valid_markets = []
 
         for market_keys in game_keys:
-            market_data = game_data.get(market_keys)
+            market_data = game.get(market_keys)
             # List instances we only need to check valid keys.
             if isinstance(market_data, list):
                 if all(required_keys.issubset(item.keys()) for item in market_data):
@@ -49,70 +71,90 @@ class FourCX(PredictionBookBase):
 
         return valid_markets
 
+    def _configure_market_name(self, ordinal: str, event_name: str, order: dict, is_player_prop: bool) -> str | None:
+        """
+        Configures the market name. If it's a player prop, look at the event name for the player name and extract text between '()'.
+        Otherwise, use the order type and map to STAT_TYPES if possible.
+        @param ordinal: The ordinal indicator (e.g., "1h", "2q").
+        @param event_name: The event name string.
+        @param order: The order dictionary containing market details.
+        @param is_player_prop: Boolean indicating if it's a player prop market.
+        """
+        if is_player_prop:
+            name = re.findall(r"\((.*?)\)", event_name)
+            return name[0] if name else None
 
-    def _determine_bet_info(self, market:str, line:float, team_id: str, team_data: dict, direction=None):
-        if "spread" in market.lower():
-            team = team_data.get(team_id)
-            if team:
-                return f"{line} {team.get('longName')}"
-        elif "total" in market.lower():
-           return f"{direction} {line}"
-        elif "moneyline" in market.lower():
-            team = team_data.get(team_id)
-            if team:
-                return f"{team.get('longName')}"
+        market_name = order.get("type", "")
 
-        return ""
+        if ordinal:
+            market_name = f"{ordinal} {market_name}"
 
-    def _extract_orders(self, game_data: dict):
-        valid_markets = self._get_market_data(game_data)
-        if not valid_markets:
+        return STAT_TYPES.get(market_name.lower(), market_name.title())
+
+    def _extract_order_details(self, game: dict) -> Game | None:
+        markets = self._get_markets(game)
+        if not markets:
             return None
 
-        # Modify if doing single sport games
-        if len(game_data.get("participants", [])) != 2:
-            return None
+        league, ordinal = FourCX.remove_ordinal(game.get("league"), return_ordinal=True)
 
-        team_data = {
-            game_data.get("participants", [])[0].get("id"): game_data.get("participants", [])[0],
-            game_data.get("participants", [])[1].get("id"): game_data.get("participants", [])[1]
+        teams = {
+            participant.get("id"): FourCX.remove_ordinal(participant.get("longName")) or FourCX.remove_ordinal(participant.get("shortName"))
+            for index, participant in enumerate(game.get("participants", []), start=1)
         }
 
-        team_1 = game_data.get("participants", [])[0]
-        team_2 =  game_data.get("participants", [])[1]
+        if not teams:
+            return None
 
-        league = game_data.get("league")
+        team_list = sorted([
+            team
+            for team in teams.values()
+        ])
 
-        game_key = f"{league.lower()}_{team_1.get('longName').lower().replace(' ', '_')}_{team_2.get('longName').lower().replace(' ', '_')}_{game_data.get('dateGame')}"
+        league = LEAGUES.get(league.lower(), league.upper())
+        game_date = self.cache_time(game.get("start"))
+
+        team_keys = "_".join(team_list).replace(" ", "_")
+        key = f"{league}_{team_keys}_{game_date}".lower()
 
         return Game(
-            key=game_key,
-            event=game_data.get("eventName").lower() if game_data.get("eventName") else None,
-            start_date=self.cache_time(game_data.get("dateGame")),
-            league=LEAGUES.get(game_data.get("league").lower(), game_data.get("league").upper()),
-            team_1=team_1.get("longName"),
-            team_1_abbreviation=team_1.get("shortName"),
-            team_2=team_2.get("longName"),
-            team_2_abbreviation=team_2.get("shortName"),
+            key=key,
+            event=" vs ".join(team_list) if len(team_list) == 2 else game.get("eventName"),
+            start_date=game_date,
+            league=league,
+            team_1=team_list[0],
+            team_2=team_list[1] if len(team_list) == 2 else None,
             orders=[
                 Order(
                     liquidity=order.get("sumUntaken"),
                     american_odds=order.get("odds"),
-                    market=STAT_TYPES.get(order.get("type").lower(), order.get("type").lower()),
+                    market=self._configure_market_name(ordinal=ordinal, event_name=game.get("eventName"), order=order, is_player_prop=True if "props" in league.lower() else False),
+                    bet_team=FourCX.remove_ordinal(teams.get(order.get("participantID"))),
+                    bet_type=order.get("OU"),
                     line=order.get("line"),
-                    bet_info=self._determine_bet_info(
-                        market=order.get("type"),
-                        line=order.get("line"),
-                        team_id=order.get("participantID"),
-                        team_data=team_data,
-                        direction=order.get("OU", None)
-                    ),
+                    is_best=True if index == 0 else False,
+                    bet_player=game.get("eventName").split("(")[0].title().strip() if "props" in league.lower() else None,
+                    player_team=teams.get(order.get("participantId")) if "props" in league.lower() else None,
                 )
 
-                for order in valid_markets
+                for index, order in enumerate(markets)
             ]
-
         )
+
+    def _filter_leagues(self, league_list: list) -> list:
+        """Filters out invalid leagues from the provided league list."""
+        valid_leagues = []
+
+        for league in league_list:
+            league = league.lower()
+            league_split = league.split("-")
+            if any(invalid in league_split for invalid in self.INVALID_LEAGUES):
+                continue
+
+            valid_leagues.append(league)
+
+        return valid_leagues
+
 
     async def run_book(self):
         redis = RedisSync(db=5)
@@ -122,63 +164,48 @@ class FourCX(PredictionBookBase):
 
         async with aiohttp.ClientSession() as session:
             self.book_data.headers["Authorization"] = auth_token
+            raw_leagues = await self._get_leagues(session)
+            if not raw_leagues or not raw_leagues.get("data", {}).get("availableLeagues"):
+                return
 
-            tasks = [
-                self.api_caller(
-                    session=session,
-                    url=self.book_data.url.get("games").format(league=league, sport=sport),
-                    headers=self.book_data.headers,
-                    method=self.book_data.method,
-                )
-                for sport, leagues in FourCX.SPORTS.items()
-                for league in leagues
-            ]
+            leagues = raw_leagues.get("data", {}).get("availableLeagues", [])
+            leagues = self._filter_leagues(leagues)
 
-            results = await asyncio.gather(*tasks)
-
-            game_ids = set(
-                game_id.get("id")
-                for result in results
-                if result and result.get("success")
-                for game_id in result.get("data", {}).get("games", [])
-                if game_id and not game_id.get("live")
-            )
-
-            games = [
+            orders = [
                 self.api_caller(
                     session=session,
                     url=self.book_data.url.get("orders"),
                     headers=self.book_data.headers,
                     method="POST",
-                    payload={"gameID": game_id}
+                    payload={"leagueRequested": league}
                 )
-                for game_id in list(game_ids)
+                for league in leagues
             ]
 
+            order_results = await asyncio.gather(*orders)
 
-            order_results = await asyncio.gather(*games)
-
-            game_data_dict = {}
+            game_data = {}
 
             for order in order_results:
                 if not order or not order.get("success") or not order.get("data"):
                     continue
 
-                game_data = self._extract_orders(order.get("data", {}).get("game", {}))
-                if game_data:
-                    game_key = game_data.key
+                for game in order.get("data", {}).get("games", []):
+                    data = self._extract_order_details(game)
+                    if data:
+                        key = data.key
 
-                    if game_key in game_data_dict:
-                        game_data_dict[game_key].orders.extend(game_data.orders)
-                    else:
-                        game_data_dict[game_key] = game_data
-
-            cx_data = list(game_data_dict.values())
-            return await self._database_mapper(cx_data)
+                        if key in game_data:
+                            game_data[key].orders.extend(data.orders)
+                        else:
+                            game_data[key] = data
 
 
-
+            game_list = list(game_data.values())
+            return await self._database_mapper(game_list)
 
 if __name__ == "__main__":
     four_cx = FourCX()
     asyncio.run(four_cx.run_book())
+
+

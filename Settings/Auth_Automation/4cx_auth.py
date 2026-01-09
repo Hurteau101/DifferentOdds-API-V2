@@ -38,7 +38,6 @@ def get_auth():
     if response.status_code == 200:
         auth_data = response.json()
         auth = auth_data.get("data", {}).get("user", {}).get("auth")
-        print(auth)
         if not auth:
             return
 
