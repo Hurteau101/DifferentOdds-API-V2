@@ -35,11 +35,14 @@ def create_differences(esports_data):
             if entry.get("is_combo"):
                 continue
 
-            modified_start_date = start_date.split(":")[0]
-
-            player_key = f"{player_name}-{modified_start_date}-{league}"
             team_data = entry.get("team_data", {})
             teams = sorted([team_data.get("team_a").strip(), team_data.get("team_b").strip()])
+
+            if league not in ["CS2", "DOTA2", "LOL", "VAL"]:
+                player_key = f"{player_name}-{league}-{''.join(teams)}"
+            else:
+                player_key = f"{player_name}-{league}-{start_date}"
+
 
             team_a = teams[0]
             team_b = teams[1]
