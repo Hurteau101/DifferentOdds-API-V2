@@ -16,6 +16,14 @@ class DraftKingsPickSix(DFSBookBase):
             if data.get("hasPicksAvailable")
         ]
 
+    def _esports_stat_map_helper(self, league, stat_types):
+        mapper = {
+            "cod": "cod_kills",
+            "cs2": "cs2_kills",
+        }
+
+        return mapper.get(league.lower(), stat_types)
+
     def _extract_pickable_id_data(self, market_data, market_names, line_data):
         """Extract all the player data from the pickable id data."""
         def extract_team_data(team_details, player_name):
@@ -118,7 +126,9 @@ class DraftKingsPickSix(DFSBookBase):
             game_length = player_details.get("total_competition_time").lower()
             stat_type = f"{game_length} {stat_type}"
 
-        stat_type = STAT_TYPES.get(stat_type.lower(), stat_type).title()
+        raw_stat_types = self._esports_stat_map_helper(league, stat_type.lower())
+
+        stat_type = STAT_TYPES.get(raw_stat_types.lower(), raw_stat_types).title()
 
         return PlayerData(
             player_name=self.clean_and_normalize_name(player_details.get("player_name")),

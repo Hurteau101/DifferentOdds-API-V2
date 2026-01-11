@@ -323,7 +323,8 @@ STAT_TYPES = {
     "1st 2 maps kills": "Maps 1-2 Kills",
     "kills maps 1 2": "Maps 1-2 Kills",
     "1st 2 maps  kills": "Maps 1-2 Kills",
-    "kills": "Maps 1-2 Kills", # Double Check its 1-2 for maps
+    "cs2_kills": "Maps 1-2 Kills", # Double Check its 1-2 for maps
+    "cod_kills": "Maps 1-3 Kills",
     "1st 2 maps headshots": "Maps 1-2 Headshots",
     "headshots map 1": "Map 1 Headshots",
     "headshots maps 1 2": "Maps 1-2 Headshots",
