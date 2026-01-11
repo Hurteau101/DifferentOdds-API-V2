@@ -192,6 +192,7 @@ class Betr(DFSBookBase):
         for player in players:
             stats = []
             player_name = self.clean_and_normalize_name(f"{player.get('firstName')} {player.get('lastName')}")
+
             # player_team = player.get("name") if not solo_game else player_name
             player_team = player_team_name if not solo_game else player_name
 
@@ -199,12 +200,13 @@ class Betr(DFSBookBase):
             if solo_game:
                 team_names = self._extract_teams(player, player_name)
 
+
             # Extract all the stats for the player.
             for projection in player.get("projections", []):
                 bet_options = [
                     Stats(
                         stat_type=stat_type_helper(projection.get("label")),
-                        line=projection.get("value"),
+                        line=projection.get("value") if projection.get("type") == "REGULAR" else projection.get("nonRegularValue"),
                         bet_direction=option_mapper.get(options.get("outcome").lower(), options.get("outcome").title()),
                         regular_line=True if projection.get("type").lower() == "regular" else False,
                         optional_stats=OptionalStatInformation(
