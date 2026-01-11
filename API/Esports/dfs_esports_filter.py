@@ -35,7 +35,9 @@ def create_differences(esports_data):
             if entry.get("is_combo"):
                 continue
 
-            player_key = f"{player_name}-{start_date}-{league}"
+            modified_start_date = start_date.split(":")[0]
+
+            player_key = f"{player_name}-{modified_start_date}-{league}"
             team_data = entry.get("team_data", {})
             teams = sorted([team_data.get("team_a").strip(), team_data.get("team_b").strip()])
 
