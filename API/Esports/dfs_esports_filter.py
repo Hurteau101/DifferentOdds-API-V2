@@ -18,6 +18,17 @@ def extract_esport_lines(lines):
 
     return esports_only
 
+
+def find_highest_discrep(differences: dict):
+    for key, esport_values in differences.items():
+        lines = [book["line"] for book in esport_values.get("books", [])]
+        highest_line = max(lines)
+        lowest_line = min(lines)
+        discrep = abs(highest_line - lowest_line)
+        differences[key]["highest_discrepancy"] = discrep
+
+    return differences
+
 def create_differences(esports_data):
     """Create a structure to identify differences in esports DFS lines across books."""
 
@@ -98,9 +109,19 @@ def create_differences(esports_data):
                 })
 
 
-    # Only keep entries that have more than one book offering
-    return  {k: v for k, v in differences.items() if len(v["books"]) > 1}
 
+    differences = find_highest_discrep(differences)
+
+    # Only keep entries that have more than one book offering
+    filtered =  {k: v for k, v in sorted(differences.items()) if len(v["books"]) > 1}
+
+    return dict(
+        sorted(
+            filtered.items(),
+            key=lambda item: item[1].get("highest_discrepancy", 0),
+            reverse=False
+        )
+    )
 
 
 
