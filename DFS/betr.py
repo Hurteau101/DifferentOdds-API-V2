@@ -1,14 +1,14 @@
 import asyncio
 import aiohttp
-from Mapper.static_mapper import STAT_TYPES
+from Mapper.static_mapper import STAT_TYPES, ESPORT_LEAGUES
 from Settings.book_base import SportbookRequestType
 from Settings.dfs_book_base import DFSBookBase
 from Settings.dfs_model import PlayerData, Stats, TeamData, OptionalStatInformation
 
+
 class Betr(DFSBookBase):
     def __init__(self):
         super().__init__(SportbookRequestType.ASYNC, sportsbook_name="betr")
-
 
     @staticmethod
     def _extract_leagues(api_data):
@@ -200,9 +200,11 @@ class Betr(DFSBookBase):
             if solo_game:
                 team_names = self._extract_teams(player, player_name)
 
-
             # Extract all the stats for the player.
             for projection in player.get("projections", []):
+                if league.upper() in ESPORT_LEAGUES and projection.get("type") != "REGULAR":
+                    continue
+
                 bet_options = [
                     Stats(
                         stat_type=stat_type_helper(projection.get("label")),
