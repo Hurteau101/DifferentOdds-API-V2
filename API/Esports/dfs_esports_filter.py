@@ -49,7 +49,7 @@ def create_differences(esports_data):
             team_data = entry.get("team_data", {})
             teams = sorted([team_data.get("team_a").strip(), team_data.get("team_b").strip()])
 
-            if league not in ["CS2", "DOTA2", "LOL", "VAL"]:
+            if league in ["COD"]:
                 player_key = f"{player_name}-{league}-{''.join(teams)}"
             else:
                 player_key = f"{player_name}-{league}-{start_date}"

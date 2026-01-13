@@ -16,13 +16,16 @@ class DraftKingsPickSix(DFSBookBase):
             if data.get("hasPicksAvailable")
         ]
 
-    def _esports_stat_map_helper(self, league, stat_types):
-        mapper = {
-            "cod": "cod_kills",
-            "cs2": "cs2_kills",
-        }
-
-        return mapper.get(league.lower(), stat_types)
+    # def _esports_stat_map_helper(self, league, stat_types):
+    #     mapper = {
+    #         "cod_kills": "cod_kills",
+    #         "cs2_kills": "cs2_kills",
+    #         "cs2_assists": "cs2_assists",
+    #     }
+    #     # print(stat_types)
+    #
+    #
+    #     return mapper.get(league.lower(), stat_types)
 
     def _extract_pickable_id_data(self, market_data, market_names, line_data):
         """Extract all the player data from the pickable id data."""
@@ -105,6 +108,7 @@ class DraftKingsPickSix(DFSBookBase):
         market_id = market_data.get("marketCategoryId")
         stat_type = market_names.get(market_id)
 
+
         lines_id = market_data.get("pickableId")
         line_data = line_data.get(lines_id, {})
         if not line_data or line_data.get("isUnpickable") or not stat_type:
@@ -126,9 +130,10 @@ class DraftKingsPickSix(DFSBookBase):
             game_length = player_details.get("total_competition_time").lower()
             stat_type = f"{game_length} {stat_type}"
 
-        raw_stat_types = self._esports_stat_map_helper(league, stat_type.lower())
 
-        stat_type = STAT_TYPES.get(raw_stat_types.lower(), raw_stat_types).title()
+        # raw_stat_types = self._esports_stat_map_helper(league, stat_type.lower())
+        # stat_type = STAT_TYPES.get(raw_stat_types.lower(), raw_stat_types).title()
+        stat_type = STAT_TYPES.get(stat_type.lower(), stat_type).title()
 
         return PlayerData(
             player_name=self.clean_and_normalize_name(player_details.get("player_name")),
