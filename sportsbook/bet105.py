@@ -163,6 +163,7 @@ class Bet105(SportsbookBase):
             return None
 
         leagues = self.mapped_data.get("leagues", {})
+
         raw_data = [
             self.api_caller(
                 session=session,

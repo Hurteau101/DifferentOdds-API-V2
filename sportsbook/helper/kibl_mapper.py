@@ -33,6 +33,8 @@ class KiblMapper(Bet105):
             method=self.book_data.method
         )
 
+        excluded_leagues = ["WTA", 'MMA', "UFC", "BOX", "ATP"] # REMOVE AFTER INVERSE CALCULATIONS IS FIXED
+
         return {
             league.get("league_id"): {
                 "league_name": league.get("name"),
@@ -41,6 +43,7 @@ class KiblMapper(Bet105):
 
             for league in raw_leagues.get("result", [])
             if league and raw_leagues.get("success") and raw_leagues.get("result")
+               and league.get("abrv") not in excluded_leagues and "tennis" not in league.get("name").lower() # REMOVE AFTER INVERSE CALCULATIONS IS FIXED
         }
 
     async def get_mapping_types(self, session: aiohttp.ClientSession, url_key: str, mapping_key_name: str,
