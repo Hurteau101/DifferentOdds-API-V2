@@ -8,6 +8,7 @@ from . import sgp
 from . import pph
 from . import liquidity
 from . import prediction
+from . import sportsbook
 from contextlib import asynccontextmanager
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -52,5 +53,6 @@ app.include_router(sgp.router)
 app.include_router(pph.router)
 app.include_router(liquidity.router)
 app.include_router(prediction.router)
+app.include_router(sportsbook.router)
 
 

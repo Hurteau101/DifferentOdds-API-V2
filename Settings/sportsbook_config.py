@@ -1,3 +1,4 @@
+from Settings.Sportsbook_Settings.sportsbook_providers import SPORTSBOOK_PROVIDERS, SportsbookProvider
 from Settings.dfs_providers import DFS_PROVIDERS, DFSProvider
 from Settings.sgp_providers import SGPProvider, SGP_PROVIDERS
 from Settings.Prediction_Settings.prediction_providers import PREDICTION_PROVIDERS, PredictionProvider
@@ -11,7 +12,8 @@ NAMES_MAPPER = {
     "prediction": PREDICTION_PROVIDERS,
     "sgp_mapper": SGP_MAPPER_PROVIDERS,
     "pph": PPH_PROVIDERS,
-    "liquidity": LIQUIDITY_PROVIDERS
+    "liquidity": LIQUIDITY_PROVIDERS,
+    "sportsbooks": SPORTSBOOK_PROVIDERS
 }
 
 # This module provides configuration for DFS, Sportsbooks, Exchanges & SGP Mapper Provders.
@@ -44,12 +46,12 @@ class SportsbookConfig:
         except StopIteration:
             raise ValueError(f"SGP Mapper provider '{name}' not found.")
 
-    # @classmethod
-    # def get_sportsbook_provider(cls, name: str) -> SportsbookProvider:
-    #     try:
-    #         return next(provider for provider in SPORTSBOOK_PROVIDERS if provider.name == name)
-    #     except StopIteration:
-    #         raise ValueError(f"Sportsbook provider '{name}' not found.")
+    @classmethod
+    def get_sportsbook_provider(cls, name: str) -> SportsbookProvider:
+        try:
+            return next(provider for provider in SPORTSBOOK_PROVIDERS if provider.name == name)
+        except StopIteration:
+            raise ValueError(f"Sportsbook provider '{name}' not found.")
 
     @classmethod
     def get_pph_provider(cls, name: str) -> PPHProvider:

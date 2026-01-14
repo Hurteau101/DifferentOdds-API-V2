@@ -34,11 +34,14 @@ from Settings.Auth_Automation.fanduel_picks_auth import generate_fanduel_picks_a
 from Settings.Auth_Automation.onyx_sgp_auth import generate_onyx_auth_token
 from Settings.Auth_Automation.ownerbox_auth import generate_ownerbox_auth_token
 from Settings.Prediction_Settings.prediction_model import BookDataPrediction
+from Settings.Sportsbook_Settings.sportsbook_model import BookDataSportsbook
 from Settings.dfs_model import BookData
 from Settings.pph_model import BookDataPPH
 from Settings.Liquidity_Settings.novig_model import BookDataLiquidity
 from sportsbook.PPH.stg import STG
+from sportsbook.bet105 import Bet105
 from Liquidity.novig import Novig
+from sportsbook.helper.kibl_mapper import KiblMapper
 
 logger = get_task_logger(__name__)
 
@@ -135,6 +138,14 @@ PREDICTION_BOOKS = {
     }
 }
 
+SPORTBOOK_BOOKS = {
+    "bet105": {
+        "class": Bet105,
+        "interval": 45,
+        "task": "sportbook",
+    }
+}
+
 
 LIQUIDITY_BOOKS = {
     "novig": {
@@ -157,6 +168,7 @@ BOOKS = {
     "pph": PPH_BOOKS,
     "liquidity": LIQUIDITY_BOOKS,
     "prediction": PREDICTION_BOOKS,
+    "sportsbook": SPORTBOOK_BOOKS,
 }
 
 @shared_task(ignore_result=True)
@@ -176,6 +188,21 @@ def refresh_auths():
         #     logger.error(f"Error generating Ownerbox auth token: {e}")
 
     async_to_sync(_run)()
+
+@shared_task(ignore_result=True)
+def refresh_sportsbook_mapping():
+    async def _run():
+        mapper = KiblMapper()
+        await mapper.run_mapper()
+
+        # try:
+        #     await generate_ownerbox_auth_token()
+        # except Exception as e:
+        #     logger.error(f"Error generating Ownerbox auth token: {e}")
+
+    async_to_sync(_run)()
+
+
 
 @shared_task(ignore_result=True)
 def map_sgp_ids():
@@ -239,7 +266,18 @@ def prediction_formatter(data):
         "game": get_prediction_formatter("game", normalized),
     }
 
+def sportsbook_formatter(data):
+    # book_data = BookDataSportsbook(
+    #     last_refresh=datetime.now(timezone.utc),
+    #     data=data,
+    # )
+    #
+    # normalized = [asdict(p) for p in book_data.data]
 
+    return {
+        "base": data,
+        "game": data,
+    }
 
 def pph_formatter(data):
     book_data = BookDataPPH(
@@ -346,3 +384,12 @@ def run_book_prediction(name, redis_db):
 )
 def run_book_pph(name, redis_db):
     async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter, timeout=180, blocking_timeout=5)
+
+
+@shared_task(
+    ignore_result=True,
+    soft_time_limit=220,
+    time_limit=400
+)
+def run_book_sportsbook(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "sportsbook", sportsbook_formatter, timeout=180, blocking_timeout=5)

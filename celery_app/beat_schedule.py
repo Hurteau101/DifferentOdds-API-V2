@@ -45,6 +45,10 @@ for run_book_type, books in BOOKS.items():
             redis_db = 1
             queue = "prediction"
             task_name = "celery_app.tasks.run_book_prediction"
+        elif run_book_type == "sportsbook":
+            redis_db = 10
+            queue = "sportsbook"
+            task_name = "celery_app.tasks.run_book_sportsbook"
         else:
             continue
 
@@ -60,6 +64,12 @@ beat_schedule["refresh-auths-every-6h"] = {
     "task": "celery_app.tasks.refresh_auths",
     "schedule": 60 * 60 * 6,  # every 6 hours
     "options": {"queue": "auths", "expires": 60 * 60 * 6 + 300},  # expires after 6h + 5m
+}
+
+beat_schedule["refresh-sportsbook-mapping-every-1h"] = {
+    "task": "celery_app.tasks.refresh_sportsbook_mapping",
+    "schedule": 60,  # every 1 hour
+    "options": {"queue": "sportsbook_mapping", "expires": 7200},  # expires after 2h
 }
 
 beat_schedule["map-sgp-ids-every-10m"] = {
