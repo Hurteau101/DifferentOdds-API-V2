@@ -50,7 +50,7 @@ async def custom_docs():
 
 app.include_router(dfs.router)
 app.include_router(sgp.router)
-app.include_router(pph.router)
+# app.include_router(pph.router)
 app.include_router(liquidity.router)
 app.include_router(prediction.router)
 app.include_router(sportsbook.router)
