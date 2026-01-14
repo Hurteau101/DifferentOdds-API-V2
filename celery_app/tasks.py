@@ -143,7 +143,12 @@ SPORTBOOK_BOOKS = {
         "class": Bet105,
         "interval": 45,
         "task": "sportbook",
-    }
+    },
+    "stg": {
+        "class": STG,
+        "interval": 45,
+        "task": "sportbook",
+    },
 }
 
 
@@ -155,17 +160,17 @@ LIQUIDITY_BOOKS = {
     }
 }
 
-PPH_BOOKS = {
-    "stg": {
-        "class": STG,
-        "interval": 60,
-        "task": "pph",
-    },
-}
+# PPH_BOOKS = {
+#     "stg": {
+#         "class": STG,
+#         "interval": 60,
+#         "task": "pph",
+#     },
+# }
 
 BOOKS = {
     "dfs": DFS_Books,
-    "pph": PPH_BOOKS,
+    # "pph": PPH_BOOKS,
     "liquidity": LIQUIDITY_BOOKS,
     "prediction": PREDICTION_BOOKS,
     "sportsbook": SPORTBOOK_BOOKS,
@@ -279,18 +284,18 @@ def sportsbook_formatter(data):
         "game": data,
     }
 
-def pph_formatter(data):
-    book_data = BookDataPPH(
-        last_refresh=datetime.now(timezone.utc),
-        data=data,
-    )
-
-    normalized = [asdict(p) for p in book_data.data]
-
-    return {
-        "base": get_pph_formatter("base", normalized),
-        "game": get_pph_formatter("game", normalized),
-    }
+# def pph_formatter(data):
+#     book_data = BookDataPPH(
+#         last_refresh=datetime.now(timezone.utc),
+#         data=data,
+#     )
+#
+#     normalized = [asdict(p) for p in book_data.data]
+#
+#     return {
+#         "base": get_pph_formatter("base", normalized),
+#         "game": get_pph_formatter("game", normalized),
+#     }
 
 async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeout=60, blocking_timeout=1, modified_key=None, key_expiration=600):
     redis_manager = RedisManager(db=redis_db)
@@ -377,13 +382,13 @@ def run_book_liquidity(name, redis_db):
 def run_book_prediction(name, redis_db):
     async_to_sync(_shared_run_book)(name, redis_db, "prediction", prediction_formatter, timeout=180, blocking_timeout=30, key_expiration=1200)
 
-@shared_task(
-    ignore_result=True,
-    soft_time_limit=220,
-    time_limit=400
-)
-def run_book_pph(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter, timeout=180, blocking_timeout=5)
+# @shared_task(
+#     ignore_result=True,
+#     soft_time_limit=220,
+#     time_limit=400
+# )
+# def run_book_pph(name, redis_db):
+#     async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter, timeout=180, blocking_timeout=5)
 
 
 @shared_task(

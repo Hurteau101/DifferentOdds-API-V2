@@ -16,3 +16,4 @@ class SportsbookBase(BookBase, ApiResponseMixin, ABC):
     async def run_book(self):
         """Run the SGP book logic."""
         pass
+

@@ -35,4 +35,23 @@ SPORTSBOOK_PROVIDERS = [
         },
         active=True
     ),
+    SportsbookProvider(
+        title="STG",
+        name="stg",
+        url={
+            "login_url": "https://bettheguys.com/Login.aspx",
+            "league_list_url": "https://bettheguys.com/Player/app/services/sidebarsportAJX.aspx/GetSportMenuMainHeaders",
+            "league_section": "https://bettheguys.com/Player/app/services/sidebarsportAJX.aspx/GetSportMenuLeaguesWithOpenGames",
+            "game_markets": "https://bettheguys.com/Player/app/services/linesAJX.aspx/GetLines"
+        },
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Accept-Language": "en-US,en;q=0.5",
+            "X-Requested-With": "XMLHttpRequest",
+            "Origin": "https://bettheguys.com",
+        },
+        method="POST",
+        active=True
+    )
 ]

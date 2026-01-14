@@ -3,7 +3,7 @@ import os
 import re
 from datetime import datetime, date, timezone
 from zoneinfo import ZoneInfo
-from Settings.pph_model import GameData, TeamData, Markets
+from Settings.Sportsbook_Settings.sportsbook_model import GameData, TeamData, Markets
 import aiohttp
 import asyncio
 from Settings.pph_base import PPHBookBase
@@ -340,7 +340,6 @@ class STG(PPHBookBase):
                             game_results.append(extracted)
 
             return await self._database_mapper(game_results)
-
 
 if __name__ == "__main__":
     stg = STG()

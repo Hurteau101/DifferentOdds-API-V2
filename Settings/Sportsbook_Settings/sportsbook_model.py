@@ -13,7 +13,7 @@ class Markets:
     bet_type: Optional[str] = None
     line: Optional[str] = None
     bet_player: Optional[str] = None
-    future: bool = False
+    future: Optional[bool] = None
 
 
 @dataclass
@@ -33,7 +33,7 @@ class GameData:
     team_data: TeamData
     event_name: str
     odds: list[Markets]
-    # solo_game: bool = None
+    solo_game: Optional[bool] = None
 
 class BookDataSportsbook(BaseModel):
     last_refresh: str | datetime | int

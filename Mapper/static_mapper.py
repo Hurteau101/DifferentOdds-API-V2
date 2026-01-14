@@ -154,8 +154,18 @@ STAT_TYPES = {
     "sets won": "Total Sets Won",
     "breakpts won": "Break Points Won",
     "match total games": "Total Games",
+    "first set": "1st Set",
+    "second set": "2nd Set",
+    "third set": "3rd Set",
+    "fourth set": "4th Set",
 
     # Football
+    "first half": "1st Half",
+    "second half": "2nd Half",
+    "first quarter": "1st Quarter",
+    "second quarter": "2nd Quarter",
+    "third quarter": "3rd Quarter",
+    "fourth quarter": "4th Quarter",
     "pass tds": "Passing TDs",
     "passing td": "Passing TDs",
     'passing touchdowns': "Passing TDs",
@@ -325,6 +335,7 @@ STAT_TYPES = {
     "1st 2 maps  kills": "Maps 1-2 Kills",
     "cs2_kills": "Maps 1-2 Kills", # Double Check its 1-2 for maps
     "cod_kills": "Maps 1-3 Kills",
+    "cs2_assists": "Maps 1-2 Assists",
     "1st 2 maps headshots": "Maps 1-2 Headshots",
     "headshots map 1": "Map 1 Headshots",
     "headshots maps 1 2": "Maps 1-2 Headshots",
@@ -373,6 +384,17 @@ STAT_TYPES = {
     "threes made": "3-Pt Made",
 
     # Baseball
+    "first inning": "1st Inning",
+    "second inning": "2nd Inning",
+    "third inning": "3rd Inning",
+    "fourth inning": "4th Inning",
+    "fifth inning": "5th Inning",
+    "sixth inning": "6th Inning",
+    "seventh inning": "7th Inning",
+    "eighth inning": "8th Inning",
+    "ninth inning": "9th Inning",
+    "tenth inning": "10th Inning",
+    "eleventh inning": "11th Inning",
     "1+2+3 inning hitter fantasy score": "1+2+3 Inning Batter Fantasy Score",
     "1+2+3+4+5 inning hitter fantasy score": "1+2+3+4+5 Inning Batter Fantasy Score",
     "1+2+3 inning hits+runs+rbis": "1+2+3 Inning Hits + Runs + RBIs",
@@ -431,8 +453,14 @@ STAT_TYPES = {
     "pitching hits": "Hits Allowed",
 
     # Hockey
+    "first period": "1st Period",
+    "second period": "2nd Period",
+    "third period": "3rd Period",
     "goals allowed": "Goals Against",
     "goalie saves": "Saves",
+    "overtime 1": "1st OT",
+    "overtime 2": "2nd OT",
+    "overtime 3": "3rd OT",
 
     # Other Sports
     "first leg checkout": "1st Leg Checkout Total",

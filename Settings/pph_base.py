@@ -9,14 +9,15 @@ from dotenv import load_dotenv
 from Mapper.mapper import Mapper
 from Mapper.static_mapper import LEAGUES, STAT_TYPES
 from Settings.Mixin.mixins import ApiResponseMixin
-from Settings.book_base import BookBase
+from Settings.Sportsbook_Settings.sportsbook_book_base import SportsbookBase
+
 from Settings.sportsbook_config import SportsbookConfig
 
 
-class PPHBookBase(BookBase, ApiResponseMixin, ABC):
+class PPHBookBase(SportsbookBase):
     def __init__(self, request_type, sportsbook_name: str, log_directory="Sportsbook Logs", log_name=None):
         self.book_data = SportsbookConfig.get_pph_provider(sportsbook_name)
-        super().__init__(request_type, log_directory=log_directory, log_name=log_name)
+        super().__init__(request_type, log_directory=log_directory, log_name=log_name, sportsbook_name=sportsbook_name)
         load_dotenv()
         self.mapper = Mapper()
         self.LEAGUE_MAPPING = LEAGUES
@@ -172,8 +173,9 @@ class PPHBookBase(BookBase, ApiResponseMixin, ABC):
         }
 
         for data in sportsbook_data:
-            if data.future:
-                continue
+            # print(data)
+            # if data.future is not None and data.future:
+            #     continue
 
             for side in ['team_a', 'team_b']:
                 league = data.league
