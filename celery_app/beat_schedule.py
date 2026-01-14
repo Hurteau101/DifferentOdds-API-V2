@@ -68,7 +68,7 @@ beat_schedule["refresh-auths-every-6h"] = {
 
 beat_schedule["refresh-sportsbook-mapping-every-1h"] = {
     "task": "celery_app.tasks.refresh_sportsbook_mapping",
-    "schedule": 60,  # every 1 hour
+    "schedule": 3600,  # every 1 hour
     "options": {"queue": "sportsbook_mapping", "expires": 7200},  # expires after 2h
 }
 
