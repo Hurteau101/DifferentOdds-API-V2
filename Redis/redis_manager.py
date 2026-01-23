@@ -1,167 +1,192 @@
 import os
 import ssl
-import redis.asyncio as redis
-import redis as redis_sync
+import time
+import redis
+import redis.asyncio as async_redis
+import orjson
 from dotenv import load_dotenv
-from orjson import orjson
-from redis.exceptions import LockError, RedisError
-import logging
-from dataclasses import is_dataclass
-from Settings.book_base import BookBase
 
-#####################################
-####### REDIS COMMANDS ##########
-## redis-cli -n 2 KEYS "*" - # List all keys in database 2
-## redis-cli -n 2 FLUSHDB - # Clear all keys in database 2
-######################################
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+class RedisBaseManager:
+    def __init__(self, **pool_kwargs):
+        pool = async_redis.ConnectionPool(
+            host=pool_kwargs.get("host", "localhost"),
+            port=pool_kwargs.get("port", 6379),
+            db=pool_kwargs.get("database", 0),
+            decode_responses=pool_kwargs.get("decode_response", False),
+            max_connections=pool_kwargs.get("max_connections", 50),
+            **{k: v for k, v in pool_kwargs.items() if k not in {"host","port","database","decode_response","max_connections"}}
+        )
+        self.redis_client = async_redis.Redis(connection_pool=pool)
 
-class RedisManager:
-    def __init__(self, db=0, port=6379, max_connections=50):
-        self.redis_client = redis.Redis(
-            host='localhost',
-            port=port,
-            db=db,
-            decode_responses=False,
-            max_connections=max_connections
+    async def store_data(self, key_name: str, data_to_store: any, key_expiration: int = None):
+        """Store data in Redis after serializing."""
+        if not key_name or not data_to_store:
+            raise ValueError("Key name and/or data_to_store must be provided")
+
+        if isinstance(data_to_store, str):
+            data_bytes = data_to_store.encode('utf-8')
+        else:
+            data_bytes = orjson.dumps(data_to_store)
+
+        await self.redis_client.set(
+            name=key_name,
+            value=data_bytes,
+            ex=key_expiration
         )
 
-    def clone_with_db(self, db: int):
-        return RedisManager(db=db)
+    # Use only when the connection needs to be closed (like cron jobs). Do not use on celery tasks.
+    async def close_for_shutdown(self):
+        """Closes the Redis client and disconnects all connections in the pool."""
+        await self.redis_client.aclose()
+        await self.redis_client.connection_pool.disconnect(inuse_connections=True)
 
-    async def store_auth_token(self, key_name, value, key_expiration=None):
-        try:
-            if key_expiration:
-                await self.redis_client.set(key_name, value, ex=key_expiration)
-            else:
-                await self.redis_client.set(key_name, value)
+    @staticmethod
+    def clean_data(data: any) -> any:
+        """Cleans the data fetched from Redis by decoding bytes and attempting JSON deserialization."""
+        if isinstance(data, bytes):
+            try:
+                return orjson.loads(data)
+            except orjson.JSONDecodeError:
+                return data.decode("utf-8")
 
-            logging.info(f"Stored plain text token for {key_name}")
-        except Exception as e:
-            logging.error(f"Error storing plain text for {key_name}: {e}")
+        return data
 
-    async def get_auth_token(self, key_name):
-        try:
-            cached_data = await self.redis_client.get(key_name)
-            return cached_data.decode('utf-8')
-        except Exception as e:
-            logging.error(f"Error fetching plain text for {key_name}: {e}")
-            return None
+    async def get_data(self, key_name: str) -> any:
+        """Fetches and cleans the authentication token stored in Redis."""
+        found_data = await self.redis_client.get(key_name)
+        return RedisBaseManager.clean_data(found_data)
 
-    async def fetch_data(self, key_name: str):
-        """Fetch and deserialize JSON data from Redis."""
-        try:
-            cached_data = await self.redis_client.get(key_name)
-            if not cached_data:
-                return None
-            return orjson.loads(cached_data)
-        except (orjson.JSONDecodeError, RedisError) as e:
-            logging.error(f"Error fetching {key_name}: {e}")
-            return None
-
-    async def store_data(self, key_name, data_to_store, timeout=60, blocking_timeout=10, key_expiration=None):
-        """Store data in Redis as raw JSON bytes (fast, no compression)."""
-        lock = self.redis_client.lock(
-            f"{key_name}_lock",
-            timeout=timeout,
-            blocking_timeout=blocking_timeout
-        )
-        try:
-            async with lock:
-                if is_dataclass(data_to_store):
-                    data_to_store = BookBase.serialize_data(data_to_store)
-
-                data_bytes = orjson.dumps(data_to_store)
-                # compressed = gzip.compress(data_bytes, compresslevel=1)
-
-                if key_expiration:
-                    success = await self.redis_client.set(key_name, data_bytes, ex=key_expiration)
-                else:
-                    success = await self.redis_client.set(key_name, data_bytes)
-
-                if success:
-                    logging.info(f"Stored data for {key_name} successfully.")
-                else:
-                    logging.error(f"Failed to store data for {key_name}.")
-        except (LockError, RedisError) as e:
-            logging.error(f"Redis error storing {key_name}: {e}")
-
-
-    async def close(self):
-        """Close the Redis connection."""
-        await self.redis_client.close()
-
-    async def delete(self, key_name: str):
-        """Delete a key from Redis."""
-        try:
-            await self.redis_client.delete(key_name)
-            return
-        except (LockError, RedisError) as e:
-            return
-
-class RedisRemote:
-    def __init__(self, redis_db=2):
-        load_dotenv()
-        ca_cert_path = os.path.join(BASE_DIR, "certs", "ca.crt")
-
-        if not os.path.exists(ca_cert_path):
-            raise FileNotFoundError(f"CA certificate not found at: {ca_cert_path}")
-
-        self.redis_client = redis_sync.Redis(
-            host=os.getenv("REDIS_HOST"),
-            port=int(os.getenv("REDIS_PORT")),
-            username=os.getenv("REDIS_USERNAME"),
-            password=os.getenv("REDIS_PASSWORD"),
-            ssl=True,
-            db=redis_db,
-            ssl_ca_certs=ca_cert_path,
-            ssl_cert_reqs=ssl.CERT_REQUIRED,
-            ssl_check_hostname=False,
-        )
-
-    def get_all_key_values(self, count=5000):
-        """
-        Retrieves all values from the Redis database.
-        """
+    async def get_all_key_values(self, count: int = 5000) -> list:
+        """Retrieves all values from the Redis database."""
         cursor = 0
         all_keys = []
         result = []
 
         # Collect keys
         while True:
-            cursor, batch = self.redis_client.scan(cursor=cursor, count=count)
+            cursor, batch = await self.redis_client.scan(cursor=cursor, count=count)
             all_keys.extend(batch)
             if cursor == 0:
                 break
 
-        pipe = self.redis_client.pipeline()
+        pipe = await self.redis_client.pipeline()
+
         for key in all_keys:
             pipe.get(key)
-        values = pipe.execute()
+
+        values = await pipe.execute()
 
         for value in values:
-            if value is None:
+            cleaned_value = RedisBaseManager.clean_data(value)
+            if not cleaned_value:
                 continue
 
-            try:
-                result.append(orjson.loads(value))
-            except:
-                result.append(value.decode())
+            result.append(cleaned_value)
 
         return result
 
-class RedisSync:
-    def __init__(self, db=3, host="localhost", port=6379):
-        self.client = redis_sync.Redis(
+
+class RedisAsyncManager(RedisBaseManager):
+    def __init__(self, host: str = "localhost", database: int = 0, port: int = 6379, max_connections: int = 50,
+                 decode_response: bool = False):
+        super().__init__(
             host=host,
             port=port,
-            db=db,
-            decode_responses=False
+            database=database,
+            max_connections=max_connections,
+            decode_response=decode_response
         )
 
-    def get(self, key):
-        return self.client.get(key)
 
-    def set(self, key, value, ex=None):
-        return self.client.set(key, value, ex=ex)
+class RedisRemoteManager(RedisBaseManager):
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    def __init__(self):
+        load_dotenv()
+        ca_cert_path = os.path.join(RedisRemoteManager.BASE_DIR, "certs", "ca.crt")
+        if not os.path.exists(ca_cert_path):
+            raise FileNotFoundError(f"CA certificate not found at {ca_cert_path}")
+
+        super().__init__(
+            host=os.getenv("REDIS_HOST"),
+            port=int(os.getenv("REDIS_PORT")),
+            database=int(os.getenv("REDIS_DB")),
+            max_connections=100,
+            decode_response=False,
+            ssl=True,
+            ssl_ca_certs = ca_cert_path,
+            ssl_cert_reqs = ssl.CERT_REQUIRED,
+            ssl_check_hostname = False,
+        )
+
+
+class RedisSyncManager:
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 6379,
+        database: int = 0,
+        decode_response: bool = False,
+        **connection_kwargs,
+    ):
+        self.redis_client = redis.Redis(
+            host=host,
+            port=port,
+            db=database,
+            decode_responses=decode_response,
+            **connection_kwargs,
+        )
+
+    def get_data(self, key_name: str):
+        found_data = self.redis_client.get(key_name)
+        return RedisBaseManager.clean_data(found_data)
+
+    def store_data(self, key_name: str, data_to_store: any, key_expiration: int = None):
+        if not key_name or data_to_store is None:
+            raise ValueError("Key name and data_to_store must be provided")
+
+        if isinstance(data_to_store, str):
+            data_bytes = data_to_store.encode("utf-8")
+        else:
+            data_bytes = orjson.dumps(data_to_store)
+
+        self.redis_client.set(
+            name=key_name,
+            value=data_bytes,
+            ex=key_expiration,
+        )
+
+class RedisStaticMappingService:
+    """Service to fetch and cache static mappings from Redis."""
+    _cache = None
+    _last_loaded = 0
+    _ttl = 1200  # 20 minutes
+
+    def __init__(self):
+        self.redis = RedisSyncManager(database=11)
+
+    def get(self):
+        now = time.time()
+
+        if self._cache is None or now - self._last_loaded > self._ttl:
+            self._cache = {
+                "stats": self.redis.get_data("stat_mapper") or {},
+                "leagues": self.redis.get_data("league_mapper") or {}
+            }
+
+            self._last_loaded = now
+
+        return self._cache
+
+# Create a singleton instance for global use
+static_mapping_service = RedisStaticMappingService()
+
+
+
+
+
+
+
+
+
+

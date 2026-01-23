@@ -1,400 +1,228 @@
-from dataclasses import asdict
-from API.Formatters.dfs_formatter import get_formatter
-from API.Formatters.pph_formatter import get_pph_formatter
-from API.Formatters.prediction_formatter import get_prediction_formatter
-from DFS.fanduel_picks import FanDuelPicks
-from DFS.prizepicks import Prizepicks
-from DFS.underdog import Underdog
-from DFS.betr import Betr
-from DFS.boom import Boom
-from DFS.dabble import Dabble
-from DFS.drafters import Drafters
-from DFS.draftkings_6 import DraftKingsPickSix
-from DFS.ownerbox import Ownerbox
-from DFS.parlaye import Parlaye
-from DFS.parlayplay import Parlayplay
-from DFS.sleeper import Sleeper
-from DFS.epicks import Epicks
-from DFS.chalkboard import Chalkboard
-from DFS.splashsports import SplashSports
-from datetime import datetime, timezone
-from celery.utils.log import get_task_logger
-from celery import shared_task
-
-from Prediction.kalshi import Kalshi
-from Prediction.fourcx import FourCX
-from Redis.redis_manager import RedisManager
 from asgiref.sync import async_to_sync
+from celery import shared_task
+from celery.utils.log import get_task_logger
 
-from SGP.Mapper.runner import Runner
-from SGP.betmgm import BetMGM_SGP
-from SGP.fanduel import Fanduel_SGP
-from SGP.onyx import Onyx_SGP
-from Settings.Auth_Automation.fanduel_picks_auth import generate_fanduel_picks_auth_token
-from Settings.Auth_Automation.onyx_sgp_auth import generate_onyx_auth_token
-from Settings.Auth_Automation.ownerbox_auth import generate_ownerbox_auth_token
-from Settings.Prediction_Settings.prediction_model import BookDataPrediction
-from Settings.Sportsbook_Settings.sportsbook_model import BookDataSportsbook
-from Settings.dfs_model import BookData
-from Settings.pph_model import BookDataPPH
-from Settings.Liquidity_Settings.novig_model import BookDataLiquidity
-from sportsbook.PPH.stg import STG
-from sportsbook.bet105 import Bet105
-from Liquidity.novig import Novig
-from sportsbook.helper.kibl_mapper import KiblMapper
+from Books.DFS.sleeper import Sleeper
+from Books.DFS.splashsports import SplashSports
+from Books.DFS.underdog import Underdog
+from Books.DFS.betr import Betr
+from Books.DFS.boom import Boom
+from Books.DFS.chalkboard import Chalkboard
+from Books.DFS.dabble import Dabble
+from Books.DFS.drafters import Drafters
+from Books.DFS.draftkings_6 import DraftKingsPickSix
+from Books.DFS.epicks import Epicks
+from Books.DFS.fanduel_picks import FanDuelPicks
+from Books.DFS.ownerbox import Ownerbox
+from Books.DFS.parlaye import Parlaye
+from Books.DFS.parlayplay import Parlayplay
+from Books.DFS.prizepicks import Prizepicks
+
+
+from Redis.redis_manager import RedisSyncManager
+import time
 
 logger = get_task_logger(__name__)
 
-DFS_Books = {
+
+DEFAULT_QUEUE = "sportsbook"
+DEFAULT_INTERVAL = 45
+DEFAULT_TIMEOUT = 120
+DEFAULT_QUEUE_EXPIRATION = 120
+
+
+BOOKS = {
     "underdog": {
         "class": Underdog,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "prizepicks": {
-        "class": Prizepicks,
-        "interval": 45,
-        "task": "dfs",
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
     },
     "betr": {
         "class": Betr,
-        "interval": 45,
-        "task": "dfs",
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
     },
     "boom": {
         "class": Boom,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "dabble": {
-        "class": Dabble,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "drafters": {
-        "class": Drafters,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "draftkings_6": {
-        "class": DraftKingsPickSix,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "ownerbox": {
-        "class": Ownerbox,
-        "interval": 60,
-        "task": "dfs",
-    },
-    "parlaye": {
-        "class": Parlaye,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "parlayplay": {
-        "class": Parlayplay,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "sleeper": {
-        "class": Sleeper,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "fanduel_picks": {
-        "class": FanDuelPicks,
-        "interval": 45,
-        "task": "dfs",
-    },
-    "epicks": {
-        "class": Epicks,
-        "interval": 45,
-        "task": "dfs",
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
     },
     "chalkboard": {
         "class": Chalkboard,
-        "interval": 45,
-        "task": "dfs",
-    }
-    # Disabled until working fix can be found - VPN Issue.
-    # "splashsports": {
-    #     "class": SplashSports,
-    #     "interval": 15,
-    #     "task": "dfs",
-    # },
-}
-
-
-PREDICTION_BOOKS = {
-    "kalshi" :{
-        "class": Kalshi,
-        "interval": 120,
-        "task": "prediction",
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
     },
-    "4cx": {
-        "class": FourCX,
-        "interval": 45,
-        "task": "prediction",
-    }
-}
-
-SPORTBOOK_BOOKS = {
-    "bet105": {
-        "class": Bet105,
-        "interval": 45,
-        "task": "sportbook",
+    "dabble": {
+        "class": Dabble,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
     },
-    "stg": {
-        "class": STG,
-        "interval": 45,
-        "task": "sportbook",
+    "drafters": {
+        "class": Drafters,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
+    },
+    "pick_6": {
+        "class": DraftKingsPickSix,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
+    },
+    "epicks": {
+        "class": Epicks,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
+    },
+    "fanduel_picks": {
+        "class": FanDuelPicks,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
+    },
+    "ownerbox": {
+        "class": Ownerbox,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": False,
+    },
+    "parlaye": {
+        "class": Parlaye,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
+    },
+    "parlayplay": {
+        "class": Parlayplay,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
+    },
+    "prizepicks": {
+        "class": Prizepicks,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
+    },
+    "sleeper": {
+        "class": Sleeper,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": True,
+    },
+    "splashsports": {
+        "class": SplashSports,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "queue": DEFAULT_QUEUE,
+        "queue_expiration": DEFAULT_QUEUE_EXPIRATION,
+        "type": "dfs",
+        "task": "celery_app.tasks.run_sportsbooks",
+        "is_active": False,
     },
 }
 
 
-LIQUIDITY_BOOKS = {
-    "novig": {
-        "class": Novig,
-        "interval": 60,
-        "task": "liquidity",
-    }
-}
+async def _run_books(book_name: str, lock_timeout: int):
+    redis_instance = RedisSyncManager(database=10)
+    lock_key = f"{book_name}_lock"
+    lock = redis_instance.redis_client.lock(lock_key, timeout=lock_timeout, blocking_timeout=3)
 
-# PPH_BOOKS = {
-#     "stg": {
-#         "class": STG,
-#         "interval": 60,
-#         "task": "pph",
-#     },
-# }
-
-BOOKS = {
-    "dfs": DFS_Books,
-    # "pph": PPH_BOOKS,
-    "liquidity": LIQUIDITY_BOOKS,
-    "prediction": PREDICTION_BOOKS,
-    "sportsbook": SPORTBOOK_BOOKS,
-}
-
-@shared_task(ignore_result=True)
-def refresh_auths():
-    async def _run():
-        try:
-            await generate_onyx_auth_token()
-        except Exception as e:
-            logger.error(f"Error generating Onyx auth token: {e}")
-        try:
-            await generate_fanduel_picks_auth_token()
-        except Exception as e:
-            logger.error(f"Error generating Fanduel Picks auth token: {e}")
-        # try:
-        #     await generate_ownerbox_auth_token()
-        # except Exception as e:
-        #     logger.error(f"Error generating Ownerbox auth token: {e}")
-
-    async_to_sync(_run)()
-
-@shared_task(ignore_result=True)
-def refresh_sportsbook_mapping():
-    async def _run():
-        mapper = KiblMapper()
-        await mapper.run_mapper()
-
-        # try:
-        #     await generate_ownerbox_auth_token()
-        # except Exception as e:
-        #     logger.error(f"Error generating Ownerbox auth token: {e}")
-
-    async_to_sync(_run)()
-
-
-
-@shared_task(ignore_result=True)
-def map_sgp_ids():
-    async def _run():
-        runner = Runner()
-        await runner.run_mappers()
-
-        # try:
-        #     fanduel = Fanduel_SGP(links=[])
-        #     await fanduel.store_fanduel_data()
-        # except Exception as e:
-        #     logger.error(f"Error initializing Fanduel_SGP: {e}")
-        #
-        # try:
-        #     onyx = Onyx_SGP(links=[])
-        #     await onyx.store_onyx_data()
-        # except Exception as e:
-        #     logger.error(f"Error initializing Onyx_SGP: {e}")
-        #
-        # try:
-        #     betmgm = BetMGM_SGP(links=[])
-        #     await betmgm.store_betmgm_data()
-        # except Exception as e:
-        #     logger.error(f"Error initializing BetMGM_SGP: {e}")
-
-
-    async_to_sync(_run)()
-
-
-def dfs_formatter(data):
-    book_data = BookData(
-        last_refresh=datetime.now(timezone.utc),
-        data=data,
-    )
-
-    normalized = [asdict(p) for p in book_data.data]
-
-    return {
-        "base": get_formatter("base", normalized),
-        "game": get_formatter("game", normalized),
-    }
-
-
-def liquidity_formatter(data):
-    normalized = [asdict(g) for g in data]
-
-    return {
-        "game": normalized
-    }
-
-def prediction_formatter(data):
-    book_data = BookDataPrediction(
-        last_refresh=datetime.now(timezone.utc),
-        data=data,
-    )
-
-    normalized = [asdict(p) for p in book_data.data]
-
-    return {
-        "base": get_prediction_formatter("base", normalized),
-        "game": get_prediction_formatter("game", normalized),
-    }
-
-def sportsbook_formatter(data):
-    # book_data = BookDataSportsbook(
-    #     last_refresh=datetime.now(timezone.utc),
-    #     data=data,
-    # )
-    #
-    # normalized = [asdict(p) for p in book_data.data]
-
-    return {
-        "base": data,
-        "game": data,
-    }
-
-# def pph_formatter(data):
-#     book_data = BookDataPPH(
-#         last_refresh=datetime.now(timezone.utc),
-#         data=data,
-#     )
-#
-#     normalized = [asdict(p) for p in book_data.data]
-#
-#     return {
-#         "base": get_pph_formatter("base", normalized),
-#         "game": get_pph_formatter("game", normalized),
-#     }
-
-async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeout=60, blocking_timeout=1, modified_key=None, key_expiration=600):
-    redis_manager = RedisManager(db=redis_db)
-
-    lock_key = f"{run_book_type}_lock:{name}"
-    lock = redis_manager.redis_client.lock(lock_key, timeout=timeout, blocking_timeout=blocking_timeout)
-
-    if not await lock.acquire(blocking=False):
-        logger.info(f"Skipping {run_book_type} book {name}, already running.")
+    if not lock.acquire(blocking=False):
+        logger.info(f"Could not acquire lock for {book_name}. Another instance may be running.")
         return
 
-    try:
-        logger.info(f"Starting {run_book_type} book: {name}")
-        cls = BOOKS[run_book_type][name]["class"]
-        book = cls()
+    start_time = time.perf_counter()
+    # logger.info(f"Starting task for book: {book_name.title()}")
 
-        data = await book.run_book()
+    logger.info(
+        "\n"
+        "========================================\n"
+        f"-> STARTING BOOK: {book_name.upper()}\n"
+        "========================================"
+    )
+    cls = BOOKS[book_name]["class"]()
+    await cls.run_book()
 
-        if data:
-            # book_data = BookData(
-            #     last_refresh=datetime.now(timezone.utc),
-            #     data=data if data else [],
-            # )
+    lock.release()
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    # logger.info(f"{book_name.title()} finished in: {elapsed_time:.4f} seconds")
 
-            # normalized_data = [asdict(player_data) for player_data in book_data.data]
+    logger.info(
+        "\n"
+        "========================================\n"
+        f"-> COMPLETED BOOK: {book_name.upper()}\n"
+        f"->  DURATION: {elapsed_time:.4f} seconds\n"
+        "========================================"
+    )
 
-            # formatted_versions = {
-            #     "base": get_formatter("base", normalized_data),
-            #     "game": get_formatter("game", normalized_data),
-            # }
-            #
-
-            formatted_output = formatter_func(data)
-
-            for fmt, payload in formatted_output.items():
-                key = f"{run_book_type}:{name}:{fmt}" if not modified_key else modified_key
-
-                if fmt == "base":
-                    wrapped_payload = {
-                        "last_refresh": datetime.now(timezone.utc).isoformat(),
-                        "data": payload
-                    }
-                else:
-                    wrapped_payload = payload
-
-                await redis_manager.store_data(key, wrapped_payload, key_expiration=key_expiration)
-                logger.info(f"Stored formatted {fmt.upper()} data for {name}")
-
-        logger.info(f"Finished {run_book_type} book: {name}")
-    except Exception as e:
-        logger.error(f"Error in {run_book_type} book {name}: {e}", exc_info=True)
-    finally:
-        try:
-            await lock.release()
-        except Exception as e:
-            logger.error(f"Error releasing lock for {run_book_type} book {name}: {e}")
-
-    # async_to_sync(_run)()
+@shared_task(name="celery_app.tasks.run_sportsbooks")
+def run_sportsbooks(book_name: str, lock_timeout):
+    async_to_sync(_run_books)(book_name, lock_timeout)
 
 
-@shared_task(
-    ignore_result=True,
-    soft_time_limit=180,
-    time_limit=300
-)
-def run_book_dfs(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter, timeout=180, blocking_timeout=30,)
 
 
-@shared_task(
-    ignore_result=True,
-    soft_time_limit=180,
-    time_limit=300
-)
-def run_book_liquidity(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "liquidity", liquidity_formatter, timeout=180, blocking_timeout=30, modified_key="liquidity_data")
-
-
-@shared_task(
-    ignore_result=True,
-    soft_time_limit=180,
-    time_limit=300
-)
-def run_book_prediction(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "prediction", prediction_formatter, timeout=180, blocking_timeout=30, key_expiration=1200)
-
-# @shared_task(
-#     ignore_result=True,
-#     soft_time_limit=220,
-#     time_limit=400
-# )
-# def run_book_pph(name, redis_db):
-#     async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter, timeout=180, blocking_timeout=5)
-
-
-@shared_task(
-    ignore_result=True,
-    soft_time_limit=220,
-    time_limit=400
-)
-def run_book_sportsbook(name, redis_db):
-    async_to_sync(_shared_run_book)(name, redis_db, "sportsbook", sportsbook_formatter, timeout=180, blocking_timeout=5)

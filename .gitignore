@@ -8,17 +8,23 @@ celerybeat-schedule.db
 celerybeat-schedule.bak
 celerybeat-schedule.dat
 celerybeat-schedule.dir
-API/API Logs/dfs
-API/API Logs/sgp
-DFS/DFS Logs
-SGP/SGP Logs
+*.json
+
+
+
+
+old/API/API Logs/dfs
+old/API/API Logs/sgp
+old/DFS/DFS Logs
+old/SGP/SGP Logs
 *.log
-DFS/chalkboard_old.py
-DFS/chalkboard_all_lines_testing.py
-Internal_Docs/
-Settings/Auth_Automation/Logs/
-SGP/Test/SGP Logs/
-Redis/certs/ca.crt
+old/DFS/chalkboard_old.py
+old/DFS/chalkboard_all_lines_testing.py
+old/Internal_Docs_OLD/
+old/Settings/Auth_Automation/Logs/
+old/SGP/Test/SGP Logs/
+old/Redis/certs/ca.crt
 Prediction/old_kalashi.py
 .idea/
-Future_Implementation/
+old/Future_Implementation/
+Refactor Notes

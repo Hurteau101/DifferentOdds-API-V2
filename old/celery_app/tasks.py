@@ -1,0 +1,394 @@
+from dataclasses import asdict
+from old.API.Formatters.dfs_formatter import get_formatter
+from old.API.Formatters.prediction_formatter import get_prediction_formatter
+from old.DFS.fanduel_picks import FanDuelPicks
+from old.DFS.prizepicks import Prizepicks
+from old.DFS.underdog import Underdog
+from old.DFS.betr import Betr
+from old.DFS.boom import Boom
+from old.DFS.dabble import Dabble
+from old.DFS.drafters import Drafters
+from old.DFS.draftkings_6 import DraftKingsPickSix
+from old.DFS.ownerbox import Ownerbox
+from old.DFS.parlaye import Parlaye
+from old.DFS.parlayplay import Parlayplay
+from old.DFS.sleeper import Sleeper
+from old.DFS.epicks import Epicks
+from old.DFS.chalkboard import Chalkboard
+from datetime import datetime, timezone
+from celery.utils.log import get_task_logger
+from celery import shared_task
+
+from old.Prediction.kalshi import Kalshi
+from old.Prediction.fourcx import FourCX
+from old.Redis.redis_manager import RedisManager
+from asgiref.sync import async_to_sync
+
+from old.SGP.Mapper.runner import Runner
+from old.Settings.Auth_Automation.fanduel_picks_auth import generate_fanduel_picks_auth_token
+from old.Settings.Auth_Automation.onyx_sgp_auth import generate_onyx_auth_token
+from old.Settings.Prediction_Settings.prediction_model import BookDataPrediction
+from old.Settings.dfs_model import BookData
+from old.sportsbook.PPH.stg import STG
+from old.sportsbook.bet105 import Bet105
+from old.Liquidity.novig import Novig
+from old.sportsbook.helper.kibl_mapper import KiblMapper
+
+logger = get_task_logger(__name__)
+
+DFS_Books = {
+    "underdog": {
+        "class": Underdog,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "prizepicks": {
+        "class": Prizepicks,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "betr": {
+        "class": Betr,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "boom": {
+        "class": Boom,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "dabble": {
+        "class": Dabble,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "drafters": {
+        "class": Drafters,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "draftkings_6": {
+        "class": DraftKingsPickSix,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "ownerbox": {
+        "class": Ownerbox,
+        "interval": 60,
+        "task": "dfs",
+    },
+    "parlaye": {
+        "class": Parlaye,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "parlayplay": {
+        "class": Parlayplay,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "sleeper": {
+        "class": Sleeper,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "fanduel_picks": {
+        "class": FanDuelPicks,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "epicks": {
+        "class": Epicks,
+        "interval": 45,
+        "task": "dfs",
+    },
+    "chalkboard": {
+        "class": Chalkboard,
+        "interval": 45,
+        "task": "dfs",
+    }
+    # Disabled until working fix can be found - VPN Issue.
+    # "splashsports": {
+    #     "class": SplashSports,
+    #     "interval": 15,
+    #     "task": "dfs",
+    # },
+}
+
+
+PREDICTION_BOOKS = {
+    "kalshi" :{
+        "class": Kalshi,
+        "interval": 120,
+        "task": "prediction",
+    },
+    "4cx": {
+        "class": FourCX,
+        "interval": 45,
+        "task": "prediction",
+    }
+}
+
+SPORTBOOK_BOOKS = {
+    "bet105": {
+        "class": Bet105,
+        "interval": 45,
+        "task": "sportbook",
+    },
+    "stg": {
+        "class": STG,
+        "interval": 45,
+        "task": "sportbook",
+    },
+}
+
+
+LIQUIDITY_BOOKS = {
+    "novig": {
+        "class": Novig,
+        "interval": 60,
+        "task": "liquidity",
+    }
+}
+
+# PPH_BOOKS = {
+#     "stg": {
+#         "class": STG,
+#         "interval": 60,
+#         "task": "pph",
+#     },
+# }
+
+BOOKS = {
+    "dfs": DFS_Books,
+    # "pph": PPH_BOOKS,
+    "liquidity": LIQUIDITY_BOOKS,
+    "prediction": PREDICTION_BOOKS,
+    "sportsbook": SPORTBOOK_BOOKS,
+}
+
+@shared_task(ignore_result=True)
+def refresh_auths():
+    async def _run():
+        try:
+            await generate_onyx_auth_token()
+        except Exception as e:
+            logger.error(f"Error generating Onyx auth token: {e}")
+        try:
+            await generate_fanduel_picks_auth_token()
+        except Exception as e:
+            logger.error(f"Error generating Fanduel Picks auth token: {e}")
+        # try:
+        #     await generate_ownerbox_auth_token()
+        # except Exception as e:
+        #     logger.error(f"Error generating Ownerbox auth token: {e}")
+
+    async_to_sync(_run)()
+
+@shared_task(ignore_result=True)
+def refresh_sportsbook_mapping():
+    async def _run():
+        mapper = KiblMapper()
+        await mapper.run_mapper()
+
+        # try:
+        #     await generate_ownerbox_auth_token()
+        # except Exception as e:
+        #     logger.error(f"Error generating Ownerbox auth token: {e}")
+
+    async_to_sync(_run)()
+
+
+
+@shared_task(ignore_result=True)
+def map_sgp_ids():
+    async def _run():
+        runner = Runner()
+        await runner.run_mappers()
+
+        # try:
+        #     fanduel = Fanduel_SGP(links=[])
+        #     await fanduel.store_fanduel_data()
+        # except Exception as e:
+        #     logger.error(f"Error initializing Fanduel_SGP: {e}")
+        #
+        # try:
+        #     onyx = Onyx_SGP(links=[])
+        #     await onyx.store_onyx_data()
+        # except Exception as e:
+        #     logger.error(f"Error initializing Onyx_SGP: {e}")
+        #
+        # try:
+        #     betmgm = BetMGM_SGP(links=[])
+        #     await betmgm.store_betmgm_data()
+        # except Exception as e:
+        #     logger.error(f"Error initializing BetMGM_SGP: {e}")
+
+
+    async_to_sync(_run)()
+
+
+def dfs_formatter(data):
+    book_data = BookData(
+        last_refresh=datetime.now(timezone.utc),
+        data=data,
+    )
+
+    normalized = [asdict(p) for p in book_data.data]
+
+    return {
+        "base": get_formatter("base", normalized),
+        "game": get_formatter("game", normalized),
+    }
+
+
+def liquidity_formatter(data):
+    normalized = [asdict(g) for g in data]
+
+    return {
+        "game": normalized
+    }
+
+def prediction_formatter(data):
+    book_data = BookDataPrediction(
+        last_refresh=datetime.now(timezone.utc),
+        data=data,
+    )
+
+    normalized = [asdict(p) for p in book_data.data]
+
+    return {
+        "base": get_prediction_formatter("base", normalized),
+        "game": get_prediction_formatter("game", normalized),
+    }
+
+def sportsbook_formatter(data):
+    # book_data = BookDataSportsbook(
+    #     last_refresh=datetime.now(timezone.utc),
+    #     data=data,
+    # )
+    #
+    # normalized = [asdict(p) for p in book_data.data]
+
+    return {
+        "base": data,
+        "game": data,
+    }
+
+# def pph_formatter(data):
+#     book_data = BookDataPPH(
+#         last_refresh=datetime.now(timezone.utc),
+#         data=data,
+#     )
+#
+#     normalized = [asdict(p) for p in book_data.data]
+#
+#     return {
+#         "base": get_pph_formatter("base", normalized),
+#         "game": get_pph_formatter("game", normalized),
+#     }
+
+async def _shared_run_book(name, redis_db, run_book_type, formatter_func, timeout=60, blocking_timeout=1, modified_key=None, key_expiration=600):
+    redis_manager = RedisManager(db=redis_db)
+
+    lock_key = f"{run_book_type}_lock:{name}"
+    lock = redis_manager.redis_client.lock(lock_key, timeout=timeout, blocking_timeout=blocking_timeout)
+
+    if not await lock.acquire(blocking=False):
+        logger.info(f"Skipping {run_book_type} book {name}, already running.")
+        return
+
+    try:
+        logger.info(f"Starting {run_book_type} book: {name}")
+        cls = BOOKS[run_book_type][name]["class"]
+        book = cls()
+
+        data = await book.run_book()
+
+        if data:
+            # book_data = BookData(
+            #     last_refresh=datetime.now(timezone.utc),
+            #     data=data if data else [],
+            # )
+
+            # normalized_data = [asdict(player_data) for player_data in book_data.data]
+
+            # formatted_versions = {
+            #     "base": get_formatter("base", normalized_data),
+            #     "game": get_formatter("game", normalized_data),
+            # }
+            #
+
+            formatted_output = formatter_func(data)
+
+            for fmt, payload in formatted_output.items():
+                key = f"{run_book_type}:{name}:{fmt}" if not modified_key else modified_key
+
+                if fmt == "base":
+                    wrapped_payload = {
+                        "last_refresh": datetime.now(timezone.utc).isoformat(),
+                        "data": payload
+                    }
+                else:
+                    wrapped_payload = payload
+
+                await redis_manager.store_data(key, wrapped_payload, key_expiration=key_expiration)
+                logger.info(f"Stored formatted {fmt.upper()} data for {name}")
+
+        logger.info(f"Finished {run_book_type} book: {name}")
+    except Exception as e:
+        logger.error(f"Error in {run_book_type} book {name}: {e}", exc_info=True)
+    finally:
+        try:
+            await lock.release()
+        except Exception as e:
+            logger.error(f"Error releasing lock for {run_book_type} book {name}: {e}")
+
+    # async_to_sync(_run)()
+
+
+@shared_task(
+    ignore_result=True,
+    soft_time_limit=180,
+    time_limit=300
+)
+def run_book_dfs(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "dfs", dfs_formatter, timeout=180, blocking_timeout=30,)
+
+
+
+
+
+@shared_task(
+    ignore_result=True,
+    soft_time_limit=180,
+    time_limit=300
+)
+def run_book_liquidity(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "liquidity", liquidity_formatter, timeout=180, blocking_timeout=30, modified_key="liquidity_data")
+
+
+@shared_task(
+    ignore_result=True,
+    soft_time_limit=180,
+    time_limit=300
+)
+def run_book_prediction(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "prediction", prediction_formatter, timeout=180, blocking_timeout=30, key_expiration=1200)
+
+# @shared_task(
+#     ignore_result=True,
+#     soft_time_limit=220,
+#     time_limit=400
+# )
+# def run_book_pph(name, redis_db):
+#     async_to_sync(_shared_run_book)(name, redis_db, "pph", pph_formatter, timeout=180, blocking_timeout=5)
+
+
+@shared_task(
+    ignore_result=True,
+    soft_time_limit=220,
+    time_limit=400
+)
+def run_book_sportsbook(name, redis_db):
+    async_to_sync(_shared_run_book)(name, redis_db, "sportsbook", sportsbook_formatter, timeout=180, blocking_timeout=5)

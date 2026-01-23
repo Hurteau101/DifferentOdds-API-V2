@@ -1,31 +1,28 @@
+# from Monitoring.monitoring import init_sentry
+# init_sentry()
+
+from contextlib import asynccontextmanager
+from Redis.redis_manager import RedisAsyncManager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from starlette.middleware.gzip import GZipMiddleware
-from Mapper.database import Database
-from Redis.redis_manager import RedisManager
-from . import dfs
-from . import sgp
-from . import pph
-from . import liquidity
-from . import prediction
-from . import sportsbook
-from contextlib import asynccontextmanager
 from fastapi.responses import FileResponse
-from pathlib import Path
+from API.dfs import router as dfs
 
 BASE_DIR = Path(__file__).resolve().parent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.db = Database()
+    app.state.redis = {
+        "dfs": RedisAsyncManager(database=0),
+    }
 
-    # Create shared RedisManager
-    app.state.redis = RedisManager(db=0)
     try:
         yield
     finally:
-        await app.state.db.engine.dispose()
-        await app.state.redis.close()
+        for redis in app.state.redis.values():
+            await redis.close_for_shutdown()
 
 app = FastAPI(
     title="Different Odds API",
@@ -35,24 +32,19 @@ app = FastAPI(
         "\n\n**Note:** Some endpoints may return large datasets. For the best experience, we recommend using Postman or another API client."
     ),
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
-    lifespan=lifespan,
     version="V2.0.0",
     default_response_class=ORJSONResponse,
+    lifespan=lifespan,
     docs_url="/",
 )
 
-app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=1)
 
+
+# Helps for larger responses - compress them
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=1)
 
 @app.get("/docs/api", include_in_schema=False)
 async def custom_docs():
-    return FileResponse(BASE_DIR / "static" / "api_docs.html")
+    return FileResponse(BASE_DIR / "Static" / "api_docs.html")
 
-app.include_router(dfs.router)
-app.include_router(sgp.router)
-# app.include_router(pph.router)
-app.include_router(liquidity.router)
-app.include_router(prediction.router)
-app.include_router(sportsbook.router)
-
-
+app.include_router(dfs)
