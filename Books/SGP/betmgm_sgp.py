@@ -2,30 +2,29 @@ import asyncio
 import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
 from Utils.request_caller import SportbookRequestType
-from Redis.redis_manager import RedisAsyncManager
+from Monitoring.monitoring import create_sentry_message
 
 class BetmgmSGP(SGPBookBase):
-    def __init__(self, sgp_data: dict):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betmgm", sgp_data=sgp_data)
+    def __init__(self, sgp_data: dict, mapped_ids: dict):
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betmgm",
+                         sgp_data=sgp_data, mapped_ids=mapped_ids)
 
-    async def _get_cached_ids(self):
-        redis_instance = RedisAsyncManager(database=self.redis_database)
-        return await redis_instance.get_data(key_name="betmgm_ids")
 
     @SGPBookBase.ensure_link_data
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            mapped_ids = await self._get_cached_ids()
-
-            if not mapped_ids:
+            if not self.mapped_ids:
+                create_sentry_message(
+                    tag_key="betmgm",
+                    tag_value="no_mapping",
+                    message="No mapped IDs were found in SGP",
+                    level="error"
+                )
                 return None
 
-            payload = self._create_payload(mapped_ids)
-            with open("betmgm_sgp_payload.json", "w") as file:
-                import json
-                json.dump(payload, file, indent=2)
-
+            payload = self._create_payload(self.mapped_ids)
             api_data = await self.api_caller(
+                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("sgp_url"),
                 method="POST",
@@ -33,16 +32,14 @@ class BetmgmSGP(SGPBookBase):
                 payload=payload
             )
 
-            api_data = self.check_api_response(sportsbook="betmgm", results=api_data)
             if not api_data:
                 return
 
-            api_data.pop("success")
-
             return self._extract_odds(api_data)
 
-    def _extract_odds(self, api_data):
-        # Return SGP Odds
+    def _extract_odds(self, api_data: dict) -> None | dict:
+        """Extract the SGP Odds"""
+
         if not api_data.get("betBuilderPricingGroups"):
             return None
 
@@ -55,12 +52,13 @@ class BetmgmSGP(SGPBookBase):
         if not odds or odds_section.get("suspensionState") == "MarketSuspended":
             return None
 
-        return {
-            "american": float(odds.get("americanOdds")),
-            "decimal": float(odds.get("odds")),
-        }
+        return BetmgmSGP.return_odds(
+            american_odds=odds.get("americanOdds"),
+            decimal_odds=odds.get("odds")
+        )
 
-    def _create_payload(self, mapped_data):
+
+    def _create_payload(self, mapped_data: dict) -> dict:
         return {
             "tv1Picks": [
                 {

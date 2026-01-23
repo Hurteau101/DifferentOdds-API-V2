@@ -39,7 +39,8 @@ class ProphetxSGP(SGPBookBase):
             if len(api_data.get("offers")) <= 0:
                 return None
 
-            return {
-                "decimal": None,
-                "american": float(api_data.get("offers")[0].get("odds"))
-            }
+            return ProphetxSGP.return_odds(
+                american_odds=api_data.get("offers")[0].get("odds"),
+                decimal_odds=None
+            )
+

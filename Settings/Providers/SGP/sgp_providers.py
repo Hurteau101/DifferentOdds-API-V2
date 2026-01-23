@@ -59,8 +59,8 @@ SGP_PROVIDERS = [
             'Origin': 'https://www.on.betmgm.ca',
         },
         regex={
-            "event_id_regex": r"options=([\d]+)",
-            "bet_id_regex": r"--(\d+)",
+            "event_id": r"options=([\d]+)",
+            "bet_id": r"--(\d+)",
         },
         method="GET",
         is_active=True,
@@ -222,8 +222,7 @@ SGP_PROVIDERS = [
             'X-App-Version': '7.38.0',
         },
         regex={
-            "bet_id_regex": r'selectionIds=([0-9a-fA-F-]+)',  # bet_id will be the selection_id
-            "event_id_regex": r'selectionIds=([0-9a-fA-F-]+)',  # Use event_id same as bet_id as don't need event_id
+            "select_id": r'selectionIds=([0-9a-fA-F-]+)',  # bet_id will be the selection_id
         },
         method="POST",
         is_active=True,

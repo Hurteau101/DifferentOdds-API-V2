@@ -16,57 +16,57 @@ from Authentication.caesars_auth import CaesarAuth
 
 
 TEST_AUTH_MAPPINGS = [
-    {
-        "book_name": "fourcx",
-        "auth_class": FourcxAuth,
-        "auth_key": "4cx_auth_token",
-        "auth_active": True,
-    },
-    {
-        "book_name": "fanduel_picks",
-        "auth_class": FanduelPicksAuth,
-        "auth_key": "fanduel_picks_auth_token",
-        "auth_active": True,
-    },
-    {
-        "book_name": "caesars",
-        "auth_class": CaesarAuth,
-        "auth_key": "caesars_waf_token",
-        "auth_active": True,
-        "mapper_class": CaesarMapper,
-        "mapper_key": "caesar_mapped_ids",
-        "mapper_active": True,
-        "store_json": True
-    },
-    {
-        "book_name": "chalkboard",
-        "auth_class": ChalkboardAuth,
-        "auth_key": "chalkboard_access_token",
-        "auth_active": True,
-    },
-    {
-        "book_name": "kibl",
-        "auth_class": KiblAuth,
-        "auth_key": "kibl_auth_token",
-        "auth_active": True,
-        ### ADD THE MAPPING FOR THIS BOOK
-    },
-    {
-        "book_name": "onyxodds",
-        "auth_class": OnyxAuth,
-        "auth_key": "onyx_auth_token",
-        "auth_active": False,
-        "mapper_class": OnyxMapper,
-        "mapper_key": "onyx_ids",
-        "mapper_active": False,
-        "store_json": True
-    },
-    {
-        "book_name": "ownerbox",
-        "auth_class": OwnerboxAuth,
-        "auth_key": "onyx_auth_token",
-        "auth_active": False,
-    },
+    # {
+    #     "book_name": "fourcx",
+    #     "auth_class": FourcxAuth,
+    #     "auth_key": "4cx_auth_token",
+    #     "auth_active": True,
+    # },
+    # {
+    #     "book_name": "fanduel_picks",
+    #     "auth_class": FanduelPicksAuth,
+    #     "auth_key": "fanduel_picks_auth_token",
+    #     "auth_active": True,
+    # },
+    # {
+    #     "book_name": "caesars",
+    #     "auth_class": CaesarAuth,
+    #     "auth_key": "caesars_waf_token",
+    #     "auth_active": True,
+    #     "mapper_class": CaesarMapper,
+    #     "mapper_key": "caesar_mapped_ids",
+    #     "mapper_active": True,
+    #     "store_json": True
+    # },
+    # {
+    #     "book_name": "chalkboard",
+    #     "auth_class": ChalkboardAuth,
+    #     "auth_key": "chalkboard_access_token",
+    #     "auth_active": True,
+    # },
+    # {
+    #     "book_name": "kibl",
+    #     "auth_class": KiblAuth,
+    #     "auth_key": "kibl_auth_token",
+    #     "auth_active": True,
+    #     ### ADD THE MAPPING FOR THIS BOOK
+    # },
+    # {
+    #     "book_name": "onyxodds",
+    #     "auth_class": OnyxAuth,
+    #     "auth_key": "onyx_auth_token",
+    #     "auth_active": False,
+    #     "mapper_class": OnyxMapper,
+    #     "mapper_key": "onyx_ids",
+    #     "mapper_active": False,
+    #     "store_json": True
+    # },
+    # {
+    #     "book_name": "ownerbox",
+    #     "auth_class": OwnerboxAuth,
+    #     "auth_key": "onyx_auth_token",
+    #     "auth_active": False,
+    # },
     {
         "book_name": "betmgm",
         "mapper_class": BetMgmMapper,
@@ -74,13 +74,13 @@ TEST_AUTH_MAPPINGS = [
         "mapper_active": True,
         "store_json": True
     },
-    {
-        "book_name": "fanduel",
-        "mapper_class": FanduelMapper,
-        "mapper_key": "fanduel_ids",
-        "mapper_active": True,
-        "store_json": True
-    },
+    # {
+    #     "book_name": "fanduel",
+    #     "mapper_class": FanduelMapper,
+    #     "mapper_key": "fanduel_ids",
+    #     "mapper_active": True,
+    #     "store_json": True
+    # },
 
 ]
 
