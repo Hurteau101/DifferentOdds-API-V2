@@ -42,18 +42,22 @@ DFS_BOOKS = [
     { "book_name": "fanduel_picks", "book_cls": FanDuelPicks, "save_json": True },
 ]
 
-redis_instance = RedisAsyncManager(database=11)
+
 tables = ["stat_mapper", "league_mapper"]
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("dfs_items", DFS_BOOKS)
-async def test_dfs_books(dfs_items):
+@pytest.mark.parametrize(
+    "dfs_items",
+    DFS_BOOKS,
+    ids=lambda item: (item.get("book_name") or "unknown"),
+)
+
+async def test_dfs_books(dfs_items, redis_static_mapper):
     async def _run_static():
         db = Database()
         for table in tables:
-            await store_static(database_instance=db, table_name=table, redis_instance=redis_instance)
+            await store_static(database_instance=db, table_name=table, redis_instance=redis_static_mapper)
 
-            await redis_instance.close_for_shutdown()
 
     if not STATIC_MAPPING.get("leagues") or not STATIC_MAPPING.get("stats"):
         await _run_static()
@@ -68,7 +72,7 @@ async def test_dfs_books(dfs_items):
         pytest.fail(f"No data returned from {book_name}")
 
     if dfs_items.get("save_json"):
-        current_directory = os.getcwd()
+        current_directory = os.path.dirname(os.path.realpath(__file__))
         serialized_data = serialize_data(returned_data)
         create_json_file(current_directory, book_name, serialized_data)
 

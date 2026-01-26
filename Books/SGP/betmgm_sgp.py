@@ -5,9 +5,9 @@ from Utils.request_caller import SportbookRequestType
 from Monitoring.monitoring import create_sentry_message
 
 class BetmgmSGP(SGPBookBase):
-    def __init__(self, sgp_data: dict, mapped_ids: dict):
+    def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betmgm",
-                         sgp_data=sgp_data, mapped_ids=mapped_ids)
+                         sgp_data=sgp_data, **kwargs)
 
 
     @SGPBookBase.ensure_link_data

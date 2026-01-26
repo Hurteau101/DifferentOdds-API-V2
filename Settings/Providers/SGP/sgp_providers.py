@@ -25,8 +25,14 @@ SGP_PROVIDERS = [
 
         },
         regex={
-            "bet_id_regex": r"selectionId=([^\s]+)",
-            "event_id_regex": r"marketId=([\d.]+)&",
+            "bet_id": r"selectionId=([^\s]+)",
+            "event_id": r"marketId=([\d.]+)&",
+        },
+        headers={
+            'Origin': 'https://sportsbook.fanduel.com',
+            'Connection': 'keep-alive',
+            'Referer': 'https://sportsbook.fanduel.com/',
+            'X-Application': 'FhMFpcPWXMeyZxOx',
         },
         method="GET",
         is_active=True,
@@ -91,8 +97,7 @@ SGP_PROVIDERS = [
             "User-Agent": "ktor-client",
         },
         regex={
-            "bet_id_regex": r'"selectionId":"(\d+)"',
-            "event_id_regex": r'"eventId":"(\d+)"',
+            "selection_id": r'"selectionId":"(\d+)"',
         },
         method="WS",
         is_active=True,
@@ -104,8 +109,8 @@ SGP_PROVIDERS = [
             "main_url": "https://eu1.offering-api.kambicdn.com/offering/v2018/rsicaon/onDemandPricing/event/{event_id}/outcome/{bet_ids}.json?lang=en_CA&market=CA-ON&client_id=2&channel_id=1"
         },
         regex={
-            "bet_id_regex": r"single\|(\d+)\|",
-            "event_id_regex": r"event/(\d+)?",
+            "bet_id": r"single\|(\d+)\|",
+            "event_id": r"event/(\d+)?",
         },
         method="GET",
         is_active=True,
@@ -132,9 +137,7 @@ SGP_PROVIDERS = [
             "main_url": "wss://api.hardrocksportsbook.com/websocket"
         },
         regex={
-            "bet_id_regex": r"betslip/(.+)",
-            "event_id_regex": r"betslip/(.+)",
-            # Use event_id same as bet_id as hardrock does not provide event_id separately
+            "bet_id": r"betslip/(.+)",
         },
         method="WS",
         is_active=True,
@@ -146,9 +149,7 @@ SGP_PROVIDERS = [
             "main_url": "https://api.novig.us/nbx/v1/parlay/request/unauthenticated"
         },
         regex={
-            "bet_id_regex": r"events/([^/]+)",
-            "event_id_regex": r"events/([^/]+)",
-            # Use event_id same as bet_id as novig does not provide event_id separately
+            "event_id": r"events/([^/]+)",
         },
         method="POST",
         is_active=True,
@@ -160,8 +161,7 @@ SGP_PROVIDERS = [
             "main_url": "https://api.onyxodds.com/api/odds/parlayPrice"
         },
         regex={
-            "bet_id_regex": r"selection=([\w-]+)",
-            "event_id_regex": r"selection=([\w-]+)",  # Use event_id same as bet_id as don't need event_id
+            "selection_id": r"selection=([\w-]+)",
         },
         method="POST",
         is_active=True,
@@ -196,11 +196,28 @@ SGP_PROVIDERS = [
         name="thescore",
         url={
             "anonymous_token_url": "https://sportsbook.ca-default.thescore.bet/graphql/persisted_queries/e8fa300a9384c89576e6bec55cf1a4fc97a3e15255571cf9f841515abfb7c382?extensions=%7B%22clientLibrary%22:%7B%22name%22:%22apollo-ios%22,%22version%22:%221.21.0%22%7D,%22persistedQuery%22:%7B%22sha256Hash%22:%22e8fa300a9384c89576e6bec55cf1a4fc97a3e15255571cf9f841515abfb7c382%22,%22version%22:1%7D%7D&operationName=Startup&variables=%7B%22connectToken%22:null,%22globalRedirect%22:false,%22isMedia%22:false,%22latLongParams%22:%7B%22accuracy%22:35,%22latitude%22:51.166784592498459,%22longitude%22:-114.14382905748789%7D,%22logoHeight%22:24,%22toolbarIconMaxHeight%22:20%7D",
-            "graph_url": "https://sportsbook.ca-default.thescore.bet/graphql",
+            "draftbet_url": "https://sportsbook.us-default.thescore.bet/graphql/persisted_queries/11b043d75b61c332daff19bff740fb035a524d6d0fe9d12debc729c667633b61",
+            "sgp_url": "https://sportsbook.us-default.thescore.bet/graphql/persisted_queries/11b043d75b61c332daff19bff740fb035a524d6d0fe9d12debc729c667633b61"
         },
         headers={
-            "User-Agent": "theScore Bet/25.23.2 iPadOS/17.7.10 (iPhone; Retina, 750x1334, mobile)",
-            "x-platform": "ios",
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-CA,en-US;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Referer': 'https://sportsbook.thescore.bet/',
+            'content-type': 'application/json',
+            'apollographql-client-name': 'espnbet-espnbet-web',
+            'apollographql-client-version': '26.1.0',
+            'x-platform': 'web',
+            'x-app-version': '26.1.0',
+            'x-app': 'espnbet',
+            'x-client': 'espnbet',
+            'x-datadog-origin': 'rum',
+            'Origin': 'https://sportsbook.thescore.bet',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-site',
         },
         method="POST",
         is_active=True,
@@ -222,7 +239,7 @@ SGP_PROVIDERS = [
             'X-App-Version': '7.38.0',
         },
         regex={
-            "select_id": r'selectionIds=([0-9a-fA-F-]+)',  # bet_id will be the selection_id
+            "select_id": r'selectionIds=([0-9a-fA-F-]+)',
         },
         method="POST",
         is_active=True,

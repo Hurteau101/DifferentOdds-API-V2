@@ -5,8 +5,8 @@ from Books.Bases.sgp_book_base import SGPBookBase
 from Utils.request_caller import SportbookRequestType
 
 class ProphetxSGP(SGPBookBase):
-    def __init__(self, sgp_data: dict):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="prophetx", sgp_data=sgp_data)
+    def __init__(self, sgp_data: dict, **kwargs):
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="prophetx", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
     async def run_book(self):

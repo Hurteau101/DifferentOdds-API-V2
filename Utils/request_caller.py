@@ -30,7 +30,7 @@ class APICaller:
                     payload: dict | None = None,
                     parse_json: bool = False,
                     params: dict | None =None
-                    ) -> dict | None:
+                    ) -> dict | list | None:
         """Fetch data from the API based on request type."""
 
         method = method.lower()

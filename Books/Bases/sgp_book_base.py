@@ -8,10 +8,11 @@ from Redis.redis_manager import RedisAsyncManager
 
 class SGPBookBase(APICaller, ABC):
     def __init__(self, request_type: SportbookRequestType, category: str, book_name: str, sgp_data: dict,
-                 regex_keys: list = None, mapped_ids: dict = None):
+                 regex_keys: list = None, **kwargs):
         self.regex_keys = regex_keys or ["bet_id", "event_id"]
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
-        self.mapped_ids = mapped_ids
+        self.mapped_ids = kwargs.get("mapped_ids", {})
+        self.auth_token = kwargs.get("auth_token")
         self._parse_sgp_data(sgp_data)
         super().__init__(request_type=request_type)
 
@@ -44,7 +45,6 @@ class SGPBookBase(APICaller, ABC):
     def ensure_mapped_data(func):
         async def wrapper(self):
             mapped_data = getattr(self, "mapped_ids", {})
-            print(mapped_data)
             if not mapped_data:
                 return None
             return await func(self)
@@ -54,10 +54,39 @@ class SGPBookBase(APICaller, ABC):
         """ Extract IDs from the provided links based on regex patterns."""
         return [
             {
-                id_name: urllib.parse.unquote(extracted_id.group(1))
-                for id_name, reg_pattern in self.book_data.regex.items() or {}
-                if (extracted_id := re.search(reg_pattern, link))
+                id_name: match.group(1)
+                for id_name, reg_pattern in (self.book_data.regex or {}).items()
+                if (match := re.search(reg_pattern, urllib.parse.unquote(link)))
             }
-
             for link in self.links
         ]
+
+    @staticmethod
+    def convert_decimal_to_american(decimal_odds):
+        """Convert decimal odds to American odds."""
+        if decimal_odds is None:
+            return None
+        if decimal_odds >= 2.0:
+            return float(round((decimal_odds - 1) * 100))
+        else:
+            return float(round(-100 / (decimal_odds - 1)))
+
+    @staticmethod
+    def convert_probability_to_american_odds(probability_str: str | float):
+        """Converts a probability to American odds."""
+        probability = float(probability_str)
+
+        if not 0 <= probability <= 1:
+            raise None
+
+        if probability == 0:
+            return None
+        if probability == 1:
+            return None
+
+        if probability > 0.5:
+            american_odds = -(100 * probability) / (1 - probability)
+        else:
+            american_odds = (100 * (1 - probability)) / probability
+
+        return round(american_odds)

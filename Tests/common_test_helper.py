@@ -15,74 +15,86 @@ from Redis.redis_manager import RedisAsyncManager
 from Authentication.caesars_auth import CaesarAuth
 
 
-TEST_AUTH_MAPPINGS = [
-    # {
-    #     "book_name": "fourcx",
-    #     "auth_class": FourcxAuth,
-    #     "auth_key": "4cx_auth_token",
-    #     "auth_active": True,
-    # },
-    # {
-    #     "book_name": "fanduel_picks",
-    #     "auth_class": FanduelPicksAuth,
-    #     "auth_key": "fanduel_picks_auth_token",
-    #     "auth_active": True,
-    # },
-    # {
-    #     "book_name": "caesars",
-    #     "auth_class": CaesarAuth,
-    #     "auth_key": "caesars_waf_token",
-    #     "auth_active": True,
-    #     "mapper_class": CaesarMapper,
-    #     "mapper_key": "caesar_mapped_ids",
-    #     "mapper_active": True,
-    #     "store_json": True
-    # },
-    # {
-    #     "book_name": "chalkboard",
-    #     "auth_class": ChalkboardAuth,
-    #     "auth_key": "chalkboard_access_token",
-    #     "auth_active": True,
-    # },
-    # {
-    #     "book_name": "kibl",
-    #     "auth_class": KiblAuth,
-    #     "auth_key": "kibl_auth_token",
-    #     "auth_active": True,
-    #     ### ADD THE MAPPING FOR THIS BOOK
-    # },
-    # {
-    #     "book_name": "onyxodds",
-    #     "auth_class": OnyxAuth,
-    #     "auth_key": "onyx_auth_token",
-    #     "auth_active": False,
-    #     "mapper_class": OnyxMapper,
-    #     "mapper_key": "onyx_ids",
-    #     "mapper_active": False,
-    #     "store_json": True
-    # },
-    # {
-    #     "book_name": "ownerbox",
-    #     "auth_class": OwnerboxAuth,
-    #     "auth_key": "onyx_auth_token",
-    #     "auth_active": False,
-    # },
+TEST_AUTH_BOOKS = [
+    {
+        "book_name": "fourcx",
+        "auth_class": FourcxAuth,
+        "auth_key": "4cx_auth_token",
+        "active": True,
+    },
+    {
+        "book_name": "fanduel_picks",
+        "auth_class": FanduelPicksAuth,
+        "auth_key": "fanduel_picks_auth_token",
+        "active": True,
+    },
+    {
+        "book_name": "caesars",
+        "auth_class": CaesarAuth,
+        "auth_key": "caesars_waf_token",
+        "active": True,
+    },
+    {
+        "book_name": "chalkboard",
+        "auth_class": ChalkboardAuth,
+        "auth_key": "chalkboard_access_token",
+        "active": True,
+    },
+    {
+        "book_name": "kibl",
+        "auth_class": KiblAuth,
+        "auth_key": "kibl_auth_token",
+        "active": True,
+        ### ADD THE MAPPING FOR THIS BOOK
+    },
+    {
+        "book_name": "onyxodds",
+        "auth_class": OnyxAuth,
+        "auth_key": "onyx_auth_token",
+        "active": False,
+    },
+    {
+        "book_name": "ownerbox",
+        "auth_class": OwnerboxAuth,
+        "auth_key": "onyx_auth_token",
+        "active": False,
+    },
+]
+
+
+TEST_MAPPER_BOOKS = [
+    {
+        "book_name": "caesars",
+        "mapper_class": CaesarMapper,
+        "mapper_key": "caesar_mapped_ids",
+        "active": True,
+        "store_json": True
+    },
+    {
+        "book_name": "onyxodds",
+        "mapper_class": OnyxMapper,
+        "mapper_key": "onyx_ids",
+        "active": False,
+        "store_json": True
+    },
     {
         "book_name": "betmgm",
         "mapper_class": BetMgmMapper,
         "mapper_key": "betmgm_ids",
-        "mapper_active": True,
+        "active": True,
         "store_json": True
     },
-    # {
-    #     "book_name": "fanduel",
-    #     "mapper_class": FanduelMapper,
-    #     "mapper_key": "fanduel_ids",
-    #     "mapper_active": True,
-    #     "store_json": True
-    # },
+    {
+        "book_name": "fanduel",
+        "mapper_class": FanduelMapper,
+        "mapper_key": "fanduel_ids",
+        "active": True,
+        "store_json": True
+    },
 
 ]
+
+AUTH_BOOK_BY_NAME = {book["book_name"]: book for book in TEST_AUTH_BOOKS if book.get("book_name")}
 
 async def check_keys_in_redis(cls: type, redis_instance: RedisAsyncManager, key_name: str):
     """Helper function to check if auth keys are stored in Redis."""
@@ -105,7 +117,6 @@ async def check_keys_in_redis(cls: type, redis_instance: RedisAsyncManager, key_
         if not data_from_redis:
             return False, None
 
-    await redis_instance.close_for_shutdown()
     return True, data_from_redis
 
 

@@ -34,6 +34,58 @@ class DFSBookBase(BookBase):
                     yield game_data
 
 
+    async def builder_test(self, sportsbook_data: list):
+        data = {
+            "teams": set(),
+            "players": set(),
+        }
+
+        for d in sportsbook_data:
+
+            data["teams"].add(d.team_data.team_a)
+            data["teams"].add(d.team_data.team_b)
+
+            for odds in d.odds:
+                data["players"].add(odds.player_name)
+
+        result = {
+            "teams": list(data["teams"]),
+            "players": list(data["players"]),
+        }
+
+        import json
+        print(json.dumps(result["teams"][0:50]))
+        print()
+        print(len(result["teams"][0:50]))
+
+        # passer = [
+        #     {
+        #         "team": [
+        #             team
+        #             for team in (data.team_data.team_a, data.team_data.team_b)
+        #         ]
+        #     }
+        #
+        #
+        #     for data in sportsbook_data
+        #     for odds in data.odds
+        # ]
+
+
+        # raw_unique_data_passer = [
+        #     {
+        #         "player_name": odds.player_name,
+        #         "team_a": data.team_data.team_a,
+        #         "team_b": data.team_data.team_b,
+        #     }
+        #
+        #     for data in sportsbook_data
+        #     for odds in data.odds
+        # ]
+        #
+        # print(raw_unique_data_passer)
+
+
     async def external_mapper(self, sportsbook_data: list):
         """Maps the sportsbook data using external mappings."""
         raw_unique_data_passer = [

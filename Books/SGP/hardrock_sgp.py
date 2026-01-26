@@ -1,12 +1,45 @@
+import asyncio
+import aiohttp
+from Books.Bases.sgp_book_base import SGPBookBase
+from Utils.request_caller import SportbookRequestType
 import json
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-class HardRockHelper:
-    def __init__(self, ids):
-        self.payload = self.create_payload(ids)
+class HardrockSGP(SGPBookBase):
+    def __init__(self, sgp_data: dict, **kwargs):
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="hardrock", sgp_data=sgp_data, **kwargs)
 
-    def create_payload(self, hardrock_ids):
+    @SGPBookBase.ensure_link_data
+    async def run_book(self):
+        hardrock_ids = [self.link_data[i]["bet_id"] for i in range(len(self.link_data))]
+
+        payload = self.create_payload(hardrock_ids)
+        websocket_data = [json.loads(msg) for msg in self.selenium_manger(payload)]
+
+        if not websocket_data:
+            return None
+
+        betslip_data = websocket_data[0].get("Betslip", {}) if isinstance(websocket_data, list) else websocket_data.get("Betslip", {})
+
+        odds = next(
+            (
+                {
+                    "decimal": price,
+                    "american": self.convert_decimal_to_american(price),
+                }
+                for betslip in betslip_data.get("sameGameParlays", {}).values()
+                if (price := betslip.get("price"))
+            ),
+            None
+        )
+
+        return HardrockSGP.return_odds(
+            american_odds=odds.get("american"),
+            decimal_odds=odds.get("decimal"),
+        ) if odds else None
+
+    def create_payload(self, hardrock_ids: list) -> str:
         payload = {
             "BetslipBuilderRequest": {
                 "channel": "ARIZONA_ONLINE",
@@ -17,7 +50,7 @@ class HardRockHelper:
         }
         return json.dumps(payload)
 
-    def selenium_manger(self):
+    def selenium_manger(self, payload) -> dict | None:
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--disable-gpu")
@@ -30,7 +63,7 @@ class HardRockHelper:
             driver.get("about:blank")
             return driver.execute_async_script(f"""
                 const callback = arguments[arguments.length - 1];
-                const payload = {self.payload};
+                const payload = {payload};
 
                 const ws = new WebSocket("wss://api.hardrocksportsbook.com/websocket");
                 let messages = [];
@@ -58,8 +91,3 @@ class HardRockHelper:
             return None
         finally:
             driver.quit()
-
-    def runner(self):
-        data = self.selenium_manger()
-        if data:
-            return [json.loads(msg) for msg in data]

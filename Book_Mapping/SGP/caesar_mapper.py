@@ -13,10 +13,10 @@ class CaesarMapper(BaseMapper):
     def __init__(self):
         super().__init__(book_name="caesars", category="sgp", request_type=SportbookRequestType.ASYNC)
 
-    def _get_waf_token(self):
+    async def _get_waf_token(self):
         """Extract WAF token from Redis."""
         redis_instance = RedisAsyncManager(database=5)
-        return redis_instance.get_data("caesars_waf_token")
+        return await redis_instance.get_data("caesars_waf_token")
 
     def _create_mapping(self, event_data: dict):
         results = {}

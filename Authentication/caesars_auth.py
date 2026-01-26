@@ -38,12 +38,15 @@ class CaesarAuth(BaseScheduler):
                     ).wait_for(state="visible", timeout=120_000)
 
                     cookies = await context.cookies()
+
                     waf_token = next(
                         (cookie["value"] for cookie in cookies if cookie["name"] == "aws-waf-token"),
                         None
                     )
 
+
                     if waf_token:
+                        print(waf_token)
                         await redis_instance.store_data(
                             key_name="caesars_waf_token",
                             data_to_store=waf_token,
@@ -59,13 +62,13 @@ class CaesarAuth(BaseScheduler):
                     try:
                         await context.close()
                     except Exception:
-                        continue
+                        pass
 
                 if browser is not None:
                     try:
                         await browser.close()
                     except Exception:
-                        continue
+                        pass
 
 
             await asyncio.sleep(CaesarAuth.RETRY_DELAY)
