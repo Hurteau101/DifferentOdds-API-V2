@@ -1,7 +1,8 @@
 import re
 import aiohttp
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, get_static_mapping, Stats, Discounts, OptionalStatInformation, TeamData
+from Settings.Models.dfs_models import DFSStats, Discounts, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData, get_static_mapping
 from Books.Bases.dfs_book_base import DFSBookBase
 from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
@@ -118,13 +119,14 @@ class Prizepicks(DFSBookBase):
             team_key = Prizepicks.generate_key([player_name, start_date])
 
         stats = [
-            Stats(
+            DFSStats(
                 player_name=player_name,
                 player_team=team,
                 combo=combo,
                 live=live,
                 stat_type=stat.get("stat_type"),
                 line=stat.get("line"),
+                future=future,
                 bet_type=stat.get("bet_direction"),
                 regular_line=stat.get("regular"),
                 discounts=Discounts(
@@ -149,7 +151,6 @@ class Prizepicks(DFSBookBase):
                 team_a=team,
                 team_b=opponent,
             ),
-            future=future,
             solo_game=True if league in Prizepicks.SOLO_GAMES else False,
             odds=stats,
         )

@@ -59,7 +59,7 @@ class FanduelSGP(SGPBookBase):
         """ Map the marketID from the links to the actual marketId using Redis. Due to links being external market IDs"""
         if not self.mapped_ids:
             create_sentry_message(
-                tag_key="fanduel",
+                tag_key=self.book_data.name,
                 tag_value="mapping_failure",
                 message="No mapped IDs were found.",
                 level="error"

@@ -1,14 +1,13 @@
 import os
 from typing import Dict
-
 import aiohttp
-
 from Books.Bases.dfs_book_base import DFSBookBase
 import asyncio
 
 from Monitoring.monitoring import create_sentry_message
 from Utils.request_caller import SportbookRequestType
-from Settings.Models.dfs_models import GameData, TeamData, Stats, OptionalStatInformation, OddsFormat
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Redis.redis_manager import RedisAsyncManager
 
 class Chalkboard(DFSBookBase):
@@ -126,25 +125,26 @@ class Chalkboard(DFSBookBase):
                 team_a_abbreviation=team_a_abbreviation,
                 team_b_abbreviation=team_b_abbreviation
             ),
-            future=False,
             odds=[
-                Stats(
+                DFSStats(
                     player_name=player_name,
                     player_team=player_team,
+                    future=False,
                     stat_type=stat.get("mapValue", {}).get("fields", {}).get("statisticName", {}).get("stringValue").lower(),
                     line=stat.get("mapValue", {}).get("fields", {}).get("value", {}).get("doubleValue"),
                     bet_type=direction,
                     regular_line=False,
                     optional_stats=OptionalStatInformation(
-                        odds_format=OddsFormat(
-                            american_odds=float(stat.get("mapValue", {}).get("fields", {}).get("odds", {}).get("stringValue", 0))
-                        ),
                         # "probabilities": stat.get("mapValue", {}).get("fields", {}).get("probabilities", {}).get("doubleValue"),
                         multiplier=self._calculate_ui(
                             margin=margin_value,
                             odds=float(stat.get("mapValue", {}).get("fields", {}).get("odds", {}).get("stringValue", 0))
                         )
-                    )
+                    ),
+                    odds_format=OddsFormat(
+                        american_odds=float(
+                            stat.get("mapValue", {}).get("fields", {}).get("odds", {}).get("stringValue", 0))
+                    ),
                 )
                 for direction, stat in stat_options.items()
                 if stat.get("mapValue", {}).get("fields", {}).get("statisticName", {}).get("stringValue") is not None

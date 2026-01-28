@@ -17,7 +17,7 @@ AUTH_KEYS = [
 
 # No onyx - Broken
 MAPPER_KEYS = [
-    "betmgm_ids", "fanduel_ids", "caesar_mapped_ids",
+    "betmgm_ids", "fanduel_ids", "caesar_mapped_ids", "kibl_mapper_data"
 ]
 
 

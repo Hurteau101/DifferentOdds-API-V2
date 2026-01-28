@@ -1,10 +1,12 @@
+import asyncio
 import re
 from collections import defaultdict
 import aiohttp
 from Utils.request_caller import SportbookRequestType
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, Stats, TeamData, OptionalStatInformation, OddsFormat
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData, OddsFormat
 
 
 class Underdog(DFSBookBase):
@@ -152,7 +154,7 @@ class Underdog(DFSBookBase):
 
         return full_details
 
-    def _extract_stats(self, line_section: list, player_name: str, player_team: str) -> list:
+    def _extract_stats(self, league: str, line_section: list, player_name: str, player_team: str) -> list:
         """Extract Stats Details"""
         def check_half_market(stat) -> str:
             match = re.search(r"\b(\d)([HQ])\b", stat)
@@ -187,21 +189,22 @@ class Underdog(DFSBookBase):
         }
 
         return [
-            Stats(
+            DFSStats(
                 player_name=player_name,
                 player_team=player_team,
                 stat_type=line.get("display_stat"),
                 line=float(line.get("line")),
+                future=True if "szn" in league.lower() else False,
                 bet_type=choice_mapping.get(option.get("choice")),
                 regular_line=True if option.get("payout_multiplier") == "1.0" else False,
                 optional_stats=OptionalStatInformation(
                     market_type=check_half_market(line.get("display_stat")),
                     odds_type=set_payout_label(float(option.get("payout_multiplier", 0))),
                     multiplier=float(option.get("payout_multiplier")),
-                    odds_format=OddsFormat(
-                        american_odds=float(option.get("american_price")),
-                        decimal_odds=float(option.get("decimal_price"))
-                    )
+                ),
+                odds_format=OddsFormat(
+                    american_odds=float(option.get("american_price")),
+                    decimal_odds=float(option.get("decimal_price"))
                 )
             )
 
@@ -233,13 +236,12 @@ class Underdog(DFSBookBase):
 
         grouped_stats = stats.get(line_id)
 
-        stat_details = self._extract_stats(grouped_stats, player_details.get("player_name"), game_details.get("player_team"))
+        stat_details = self._extract_stats(league, grouped_stats, player_details.get("player_name"), game_details.get("player_team"))
 
         return GameData(
             league=player_details.get("league"),
             start_date=game_details.get("start_date"),
             solo_game=game_details.get("solo_game"),
-            future=True if "szn" in league.lower() else False,
             game_key=game_details.get("team_key"),
             team_data=TeamData(
                 team_a=game_details.get("team_a"),
@@ -293,10 +295,6 @@ class Underdog(DFSBookBase):
             mapped_data = self._mapper(api_data)
             stats_dict = self.regroup_stats(api_data)
 
-            # underdog_data = [
-            #     data for player in api_data.get("appearances", [])
-            #     if (data := self._extract_api_data(mapped_data, player, stats_dict))
-            # ]
             events = {}
             for player in api_data.get("appearances", []):
                 player_data = self._extract_api_data(mapped_data, player, stats_dict)
@@ -313,3 +311,7 @@ class Underdog(DFSBookBase):
             )
 
             return mapped_data
+
+if __name__ == "__main__":
+    ud = Underdog()
+    asyncio.run(ud.run_book())

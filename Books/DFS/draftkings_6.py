@@ -2,7 +2,8 @@ import asyncio
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, TeamData, Stats, OptionalStatInformation
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 
 
@@ -132,10 +133,11 @@ class DraftKingsPickSix(DFSBookBase):
                 team_b_abbreviation=player_details.get("team_b_abbreviation"),
             ),
             odds=[
-                Stats(
+                DFSStats(
                     player_name=player_details.get("player_name"),
                     player_team=player_details.get("player_team"),
                     stat_type=stat_type,
+                    future=True if "szn" in player_details.get("league").lower() else False,
                     line=active_markets.get("targetValue"),
                     bet_type=direction_mapper.get(str(stat.get("statLinePropositionId"))),
                     regular_line=True if stat.get("standingsMultiplier") == 1 else False,
@@ -153,7 +155,6 @@ class DraftKingsPickSix(DFSBookBase):
                 for stat in active_markets.get("activeSelections")
 
             ],
-            future=True if "szn" in player_details.get("league").lower() else False,
             solo_game=player_details.get("solo_game")
         )
 

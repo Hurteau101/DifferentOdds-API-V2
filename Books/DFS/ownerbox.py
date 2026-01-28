@@ -2,7 +2,8 @@ import asyncio
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, Discounts, TeamData, Stats
+from Settings.Models.dfs_models import Discounts, DFSStats
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 from Redis.redis_manager import RedisAsyncManager
 from datetime import datetime
@@ -14,7 +15,7 @@ class Ownerbox(DFSBookBase):
             "MLB", "NFL", "PGA", "NBA", "NHL"
         ]
 
-    async def get_game_data(self, session: aiohttp.ClientSession, headers: dict, league: str) -> list:
+    async def get_game_data(self, session: aiohttp.ClientSession, headers: dict, league: str) -> list | tuple:
         stats = await self.api_caller(
             book_name=self.book_data.name,
             session=session,
@@ -75,11 +76,11 @@ class Ownerbox(DFSBookBase):
                 team_a=team_a,
                 team_b=team_b,
             ),
-            future=False,
             odds=[
-                Stats(
+                DFSStats(
                     player_name=player_name,
                     player_team=player_team,
+                    future=False,
                     stat_type=game_data.get("marketType").get("name").lower(),
                     line=game_data.get("line").get("balancedLine") if not game_data.get(
                         "isDiscounted") else game_data.get("discount").get("discountLine"),

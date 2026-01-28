@@ -3,7 +3,8 @@ import re
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, TeamData, Stats, OptionalStatInformation
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 
 
@@ -84,17 +85,17 @@ class Dabble(DFSBookBase):
                         team_a=team_data.get("team_a"),
                         team_b=team_data.get("team_b"),
                     ),
-                    future=is_future,
                     odds=[],
                     solo_game=False if all([team_data.get("team_a"), team_data.get("team_b")]) or is_future else True
                 )
 
             stat_type = market_names.get(player.get("marketId"), "").lower()
 
-            stat_obj = Stats(
+            stat_obj = DFSStats(
                 player_name=player_name,
                 player_team=team_data.get("player_team"),
                 stat_type=stat_type,
+                future=is_future,
                 line=player.get("value"),
                 bet_type=player.get("lineType"),
                 regular_line=False,

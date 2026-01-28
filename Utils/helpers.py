@@ -1,3 +1,4 @@
+import re
 from dataclasses import asdict
 from functools import lru_cache
 from dateutil import parser
@@ -29,6 +30,9 @@ def clean_and_normalize(string_name: str):
 
     if string_name.endswith('…'):
         string_name = string_name[:-1]
+
+
+    string_name = re.sub(r'^[\d\-]+\s*', '', string_name).strip()
 
     return unidecode(string_name).strip()
 

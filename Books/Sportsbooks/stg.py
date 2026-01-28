@@ -1,21 +1,24 @@
+import asyncio
+import json
 import os
 import re
+from collections.abc import Iterable
 from datetime import datetime, date, timezone
 from zoneinfo import ZoneInfo
-from old.Settings.Sportsbook_Settings.sportsbook_model import GameData, TeamData, Markets
 import aiohttp
-import asyncio
-from old.Settings.pph_base import PPHBookBase
-from old.Settings.book_base import SportbookRequestType
-
+from Books.Bases.pph_base import PPHBookBase
+from Monitoring.monitoring import create_sentry_message
+from Settings.Models.base_models import GameData, TeamData
+from Settings.Models.sportsbooks_models import SportsbookStats
+from Utils.request_caller import SportbookRequestType
 
 class STG(PPHBookBase):
     VALID_LEAGUES = ["NFL", "NBA", "MLB", "NHL", "NCAA"]
 
     def __init__(self):
-        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="stg")
+        super().__init__(book_name="stg", request_type=SportbookRequestType.ASYNC)
 
-    def _get_cookies(self):
+    def get_cookies(self) -> dict:
         """Returns the cookies after logging in."""
         payload = {
             "txtAccessOfCode": os.getenv("STG_USERNAME"),
@@ -28,15 +31,56 @@ class STG(PPHBookBase):
             "Referer": "https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx",
         }
 
-        return self._pph_login(
+        return self.pph_login_helper(
             payload=payload,
             sportsbook_name="stg",
             login_key_word_check=".AITQKIAUT",
             additional_headers=additional_headers
         )
 
+    def yield_sport_ids(self, results: list | tuple) -> Iterable:
+        """Yields sport ID data structure from raw results."""
+        for result_list in results:
+            raw = result_list.get("d")
+            if not raw:
+                continue
+
+            for data in json.loads(raw):
+                yield data
+
+    def format_league(self, league_name) -> str:
+        """Format the league if there is a spaces, we only want the first item between spaces"""
+        if " " in league_name:
+            return league_name.split(" ")[0]
+
+        return league_name
+
+    def ordinal(self, name) -> str:
+        num = int(name)
+        if 10 <= num % 100 <= 20:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(num % 10, 'th')
+        return f"{num}{suffix}"
+
+    def ordinal_map(self, period_name: str, market_name: str) -> str:
+        if not period_name:
+            return market_name
+
+        first_digit = re.search(r'\d', period_name).group()
+        first_letter = re.search(r'[A-Za-z]', period_name).group()
+
+        suffix = self.ordinal(first_digit)
+
+        mapper = {
+            "Q": "Quarter",
+            "H": "Half",
+        }
+
+        return f"{suffix} {mapper.get(first_letter.upper(), market_name)} {market_name}"
+
     @staticmethod
-    def get_line(line_str: str, include_direction: bool = True):
+    def get_line(line_str: str, include_direction: bool = True) -> tuple:
         raw_line = line_str.split(" ")[0]
 
         if not raw_line:
@@ -54,7 +98,7 @@ class STG(PPHBookBase):
 
         return line, direction
 
-    def _get_team_total(self, team_total_data: dict, team_name:str):
+    def _get_team_total(self, team_total_data: dict, team_name:str) -> dict:
         if not team_total_data:
             return {}
 
@@ -67,34 +111,7 @@ class STG(PPHBookBase):
             "american_odds": team_total_data.get("odds", {}).get("OddsValue"),
         }
 
-    def ordinal(self, n):
-        n = int(n)
-        if 10 <= n % 100 <= 20:
-            suffix = 'th'
-        else:
-            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
-        return f"{n}{suffix}"
-
-    def ordinal_map(self, period_name: str, market_name: str):
-        if not period_name:
-            return market_name
-
-        first_digit = re.search(r'\d', period_name).group()
-        first_letter = re.search(r'[A-Za-z]', period_name).group()
-
-        suffix = self.ordinal(first_digit)
-
-        mapper = {
-            "Q": "Quarter",
-            "H": "Half",
-        }
-
-        return f"{suffix} {mapper.get(first_letter.upper(), market_name)} {market_name}"
-
-
-
-
-    def _extract_markets(self, game_data, league):
+    def _extract_markets(self, game_data: dict, league: str) -> GameData | dict:
         # If / not in date and time = Today else format 11/16
         if game_data.get("offline") or not game_data.get("sides"):
             return {}
@@ -117,24 +134,20 @@ class STG(PPHBookBase):
             team_a = game_data.get("teams").strip()
             team_b = ""
 
-        team_key = self._generate_key([team_a, team_b, game_date])
+        key = STG.generate_key([team_a, team_b, game_date])
 
         odds_data = GameData(
-            book_name="stg",
             start_date=game_date,
+            game_key=key,
             league=league,
             team_data=TeamData(
                 team_a=team_a,
                 team_b=team_b,
-                team_key=team_key
-
             ),
-            event_name=f"{team_a} vs. {team_b}",
             odds=[]
         )
 
         for side in game_data.get("sides", []):
-
             team = side.get("name")
             if side.get("moneyline"):
                 moneyline_dict = side.get("moneyline")
@@ -143,8 +156,9 @@ class STG(PPHBookBase):
                 if not american_odds:
                     continue
 
-                odds_data.odds.append(Markets(
+                odds_data.odds.append(SportsbookStats(
                     bet_team=team,
+                    future=False, # Will need to look into this.
                     market=self.ordinal_map(game_data.get("periodname"), "Moneyline"),
                     bet_type=None,
                     line=None,
@@ -159,8 +173,9 @@ class STG(PPHBookBase):
                 if not american_odds:
                     continue
 
-                odds_data.odds.append(Markets(
+                odds_data.odds.append(SportsbookStats(
                     bet_team=team,
+                    future=False,  # Will need to look into this.
                     market=self.ordinal_map(game_data.get("periodname"), "Spread"),
                     bet_type=None,
                     line=line,
@@ -175,8 +190,9 @@ class STG(PPHBookBase):
                 if not american_odds:
                     continue
 
-                odds_data.odds.append(Markets(
+                odds_data.odds.append(SportsbookStats(
                     bet_team=None,
+                    future=False,  # Will need to look into this.
                     market=self.ordinal_map(game_data.get("periodname"), "Total"),
                     bet_type=direction,
                     line=line,
@@ -190,8 +206,9 @@ class STG(PPHBookBase):
                 if not data.get("american_odds"):
                     continue
 
-                odds_data.odds.append(Markets(
+                odds_data.odds.append(SportsbookStats(
                     bet_team=team,
+                    future=False,  # Will need to look into this.
                     market=self.ordinal_map(game_data.get("periodname"), "Team Total"),
                     bet_type=data.get("bet_type"),
                     line=data.get("line"),
@@ -206,66 +223,61 @@ class STG(PPHBookBase):
                 if not data.get("american_odds"):
                     continue
 
-                odds_data.odds.append(Markets(
+                odds_data.odds.append(SportsbookStats(
                     bet_team=team,
+                    future=False,  # Will need to look into this.
                     market=self.ordinal_map(game_data.get("periodname"), "Team Total"),
                     bet_type=data.get("bet_type"),
                     line=data.get("line"),
                     american_odds=data.get("american_odds"),
                 ))
 
-                # odds_data.get("odds").append(data)
-
         return odds_data
 
-    def _create_special_payload(self, sport_value: str):
-        return (
-            f"{{\"value\":\"{sport_value}\","
-            f"\"iscontest\":false,"
-            f"\"wagerTypeInfo\":\"1\","
-            f"\"isRefresh\":false,"
-            f"\"contestOrderBy\":0,"
-            f"\"isContestRelated\":false,"
-            f"\"specialEventId\":0,"
-            f"\"getOnlyPeriods\":false}}"
-        )
-
-    def _format_league(self, league_name):
-        if " " in league_name:
-            return league_name.split(" ")[0]
-
-        return league_name
-
+    def _create_special_payload(self, sport_value: str) -> dict:
+        return {
+            "value": sport_value,
+            "iscontest": False,
+            "wagerTypeInfo": "1",
+            "isRefresh": False,
+            "contestOrderBy": 0,
+            "isContestRelated": False,
+            "specialEventId": 0,
+            "getOnlyPeriods": False,
+        }
 
     async def run_book(self):
-        cookies = self._get_cookies()
-
-        if not cookies:
-            return
-
+        cookies = self.get_cookies()
         headers = {
             "Content-Type": "application/json; charset=utf-8",
             "Referer": "https://bettheguys.com/Player/main.aspx",
         }
 
         new_headers = {**self.book_data.headers, **headers}
-        payload = '{"wagerTypeValue":"1"}'
-        # payload = "{\"idMainHeader\":\"4\",\"wagerTypeValue\":\"1\"}"
 
         async with aiohttp.ClientSession(cookies=cookies, headers=new_headers) as session:
-            league_ids = await self.api_caller(
+            raw_league_ids = await self.api_caller(
+                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("league_list_url"),
                 headers=new_headers,
-                data=payload,
+                payload={
+                    "wagerTypeValue": "1"
+                },
                 method="POST",
-                use_parser=True,
-                key_name="d",
-                is_inner=True
             )
 
+            league_ids = json.loads(raw_league_ids.get("d"))
+
             if not league_ids:
-                return
+                create_sentry_message(
+                    tag_key=self.book_data.name,
+                    tag_value="mapping_failure",
+                    message="No mapped IDs were found.",
+                    level="error"
+                )
+
+                return None
 
             league_ids = set(
                 sportId.get("IdSport")
@@ -276,46 +288,41 @@ class STG(PPHBookBase):
 
             tasks = [
                 self.api_caller(
+                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("league_section"),
-                    data=f'{{"idMainHeader":"{league_id}","wagerTypeValue":"1"}}',
+                    payload={
+                        "idMainHeader": str(league_id),
+                        "wagerTypeValue": "1"
+                    },
                     headers = new_headers,
                     method = "POST",
-                    use_parser = True,
-                    key_name = "d",
-                    is_inner = True
                 )
 
                 for league_id in league_ids
             ]
 
-            results = await asyncio.gather(*tasks)
+            raw_results = await asyncio.gather(*tasks)
 
-            # Added league check due to amount of data.
             league_data = [
                 {
-                    "sport_id": children.get("IdSport"),
-                    "sport_value": children.get("Value"),
-                    "league": self._format_league(result.get("Name")),
+                    "sport_id": child.get("IdSport"),
+                    "sport_value": child.get("Value"),
+                    "league": self.format_league(sport_info.get("Name"))
                 }
-
-                for result_list in results
-                for result in result_list
-                for children in result.get("Children", [])
-                if children and self._format_league(result.get("Name")) in self.VALID_LEAGUES
+                for sport_info in self.yield_sport_ids(results=raw_results)
+                for child in sport_info.get("Children", [])
+                if child and self.format_league(sport_info.get("Name")) in self.VALID_LEAGUES
             ]
 
-
             tasks = [
-               self.api_caller(
+                self.api_caller(
+                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("game_markets"),
-                    data=self._create_special_payload(league.get("sport_value")),
+                    payload=self._create_special_payload(league.get("sport_value")),
                     headers=new_headers,
                     method="POST",
-                    use_parser=True,
-                    key_name="d",
-                    is_inner=True
                 )
 
                 for league in league_data
@@ -329,6 +336,7 @@ class STG(PPHBookBase):
                 if not result:
                     continue
 
+                result = json.loads(result.get("d"))
                 league_name = league.get("league")
 
                 for game in result.get("lines", []):
@@ -338,7 +346,7 @@ class STG(PPHBookBase):
                         if extracted and hasattr(extracted, "odds") and extracted.odds:
                             game_results.append(extracted)
 
-            return await self._database_mapper(game_results)
+            return game_results
 
 if __name__ == "__main__":
     stg = STG()

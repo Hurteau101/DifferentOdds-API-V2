@@ -1,14 +1,15 @@
 from Settings.Providers.DFS.dfs_providers import DFS_PROVIDERS
 from Settings.Providers.SGP.sgp_providers import SGP_PROVIDERS
+from Settings.Providers.Sportsbooks.sportsbooks_providers import SPORTSBOOKS_PROVIDERS
 
 NAMES_MAPPER = {
     "DFS": DFS_PROVIDERS,
     "SGP": SGP_PROVIDERS,
+    "SPORTSBOOKS": SPORTSBOOKS_PROVIDERS,
     # "prediction": PREDICTION_PROVIDERS,
     # "sgp_mapper": SGP_MAPPER_PROVIDERS,
     # "pph": PPH_PROVIDERS,
     # "liquidity": LIQUIDITY_PROVIDERS,
-    # "sportsbooks": SPORTSBOOK_PROVIDERS
 }
 
 class BookConfiguration:

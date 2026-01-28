@@ -27,7 +27,7 @@ class APICaller:
                     method: str,
                     headers: dict | None = None,
                     proxy: dict | None = None,
-                    payload: dict | None = None,
+                    payload: dict | str | None = None,
                     parse_json: bool = False,
                     params: dict | None =None
                     ) -> dict | list | None:

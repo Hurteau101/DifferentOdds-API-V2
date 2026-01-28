@@ -2,8 +2,8 @@ import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
 from Utils.request_caller import SportbookRequestType
-from Settings.Models.dfs_models import GameData, Stats, OptionalStatInformation, TeamData, get_static_mapping
-
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData, get_static_mapping
 
 class Betr(DFSBookBase):
     def __init__(self):
@@ -212,10 +212,11 @@ class Betr(DFSBookBase):
                     continue
 
                 bet_options = [
-                    Stats(
+                    DFSStats(
                         player_name=player_name,
                         player_team=player_team,
                         stat_type=stat_type_helper(projection.get("label")),
+                        future=False,
                         line=projection.get("value") if projection.get("type") == "REGULAR" else projection.get("nonRegularValue"),
                         bet_type=option_mapper.get(options.get("outcome").lower(), options.get("outcome").title()),
                         regular_line=True if projection.get("type").lower() == "regular" else False,
@@ -239,7 +240,6 @@ class Betr(DFSBookBase):
                         team_a=team_names.get("team_a"),
                         team_b=team_names.get("team_b"),
                     ),
-                    future=False,
                     odds=stats,
                     solo_game=solo_game
                 )

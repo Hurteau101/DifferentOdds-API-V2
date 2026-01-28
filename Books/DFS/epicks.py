@@ -2,7 +2,8 @@ import asyncio
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, TeamData, Stats, OptionalStatInformation, OddsFormat
+from Settings.Models.dfs_models import DFSStats
+from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Utils.request_caller import SportbookRequestType
 
 
@@ -123,12 +124,12 @@ class Epicks(DFSBookBase):
                 team_b=team_data.get("team_b"),
                 team_b_abbreviation=team_data.get("team_b_abbreviation"),
             ),
-            future=False,
             odds=[
-                Stats(
+                DFSStats(
                     player_name=projections.get("subject_std"),
                     player_team=team_data.get("player_team"),
                     stat_type=stat_type,
+                    future=False,
                     combo=True if projections.get("is_combo") else False,
                     line=projections.get("line_value"),
                     bet_type=direction,
@@ -136,10 +137,8 @@ class Epicks(DFSBookBase):
                     discounts={
                         "discount_name": "Promo",
                     } if projections.get("is_promo") else {},
-                    optional_stats=OptionalStatInformation(
-                        odds_format=OddsFormat(
-                            american_odds=float(projections.get(f"odds_{direction}")),
-                        )
+                    odds_format=OddsFormat(
+                        american_odds=float(projections.get(f"odds_{direction}")),
                     )
                 )
                 for direction in direction_list

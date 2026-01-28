@@ -13,7 +13,7 @@ class OnyxSGP(SGPBookBase):
     async def run_book(self):
         if not self.auth_token:
             create_sentry_message(
-                tag_key="onyx",
+                tag_key=self.book_data.name,
                 tag_value="auth_failure",
                 message="No auth found in Redis",
                 level="error"
@@ -23,7 +23,7 @@ class OnyxSGP(SGPBookBase):
         async with aiohttp.ClientSession() as session:
             if not self.mapped_ids:
                 create_sentry_message(
-                    tag_key="onyx",
+                    tag_key=self.book_data.name,
                     tag_value="mapping_failure",
                     message="No mapped IDs were found.",
                     level="error"

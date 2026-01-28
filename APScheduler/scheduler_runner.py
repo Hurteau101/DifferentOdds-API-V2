@@ -1,3 +1,4 @@
+from Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
 from Monitoring.monitoring import init_sentry
 init_sentry()
 
@@ -26,7 +27,7 @@ logging.info("Scheduler starting...")
 
 
 ######### IMPORTANT #########
-# Whenever adding a new job, ensure you add to the apscheduler_heartbeat.py monitoring file as well.
+# Whenever adding a new job, ensure you add to the Cron_Jobs/apscheduler_heartbeat.py monitoring file as well.
 #############################
 
 class RedisSelector(Enum):
@@ -123,6 +124,14 @@ MAPPER_JOBS = [
         "job_type": "mapper",
         "is_active": False,
         "interval": 600,  # 10 minutes
+        "redis_db": RedisSelector.MAPPER
+    },
+    {
+        "book_name": "kibl",
+        "class": KiblMapper,
+        "job_type": "mapper",
+        "is_active": True,
+        "interval": 86400,  # 24 Hours
         "redis_db": RedisSelector.MAPPER
     },
 ]

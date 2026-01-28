@@ -3,7 +3,8 @@ import re
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import TeamData, GameData, Stats, OptionalStatInformation
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 
 
@@ -86,13 +87,13 @@ class Parlayplay(DFSBookBase):
                 team_a_abbreviation=team_data.get("team_a_abbreviation"),
                 team_b_abbreviation=team_data.get("team_b_abbreviation"),
             ),
-            future=Parlayplay._season_checker(player),
             solo_game=self._check_solo_sport(player),
             odds=[
-                Stats(
+                DFSStats(
                     player_name=player.get("player").get("fullName"),
                     player_team=team_data.get("player_team"),
                     stat_type=configure_stat_type(stat.get("marketName")),
+                    future=Parlayplay._season_checker(player),
                     line=stat.get("selectionPoints"),
                     bet_type=option,
                     regular_line=True if price_key == 1.00 else False,

@@ -3,9 +3,12 @@ from datetime import datetime
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import Stats, GameData, TeamData
+from Settings.Models.dfs_models import DFSStats
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 
+
+### AUTH REQUIREMENTS NOW -- NEED TO FIX ###
 
 class Drafters(DFSBookBase):
     def __init__(self):
@@ -42,9 +45,10 @@ class Drafters(DFSBookBase):
                 team_key = Drafters.generate_key([player_name, start_date])
 
             stats = [
-                Stats(
+                DFSStats(
                     player_name=player_name,
                     player_team=player_team,
+                    future=True if "season" in player.get("bid_stats_name").lower() else False,
                     stat_type=player.get("bid_stats_name"),
                     line=player.get("bid_stats_value"),
                     bet_type=option,
@@ -64,7 +68,6 @@ class Drafters(DFSBookBase):
                         team_a=team_a,
                         team_b=team_b,
                     ),
-                    future=True if "season" in player.get("bid_stats_name").lower() else False,
                     odds=stats,
                     solo_game=False if all([team_a, team_b]) else True,
                 )

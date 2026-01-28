@@ -86,7 +86,7 @@ class CaesarsSGP(SGPBookBase):
 
         if not self.mapped_ids:
             create_sentry_message(
-                tag_key="caesars",
+                tag_key=self.book_data.name,
                 tag_value="mapping_failure",
                 message="No mapped IDs were found.",
                 level="error"

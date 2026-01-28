@@ -7,7 +7,8 @@ from Utils.request_caller import SportbookRequestType, APICaller
 from Redis.redis_manager import RedisAsyncManager
 
 class BookBase(APICaller, ABC):
-    def __init__(self, category: str, book_name: str, request_type: SportbookRequestType, expiration_time: int, redis_database: int):
+    def __init__(self, category: str, book_name: str, request_type: SportbookRequestType, redis_database: int,
+                 expiration_time: int = 600):
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self.expiration_time = expiration_time # Used for Redis data expiration
         self.redis_database = redis_database # Used for Redis database selection
@@ -90,7 +91,6 @@ class BookBase(APICaller, ABC):
                 start_date=item.start_date,
                 team_data=item.team_data,
                 solo_game=item.solo_game,
-                future=item.future,
                 odds=[],
             )
 
@@ -114,10 +114,6 @@ class BookBase(APICaller, ABC):
         :return: Mapped sportsbook data.
         """
         for data in sportsbook_data:
-            is_future = getattr(data, "future", False)
-            if is_future:
-                continue
-
             solo_game = getattr(data, "solo_game", False)
             if solo_game and solo_game_mapper_func:
                 for stats in data.odds:
@@ -163,7 +159,6 @@ class BookBase(APICaller, ABC):
     @abstractmethod
     async def external_mapper(self, sportsbook_data: list):
         raise NotImplementedError("Subclasses must implement the external_mapper method.")
-
 
     async def store_data(self, data_to_store: dict, database: int, book_name: str):
         if not data_to_store:

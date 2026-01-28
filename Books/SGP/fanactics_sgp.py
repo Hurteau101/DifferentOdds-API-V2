@@ -34,7 +34,7 @@ class FanaticsSGP(SGPBookBase):
                 received_data = json.loads(message)
             except Exception as e:
                 create_sentry_message(
-                    tag_key="fanactics",
+                    tag_key=self.book_data.name,
                     tag_value="websockets",
                     message=f"There was an error with the websocket {e}",
                     level="error"

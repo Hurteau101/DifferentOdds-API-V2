@@ -3,7 +3,8 @@ import aiohttp
 from datetime import datetime
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, TeamData, Stats, OptionalStatInformation
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 
 
@@ -68,12 +69,12 @@ class Sleeper(DFSBookBase):
                 team_a=team_a,
                 team_b=team_b,
             ),
-            future=True if "szn" in league.lower() else False,
             solo_game=False if all([team_a, team_b]) else True,
             odds=[
-                Stats(
+                DFSStats(
                     player_name=player_name,
                     player_team=player_team,
+                    future=True if "szn" in league.lower() else False,
                     stat_type=configure_stats(option.get("wager_type")),
                     line=option.get("outcome_value"),
                     bet_type=option.get("outcome"),

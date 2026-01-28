@@ -25,13 +25,14 @@ async def test_mappers(schedule_item, redis_mapper, redis_auth):
         auth_key = auth_key.get("auth_key")
         if auth_key:
             auth_token_found = await redis_auth.get_data(key_name=auth_key)
+
             if not auth_token_found:
                 pytest.fail(f"Auth key for {book_name} not found in Redis. Mapper test cannot proceed.")
 
     found, data = await check_keys_in_redis(
         cls=schedule_item["mapper_class"],
         redis_instance=redis_mapper,
-        key_name=schedule_item["mapper_key"]
+        key_name=schedule_item["mapper_key"],
     )
 
     if not found:

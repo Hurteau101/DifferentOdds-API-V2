@@ -9,6 +9,9 @@
 ### Redis DB - `5`
 ##### This is for Auth Tokens
 
+### Redis DB - `6`
+##### Sportsbook Cache
+
 ### Redis DB - `11`
 ##### This is for Database Caching
 

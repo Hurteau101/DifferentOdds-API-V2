@@ -1,22 +1,10 @@
-from dataclasses import dataclass
-from typing import Optional, Dict
+from Settings.Providers.base_provider import BaseProvider
 
-@dataclass
-class SportsbookProvider:
-    title: str
-    name: str
-    url: dict
-    method: str
-    headers: Optional[Dict] = None
-    active: Optional[bool] = False
-
-
-SPORTSBOOK_PROVIDERS = [
-    SportsbookProvider(
+SPORTSBOOKS_PROVIDERS = [
+    BaseProvider(
         title="Bet105",
         name="bet105",
         url={
-            # Mappers URLS
             "sportsbooks": "https://api.kibl.io/sports/get/reference/sportsbooks",
             "leagues": "https://api.kibl.io/sports/get/reference/leagues",
             "segments": "https://api.kibl.io/sports/get/reference/segments",
@@ -33,9 +21,9 @@ SPORTSBOOK_PROVIDERS = [
         headers={
             "Accept": "application/json",
         },
-        active=True
+        is_active=True
     ),
-    SportsbookProvider(
+    BaseProvider(
         title="STG",
         name="stg",
         url={
@@ -52,6 +40,6 @@ SPORTSBOOK_PROVIDERS = [
             "Origin": "https://bettheguys.com",
         },
         method="POST",
-        active=True
+        is_active=True
     )
 ]

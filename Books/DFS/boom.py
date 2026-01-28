@@ -2,7 +2,8 @@ import re
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import Stats, OptionalStatInformation, GameData, TeamData
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 
 
@@ -83,14 +84,15 @@ class Boom(DFSBookBase):
                     league = esport_check[-1].lower()
 
                 stat_list.extend(
-                    Stats(
+                    DFSStats(
                         player_name=player_name,
                         player_team=team_a,
                         stat_type=stat_type.lower(),
+                        future=True if market_type == "full Season" else False,
                         line=stat.get("l"),
                         bet_type=next(
                             (bet for bet in direction if bet in ("over", "under")),
-                            None
+                            "N/A" # Change to None
                         ),
                         regular_line=True if self._get_multiplier(direction) == 1.00 else False,
                         optional_stats=OptionalStatInformation(
@@ -109,7 +111,6 @@ class Boom(DFSBookBase):
                 league=league,
                 game_key=team_key,
                 start_date=start_date,
-                future=True if market_type == "full Season" else False,
                 team_data=TeamData(
                     team_a=team_a,
                     team_b=team_b,

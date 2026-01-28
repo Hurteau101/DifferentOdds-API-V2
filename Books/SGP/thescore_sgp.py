@@ -179,7 +179,7 @@ class ThescoreSGP(SGPBookBase):
 
         else:
             create_sentry_message(
-                tag_key="thescore",
+                tag_key=self.book_data.name,
                 tag_value="auth_failure",
                 message="Couldn't extract anonymous token",
                 level="error"

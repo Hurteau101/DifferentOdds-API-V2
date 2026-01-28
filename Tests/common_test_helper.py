@@ -11,9 +11,11 @@ from Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
 from Book_Mapping.SGP.caesar_mapper import CaesarMapper
 from Book_Mapping.SGP.fanduel_mapper import FanduelMapper
 from Book_Mapping.SGP.onyx_mapper import OnyxMapper
+from Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
+from Cron_Jobs.store_static import store_static
+from Database.database import Database
 from Redis.redis_manager import RedisAsyncManager
 from Authentication.caesars_auth import CaesarAuth
-
 
 TEST_AUTH_BOOKS = [
     {
@@ -91,6 +93,13 @@ TEST_MAPPER_BOOKS = [
         "active": True,
         "store_json": True
     },
+    {
+        "book_name": "kibl",
+        "mapper_class": KiblMapper,
+        "mapper_key": "kibl_mapper_data",
+        "active": True,
+        "store_json": True
+    },
 
 ]
 
@@ -98,6 +107,7 @@ AUTH_BOOK_BY_NAME = {book["book_name"]: book for book in TEST_AUTH_BOOKS if book
 
 async def check_keys_in_redis(cls: type, redis_instance: RedisAsyncManager, key_name: str):
     """Helper function to check if auth keys are stored in Redis."""
+
     cls_instance = cls()
 
     async with aiohttp.ClientSession() as session:
@@ -110,7 +120,7 @@ async def check_keys_in_redis(cls: type, redis_instance: RedisAsyncManager, key_
 
         await cls_instance.run_scheduler(
             session=session,
-            redis_instance=redis_instance
+            redis_instance=redis_instance,
         )
 
         data_from_redis = await redis_instance.get_data(key_name)
@@ -119,6 +129,13 @@ async def check_keys_in_redis(cls: type, redis_instance: RedisAsyncManager, key_
 
     return True, data_from_redis
 
+
+async def run_static(redis_static_mapper: RedisAsyncManager):
+    tables = ["stat_mapper", "league_mapper"]
+
+    db = Database()
+    for table in tables:
+        await store_static(database_instance=db, table_name=table, redis_instance=redis_static_mapper)
 
 def create_json_file(current_directory: str, book_name: str, returned_data: dict | list):
     run_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

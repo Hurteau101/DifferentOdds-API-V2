@@ -2,7 +2,8 @@ import asyncio
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, TeamData, Stats, OptionalStatInformation, OddsFormat
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Utils.request_caller import SportbookRequestType
 
 
@@ -40,21 +41,18 @@ class Parlaye(DFSBookBase):
                 team_a=team_a,
                 team_b=team_b,
             ),
-            future=False,
             odds=[
-                Stats(
+                DFSStats(
                     player_name=player_name,
                     player_team=team_a,
                     stat_type=game_data.get("pick_type"),
                     line=float(game_data.get("pick_number")),
                     bet_type=option,
+                    future=False,
                     regular_line=True,
-                    optional_stats=OptionalStatInformation(
-                        odds_format=OddsFormat(
-                            american_odds=float(odds_mapper.get(option).get("american_odds")),
-                            points=odds_mapper.get(option).get("points")
-                        )
-
+                    odds_format=OddsFormat(
+                        american_odds=float(odds_mapper.get(option).get("american_odds")),
+                        points=odds_mapper.get(option).get("points")
                     )
                 )
                 for option in ["over", "under"]

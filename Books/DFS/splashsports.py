@@ -2,7 +2,8 @@ import asyncio
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import GameData, TeamData, Stats
+from Settings.Models.dfs_models import DFSStats
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 from datetime import datetime
 
@@ -35,11 +36,11 @@ class SplashSports(DFSBookBase):
                 team_a=team_a,
                 team_b=team_b,
             ),
-            future=False,
             odds=[
-                Stats(
+                DFSStats(
                     player_name=player_name,
                     player_team=player_team,
+                    future=False,
                     stat_type=game_data.get("type_display"),
                     line=game_data.get("line"),
                     bet_type=option,

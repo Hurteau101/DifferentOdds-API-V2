@@ -4,7 +4,8 @@ import aiohttp
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Books.Bases.dfs_book_base import DFSBookBase
-from Settings.Models.dfs_models import GameData, TeamData, Stats, OptionalStatInformation
+from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
 
 
@@ -82,12 +83,12 @@ class FanDuelPicks(DFSBookBase):
                 team_b=team_b,
                 team_b_abbreviation=team_b_abbreviation,
             ),
-            future=False,
             odds=[
-                Stats(
+                DFSStats(
                     player_name=f"{first_name} {last_name}",
                     player_team=player_team,
                     stat_type=stat_type.lower(),
+                    future=False,
                     line=raw_data.get("line"),
                     bet_type=over_under_mapper.get(direction.get("selection", {}).get("type"), "N/A"),
                     regular_line=True if direction.get("oddsRangeType") == "REGULAR" else False,

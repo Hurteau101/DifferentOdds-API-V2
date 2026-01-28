@@ -66,7 +66,7 @@ DFS_PROVIDERS = [
             "Accept": "application/json",
         },
         method="GET",
-        is_active=True
+        is_active=False
     ),
     BaseProvider(
         title="Boom Fantasy",
