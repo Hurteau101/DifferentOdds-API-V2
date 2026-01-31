@@ -54,13 +54,13 @@ SGP_DATA = [
         "auth_key": "caesars_waf_token",
         "mapped_key": "caesar_mapped_ids",
         "links": [
-            "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=3a8369b5-291c-3044-9ba1-ab3e9cc60eae",
-            "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=60827514-f73b-36e7-9c19-248ad6ed7ee2",
+              "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=adf3b7df-3e67-3120-8488-b295962c050f",
+        "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=2985f368-436c-3ee7-b020-6e3fa7a63475",
         ],
-        "lines": {
-                "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=3a8369b5-291c-3044-9ba1-ab3e9cc60eae": 7.5,
-                "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=60827514-f73b-36e7-9c19-248ad6ed7ee2": 7.5,
-            }
+        # "lines": {
+        #         "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=3a8369b5-291c-3044-9ba1-ab3e9cc60eae": 7.5,
+        #         "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=60827514-f73b-36e7-9c19-248ad6ed7ee2": 7.5,
+        #     }
     },
     {
         "book_name": "draftkings",
