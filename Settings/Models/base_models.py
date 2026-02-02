@@ -17,7 +17,6 @@ class OddsFormat(TypedDict, total=False):
 
 @dataclass
 class Stats:
-    bet_team: str
     line: float | None
     bet_type: str | None
     future: bool

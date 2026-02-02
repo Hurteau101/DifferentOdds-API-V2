@@ -221,6 +221,10 @@ class Underdog(DFSBookBase):
 
         game_type = appearance_data.get("match_type")  # Game or SoloGame
 
+        # New game type of series, causing breakage. No need for this gametype.
+        if game_type.lower() not in ["sologame", "game"]:
+            return None
+
         game_details = self._get_game_details(
             game_section=map_data.get("team_games").get(game_id) if game_type == "Game" else map_data.get(
                 "solo_games").get(game_id),
@@ -302,15 +306,17 @@ class Underdog(DFSBookBase):
                     self.add_to_events(events, player_data, GameData)
 
             underdog_data = list(events.values())
-            mapped_data = await self.external_mapper(underdog_data)
+            await self.run_bettorodds_external_mapper(session=session, sportsbook_data=underdog_data)
 
-            await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
-            )
-
-            return mapped_data
+            # mapped_data = await self.external_mapper(underdog_data)
+            #
+            # await self.store_data(
+            #     database=self.redis_database,
+            #     data_to_store=mapped_data,
+            #     book_name=self.book_data.name
+            # )
+            #
+            # return mapped_data
 
 if __name__ == "__main__":
     ud = Underdog()

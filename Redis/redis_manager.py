@@ -24,16 +24,30 @@ class RedisBaseManager:
         if not key_name or not data_to_store:
             raise ValueError("Key name and/or data_to_store must be provided")
 
-        if isinstance(data_to_store, str):
-            data_bytes = data_to_store.encode('utf-8')
-        else:
-            data_bytes = orjson.dumps(data_to_store)
-
-        await self.redis_client.set(
-            name=key_name,
-            value=data_bytes,
-            ex=key_expiration
+        lock = self.redis_client.lock(
+            f"lock:{key_name}",
+            timeout=120,
+            blocking=False
         )
+
+        acquired = await lock.acquire()
+        if not acquired:
+            return
+
+        try:
+            if isinstance(data_to_store, str):
+                data_bytes = data_to_store.encode('utf-8')
+            else:
+                data_bytes = orjson.dumps(data_to_store)
+
+            await self.redis_client.set(
+                name=key_name,
+                value=data_bytes,
+                ex=key_expiration
+            )
+        finally:
+            await lock.release()
+
 
     # Use only when the connection needs to be closed (like cron jobs). Do not use on celery tasks.
     async def close_for_shutdown(self):

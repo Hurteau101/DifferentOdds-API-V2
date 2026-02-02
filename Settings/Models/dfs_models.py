@@ -23,6 +23,7 @@ class OptionalStatInformation(TypedDict, total=False):
 @dataclass(kw_only=True)
 class DFSStats(Stats):
     player_name: str
+    player_team: str
     stat_type: str
     regular_line: bool
     optional_stats: OptionalStatInformation = field(default_factory=dict)
