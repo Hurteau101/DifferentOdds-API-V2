@@ -2,7 +2,7 @@ import asyncio
 from itertools import chain
 
 import aiohttp
-from Book_Mapping.base_mapper import BaseMapper
+from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType

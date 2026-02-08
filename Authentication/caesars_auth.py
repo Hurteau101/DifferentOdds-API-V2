@@ -21,7 +21,7 @@ class CaesarAuth(BaseScheduler):
             try:
                 async with async_playwright() as play:
                     browser = await play.chromium.launch(
-                        headless=True,
+                        headless=False,
                         args=["--disable-blink-features=AutomationControlled"]
                     )
 
@@ -44,9 +44,7 @@ class CaesarAuth(BaseScheduler):
                         None
                     )
 
-
                     if waf_token:
-                        print(waf_token)
                         await redis_instance.store_data(
                             key_name="caesars_waf_token",
                             data_to_store=waf_token,

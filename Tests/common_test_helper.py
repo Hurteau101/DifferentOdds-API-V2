@@ -7,11 +7,11 @@ from Authentication.fourcx_auth import FourcxAuth
 from Authentication.kibl_auth import KiblAuth
 from Authentication.onyx_auth import OnyxAuth
 from Authentication.ownerbox_auth import OwnerboxAuth
-from Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
-from Book_Mapping.SGP.caesar_mapper import CaesarMapper
-from Book_Mapping.SGP.fanduel_mapper import FanduelMapper
-from Book_Mapping.SGP.onyx_mapper import OnyxMapper
-from Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
+from External_Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
+from External_Book_Mapping.SGP.caesar_mapper import CaesarMapper
+from External_Book_Mapping.SGP.fanduel_mapper import FanduelMapper
+from External_Book_Mapping.SGP.onyx_mapper import OnyxMapper
+from External_Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
 from Cron_Jobs.store_static import store_static
 from Database.database import Database
 from Redis.redis_manager import RedisAsyncManager

@@ -1,9 +1,12 @@
+import asyncio
+import json
 import os
 import aiohttp
 from dotenv import load_dotenv
 from Books.Bases.book_base import BookBase
 from Monitoring.monitoring import create_sentry_message
 from Utils.request_caller import SportbookRequestType
+from Utils.helpers import map_bettorodds
 from Settings.Models.dfs_models import DFSStats
 from Settings.Models.base_models import GameData
 from itertools import batched, zip_longest
@@ -53,8 +56,6 @@ class DFSBookBase(BookBase):
 
             return None
 
-        import time
-        start_time = time.perf_counter()
         api_data = await self.api_caller(
             book_name=self.book_data.name,
             session=session,
@@ -66,31 +67,43 @@ class DFSBookBase(BookBase):
             payload=payload
         )
 
-        end_time = time.perf_counter()
-        duration = end_time - start_time
 
-        if api_data:
-            import json
-            with open("test_payload.json", "w") as file:
-                json.dump(payload, file, indent=2)
-
-            with open("response.json", "w") as file:
-                json.dump(api_data, file, indent=2)
-
-        print(api_data)
-        print("------------")
-        print(f"The operation took {duration:.6f} seconds.")  #
+        return map_bettorodds(bettorodds_data=api_data, league=league)
 
 
-    async def run_bettorodds_external_mapper(self, session: aiohttp.ClientSession, sportsbook_data: list):
+    async def run_bettorodds_external_mapper(self, session: aiohttp.ClientSession, sportsbook_data: list,
+                                             batch_size: int = 20):
         if not sportsbook_data:
             return []
 
         payload_data = self.build_bettorodds_external_mapper_data(sportsbook_data)
+        results = []
+
         for league, league_data in payload_data.items():
-            if league == "NBA":
-                test_payload = league_data[0]
-                await self.bettor_odds_external_caller(session=session, payload=test_payload, league="NBA")
+            for i in range(0, len(league_data), batch_size):
+                batch = league_data[i : i + batch_size]
+                print(f"Running League: {league}\nBatch Size:{len(batch)}")
+                tasks = [
+                    self.bettor_odds_external_caller(
+                        session=session,
+                        payload=payload,
+                        league=league
+                    )
+                    for payload in batch
+                ]
+
+                batch_results = await asyncio.gather(*tasks)
+                results.extend(batch_results)
+                print(f"Batch {i // batch_size + 1} finished.")
+
+
+        print(results)
+
+        # for league, league_data in payload_data.items():
+        #     if league == "NBA":
+        #         test_payload = league_data[0]
+        #         data = await self.bettor_odds_external_caller(session=session, payload=test_payload, league="NBA")
+        #         print(data)
 
         # test_payload = payload_data.get("NBA")
 
@@ -120,7 +133,7 @@ class DFSBookBase(BookBase):
 
         batched_data = {
             league: {
-                k: list(batched(v, 15))
+                k: list(batched(v, 10))
                 for k, v in league_data.items()
             }
             for league, league_data in mapping_dict.items()
@@ -143,58 +156,6 @@ class DFSBookBase(BookBase):
             for league, league_data in batched_data.items()
         }
 
-
-        # return [
-        #     {
-        #         "team": list(teams) or [],
-        #         "player": list(players) or [],
-        #         "market": list(markets) or [],
-        #     }
-        #     for teams, players, markets in zip_longest(
-        #         batched_data["teams"],
-        #         batched_data["players"],
-        #         batched_data["markets"],
-        #         fillvalue=[]  # Provide an empty list if you can't zip.
-        #     )
-        # ]
-
-
-
-
-        # mapping_dict = {
-        #     "teams": set(),
-        #     "players": set(),
-        #     "markets": set(),
-        # }
-        #
-        # for data in sportsbook_data:
-        #     league = data.league
-        #
-        #     mapping_dict.setdefault(league, set()).add(data.team_data.team_name)
-        #
-        #     mapping_dict["teams"].add(data.team_data.team_a)
-        #     mapping_dict["teams"].add(data.team_data.team_b)
-        #
-        #     for odds in data.odds:
-        #         mapping_dict["players"].add(odds.player_name)
-        #         mapping_dict["markets"].add(odds.stat_type)
-
-
-        # batched_data = {k: list(batched(v, 15)) for k, v in mapping_dict.items()}
-        #
-        # return [
-        #     {
-        #         "team": list(teams) or [],
-        #         "player": list(players) or [],
-        #         "market": list(markets) or [],
-        #     }
-        #     for teams, players, markets in zip_longest(
-        #         batched_data["teams"],
-        #         batched_data["players"],
-        #         batched_data["markets"],
-        #         fillvalue=[] # Provide an empty list if you can't zip.
-        #     )
-        # ]
 
     async def external_mapper(self, sportsbook_data: list):
         """Maps the sportsbook data using external mappings."""

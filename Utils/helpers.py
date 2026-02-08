@@ -52,3 +52,62 @@ def convert_to_utc(date_time_str) -> str | None:
 def cache_time(date_time_str) -> str | None:
     """Convert the date to UTC format and cache the result"""
     return convert_to_utc(date_time_str)
+
+def _bettorodds_map_by_league(data: dict, collection_key: str, league: str):
+    mapped = {}
+
+    for value in data.values():
+        if not value:
+            continue
+
+        original = value.get("query")
+        if not original:
+            continue
+
+        found = next(
+            (
+                item.get("normalized_name")
+                for item in value.get(collection_key, [])
+                if item.get("league") == league
+            ),
+            None,
+        )
+
+        if found:
+            mapped[f"{original}-{league}"] = found
+
+    return mapped
+
+
+def _bettorodds_map_markets(data: dict, league: str) -> dict:
+    mapped = {}
+
+    for value in data.values():
+        if not value:
+            continue
+
+        original = value.get("query")
+        normalized = value.get("normalized_name")
+
+        if original and normalized:
+            mapped[f"{original}-{league}"] = normalized
+
+    return mapped
+
+def map_bettorodds(bettorodds_data: dict, league: str):
+    """Map the bettorodds data and return it in a standard formulized dictionary."""
+    if not bettorodds_data:
+        return {}
+
+    players = bettorodds_data.get("player", {})
+    teams = bettorodds_data.get("team", {})
+    market = bettorodds_data.get("market", {})
+
+    return {
+        "teams": _bettorodds_map_by_league(data=teams, collection_key="teams", league=league),
+        "players": _bettorodds_map_by_league(data=players, collection_key="players", league=league),
+        "markets": _bettorodds_map_markets(data=market, league=league),
+    }
+
+
+
