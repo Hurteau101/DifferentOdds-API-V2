@@ -21,7 +21,7 @@ class CaesarAuth(BaseScheduler):
             try:
                 async with async_playwright() as play:
                     browser = await play.chromium.launch(
-                        headless=False,
+                        headless=True,
                         args=["--disable-blink-features=AutomationControlled"]
                     )
 
