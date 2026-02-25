@@ -11,9 +11,8 @@ class SportsbookStats(Stats):
     market: str
     bet_team: Optional[str] = None
     bet_player: Optional[str] = None
-    american_odds: float
 
     def __post_init__(self):
         self.bet_player = clean_structure(self.bet_player)
         self.bet_team = clean_structure(self.bet_team)
-        self.stat_type = get_static_mapping().get("stats").get(self.market, self.market.title() if self.market else self.market)
+        self.market = get_static_mapping().get("stats").get(self.market, self.market.title() if self.market else self.market)

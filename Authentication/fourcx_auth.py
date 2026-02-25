@@ -11,7 +11,6 @@ class FourcxAuth(BaseScheduler):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
-        print("Running")
         payload = {
             "username": os.getenv("4CX_USERNAME"),
             "password": os.getenv("4CX_PASSWORD")

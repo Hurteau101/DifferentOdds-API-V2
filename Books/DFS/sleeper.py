@@ -150,7 +150,7 @@ class Sleeper(DFSBookBase):
 
 
             sleeper_data = list(events.values())
-            mapped_data = await self.external_mapper(sleeper_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=sleeper_data)
 
             await self.store_data(
                 database=self.redis_database,

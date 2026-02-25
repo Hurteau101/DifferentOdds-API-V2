@@ -157,6 +157,7 @@ class Parlayplay(DFSBookBase):
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             league_data = await self._get_leagues(session)
+
             if not league_data:
                 create_sentry_message(
                     tag_key=self.book_data.name,
@@ -203,7 +204,7 @@ class Parlayplay(DFSBookBase):
 
             parlay_data = list(events.values())
 
-            mapped_data = await self.external_mapper(parlay_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=parlay_data)
 
             await self.store_data(
                 database=self.redis_database,
@@ -212,3 +213,7 @@ class Parlayplay(DFSBookBase):
             )
 
             return mapped_data
+
+if __name__ == "__main__":
+    ud = Parlayplay()
+    asyncio.run(ud.run_book())

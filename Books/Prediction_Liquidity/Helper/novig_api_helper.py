@@ -17,7 +17,6 @@ class NovigApiHelper:
 
         return query_type[query_parameter](arg)
 
-
     @staticmethod
     def __league_caller(league):
         """ Constructs a GraphQL query to fetch events for a specific league."""
@@ -94,7 +93,7 @@ class NovigApiHelper:
                       },
                       order_by: { price: desc }
                     ) {
-                    
+
                       status
                       market_id
                       qty

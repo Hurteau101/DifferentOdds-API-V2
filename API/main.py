@@ -9,6 +9,7 @@ from fastapi.responses import ORJSONResponse
 from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from API.dfs import router as dfs
+from API.sportsbooks import router as sportsbooks
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -16,6 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent
 async def lifespan(app: FastAPI):
     app.state.redis = {
         "dfs": RedisAsyncManager(database=0),
+        "sportsbooks": RedisAsyncManager(database=6),
     }
 
     try:
@@ -48,3 +50,4 @@ async def custom_docs():
     return FileResponse(BASE_DIR / "Static" / "api_docs.html")
 
 app.include_router(dfs)
+app.include_router(sportsbooks)

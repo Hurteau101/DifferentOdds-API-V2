@@ -313,7 +313,7 @@ class DraftKingsPickSix(DFSBookBase):
 
             picksix_data = list(events.values())
 
-            mapped_data = await self.external_mapper(picksix_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=picksix_data)
 
             await self.store_data(
                 database=self.redis_database,

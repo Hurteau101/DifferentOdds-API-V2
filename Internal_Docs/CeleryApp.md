@@ -1,6 +1,30 @@
-# Running Celery on Windows.
+# Celery Breakdown
+- Celery is the core of part of this application. Which involves extracting and saving data from the sportsbooks.
+
+---
+
+## Files
+### `__init__.py`
+- Sets up the celery app.
+- Any celery configuration should be done here.
+
+### `tasks.py`
+- In charge of all the celery tasks. 
+- If you do not want a certain sportsbook to run, you will set `is_active` to `False`
+- We have 2 run book functions (`_run_books` and `run_sportsbooks`) - This is because its an Async task, so we
+utilize the `async_to_sync` to ensure that celery runs the tasks properly.
+- One key thing here is we are using `locks` in redis, to ensure that only one celery task is running at a time.
+We use `blocking=False` to ensure that if a lock can't be aquired, its instantly returns instead of waiting.
+
+### `beat_schedule.py`
+- In charge of scheduling celery tasks.
+
+---
+
+## Running Celery on Windows.
 We will be running this in WSL (Windows Subsystem for Linux) to avoid compatibility issues with Windows.
 
+### Setting up
 1. Open `WSL`
 2. cd into the project directory. 
     - Example:
@@ -28,22 +52,15 @@ We will be running this in WSL (Windows Subsystem for Linux) to avoid compatibil
 ```
 
 ### Starting Celery Worker
-##### Single Queue
+##### Running Celery Worker
 2. To start the Celery Worker, run the following command:
     - We are using `python -m` to ensure there are no import issues.
     - This will start the worker to listen to the sportsbook queue.
 ``` bash
-    python -m celery -A celery_app.celery_app worker -Q sportsbook --loglevel=info
+    python -m celery -A celery_app.celery_app worker --loglevel=info
 ```
-##### Multiple Queues
-3. To start the Celery Worker for multiple queues, run the following command:
-    - We are using `python -m` to ensure there are no import issues.
-    - This will start the worker to listen to the `dfs`, `exchange`, `auths`, and `sgp` queues.
-``` bash
-    python -m celery -A celery_app.celery_app worker -Q dfs,exchange,auths,sgp --loglevel=info
+##### Threading Issue
+If you are getting a threading issue,
+```bash
+  python -m celery -A celery_app.celery_app worker -P solo --loglevel=info
 ```
-You can also use the `-P solo` flag to run celery in a single-threaded mode if you encounter issues with multi-threading on Windows (advisable to use this if running in IDE terminal).
-``` bash
-    python -m celery -A celery_app.celery_app worker -Q dfs,exchange,auths,sgp -P solo --loglevel=info
-```
-

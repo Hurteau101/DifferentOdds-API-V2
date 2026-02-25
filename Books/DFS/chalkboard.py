@@ -254,7 +254,7 @@ class Chalkboard(DFSBookBase):
                         self.add_to_events(events, player_data, GameData)
 
             chalkboard_data = list(events.values())
-            mapped_data = await self.external_mapper(chalkboard_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=chalkboard_data)
 
             await self.store_data(
                 database=self.redis_database,

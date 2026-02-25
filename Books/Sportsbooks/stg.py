@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 import aiohttp
 from Books.Bases.pph_base import PPHBookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.base_models import GameData, TeamData
+from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.request_caller import SportbookRequestType
 
@@ -162,7 +162,7 @@ class STG(PPHBookBase):
                     market=self.ordinal_map(game_data.get("periodname"), "Moneyline"),
                     bet_type=None,
                     line=None,
-                    american_odds=american_odds
+                    odds_format=OddsFormat(american_odds=american_odds)
                 ))
 
             if side.get("spread"):
@@ -179,7 +179,7 @@ class STG(PPHBookBase):
                     market=self.ordinal_map(game_data.get("periodname"), "Spread"),
                     bet_type=None,
                     line=line,
-                    american_odds=american_odds
+                    odds_format=OddsFormat(american_odds=american_odds)
                 ))
 
             if side.get("total"):
@@ -196,7 +196,7 @@ class STG(PPHBookBase):
                     market=self.ordinal_map(game_data.get("periodname"), "Total"),
                     bet_type=direction,
                     line=line,
-                    american_odds=american_odds,
+                    odds_format=OddsFormat(american_odds=american_odds)
                 ))
 
 
@@ -212,7 +212,7 @@ class STG(PPHBookBase):
                     market=self.ordinal_map(game_data.get("periodname"), "Team Total"),
                     bet_type=data.get("bet_type"),
                     line=data.get("line"),
-                    american_odds=data.get("american_odds"),
+                    odds_format=OddsFormat(american_odds=data.get("american_odds"))
                 ))
 
                 # odds_data.get("odds").append(data)
@@ -229,7 +229,7 @@ class STG(PPHBookBase):
                     market=self.ordinal_map(game_data.get("periodname"), "Team Total"),
                     bet_type=data.get("bet_type"),
                     line=data.get("line"),
-                    american_odds=data.get("american_odds"),
+                    odds_format=OddsFormat(american_odds=data.get("american_odds"))
                 ))
 
         return odds_data
@@ -346,7 +346,15 @@ class STG(PPHBookBase):
                         if extracted and hasattr(extracted, "odds") and extracted.odds:
                             game_results.append(extracted)
 
-            return game_results
+            mapped_data = await self.map_runner(session=session, sportsbook_data=game_results)
+
+            await self.store_data(
+                database=self.redis_database,
+                data_to_store=mapped_data,
+                book_name=self.book_data.name
+            )
+
+            return mapped_data
 
 if __name__ == "__main__":
     stg = STG()

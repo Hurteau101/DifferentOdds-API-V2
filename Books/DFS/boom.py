@@ -151,7 +151,7 @@ class Boom(DFSBookBase):
                 self.add_to_events(events, game_data, GameData)
 
             boom_data = list(events.values())
-            mapped_data = await self.external_mapper(boom_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=boom_data)
 
             await self.store_data(
                 database=self.redis_database,

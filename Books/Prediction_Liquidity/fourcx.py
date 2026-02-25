@@ -1,22 +1,22 @@
+import asyncio
 import re
 import aiohttp
-import asyncio
-from old.Mapper.static_mapper import LEAGUES, STAT_TYPES
-from old.Redis.redis_manager import RedisSync
-from old.Settings.Prediction_Settings.prediction_book_base import PredictionBookBase
-from old.Settings.Prediction_Settings.prediction_model import Game, Order
-from old.Settings.book_base import SportbookRequestType
+from Books.Bases.prediction_liquidity_base import PredictionLiquidityBase
+from Monitoring.monitoring import create_sentry_message
+from Redis.redis_manager import RedisAsyncManager
+from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Utils.request_caller import SportbookRequestType
+from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats
 
-# Session Expiry is 2 months typically.
-
-class FourCX(PredictionBookBase):
+class FourCX(PredictionLiquidityBase):
     INVALID_LEAGUES = ["live", "custom", "superbowl", "nfc", "afc"] # Avoid these leagues or anything with these keywords
 
     def __init__(self):
-        super().__init__(SportbookRequestType.ASYNC, sportsbook_name="4cx")
+        super().__init__(book_name="4cx", request_type=SportbookRequestType.ASYNC)
 
     async def _get_leagues(self, session: aiohttp.ClientSession) -> dict:
         leagues = await self.api_caller(
+                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("games"),
                     headers=self.book_data.headers,
@@ -82,21 +82,23 @@ class FourCX(PredictionBookBase):
         """
         if is_player_prop:
             name = re.findall(r"\((.*?)\)", event_name)
-            return STAT_TYPES.get(name[0].lower(), name[0].title()) if name else None
+            return name[0].lower() if name else None
 
         market_name = order.get("type", "")
 
         if ordinal:
             market_name = f"{ordinal} {market_name}"
 
-        return STAT_TYPES.get(market_name.lower(), market_name.title())
+        return market_name.lower()
 
-    def _extract_order_details(self, game: dict) -> Game | None:
+    def _extract_order_details(self, game: dict) -> GameData | None:
         markets = self._get_markets(game)
         if not markets:
             return None
 
         league, ordinal = FourCX.remove_ordinal(game.get("league"), return_ordinal=True)
+
+        modified_league = league.replace("-PROPS", "") if "props" in league.lower() else league
 
         teams = {
             participant.get("id"): FourCX.remove_ordinal(participant.get("longName")) or FourCX.remove_ordinal(participant.get("shortName"))
@@ -111,23 +113,23 @@ class FourCX(PredictionBookBase):
             for team in teams.values()
         ])
 
-        modified_league = LEAGUES.get(league.lower(), league.upper())
-        game_date = self.cache_time(game.get("start"))
+        game_date = game.get("start")
 
         team_keys = "_".join(team_list).replace(" ", "_")
-        key = f"{modified_league}_{team_keys}_{game_date}".lower()
+        key = f"{league}_{team_keys}_{game_date}".lower()
 
-        return Game(
-            key=key,
-            event=" vs ".join(team_list) if len(team_list) == 2 else game.get("eventName"),
+        return GameData(
+            game_key=key,
             start_date=game_date,
             league=modified_league,
-            team_1=team_list[0],
-            team_2=team_list[1] if len(team_list) == 2 else None,
-            orders=[
-                Order(
+            team_data=TeamData(
+                team_a=team_list[0],
+                team_b=team_list[1] if len(team_list) == 2 else None,
+            ),
+            odds=[
+                PredictionLiquidityStats(
                     liquidity=order.get("sumUntaken"),
-                    american_odds=order.get("odds"),
+                    odds_format=OddsFormat(american_odds=order.get("odds")),
                     market=self._configure_market_name(ordinal=ordinal, event_name=game.get("eventName"), order=order, is_player_prop=True if "props" in league.lower() else False),
                     bet_team=FourCX.remove_ordinal(teams.get(order.get("participantID"))),
                     bet_type=order.get("OU"),
@@ -135,6 +137,7 @@ class FourCX(PredictionBookBase):
                     is_best=True if index == 0 else False,
                     bet_player=game.get("eventName").split("(")[0].title().strip() if "props" in league.lower() else None,
                     player_team=teams.get(order.get("participantId")) if "props" in league.lower() else None,
+                    future=False
                 )
 
                 for index, order in enumerate(markets)
@@ -155,24 +158,40 @@ class FourCX(PredictionBookBase):
 
         return valid_leagues
 
+    async def load_auth(self) -> str:
+        """Retrieve the authentication token from Redis"""
+        redis_instance = RedisAsyncManager(database=5)
+        return await redis_instance.get_data("4cx_auth_token")
 
     async def run_book(self):
-        redis = RedisSync(db=5)
-        auth_token = redis.get("4cx_auth_token").decode("utf-8")
+        auth_token = await self.load_auth()
         if not auth_token:
-            return
+            create_sentry_message(
+                tag_key="4cx",
+                tag_value="auth_failure",
+                message="No auth token was found in Redis",
+                level="error"
+            )
+            return None
 
         async with aiohttp.ClientSession() as session:
             self.book_data.headers["Authorization"] = auth_token
             raw_leagues = await self._get_leagues(session)
             if not raw_leagues or not raw_leagues.get("data", {}).get("availableLeagues"):
-                return
+                create_sentry_message(
+                    tag_key="4cx",
+                    tag_value="league_failure",
+                    message="No leagues found",
+                    level="error"
+                )
+                return None
 
             leagues = raw_leagues.get("data", {}).get("availableLeagues", [])
             leagues = self._filter_leagues(leagues)
 
             orders = [
                 self.api_caller(
+                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("orders"),
                     headers=self.book_data.headers,
@@ -187,24 +206,31 @@ class FourCX(PredictionBookBase):
             game_data = {}
 
             for order in order_results:
-                if not order or not order.get("success") or not order.get("data"):
+                if not order or not order.get("data"):
                     continue
 
                 for game in order.get("data", {}).get("games", []):
                     data = self._extract_order_details(game)
                     if data:
-                        key = data.key
+                        key = data.game_key
                         if key in game_data:
-                            game_data[key].orders.extend(data.orders)
+                            game_data[key].odds.extend(data.odds)
                         else:
                             game_data[key] = data
 
 
             game_list = list(game_data.values())
-            return await self._database_mapper(game_list)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=game_list)
+
+            await self.store_data(
+                database=self.redis_database,
+                data_to_store=mapped_data,
+                book_name=self.book_data.name
+            )
+
+            return mapped_data
+
 
 if __name__ == "__main__":
-    four_cx = FourCX()
-    asyncio.run(four_cx.run_book())
-
-
+    book = FourCX()
+    asyncio.run(book.run_book())

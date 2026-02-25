@@ -200,7 +200,7 @@ class FanDuelPicks(DFSBookBase):
 
             fanduel_picks_data = list(events.values())
 
-            mapped_data = await self.external_mapper(fanduel_picks_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=fanduel_picks_data)
 
             await self.store_data(
                 database=self.redis_database,

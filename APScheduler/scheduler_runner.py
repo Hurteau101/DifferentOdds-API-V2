@@ -1,15 +1,15 @@
-from Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
+from External_Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
 from Monitoring.monitoring import init_sentry
 init_sentry()
 
-from Book_Mapping.SGP.caesar_mapper import CaesarMapper
-from Book_Mapping.SGP.fanduel_mapper import FanduelMapper
-from Book_Mapping.SGP.onyx_mapper import OnyxMapper
+from External_Book_Mapping.SGP.caesar_mapper import CaesarMapper
+from External_Book_Mapping.SGP.fanduel_mapper import FanduelMapper
+from External_Book_Mapping.SGP.onyx_mapper import OnyxMapper
 from Authentication.chalkboard_auth import ChalkboardAuth
 from Authentication.kibl_auth import KiblAuth
 from Authentication.onyx_auth import OnyxAuth
 from Authentication.ownerbox_auth import OwnerboxAuth
-from Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
+from External_Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
 import asyncio
 import logging
 from datetime import datetime

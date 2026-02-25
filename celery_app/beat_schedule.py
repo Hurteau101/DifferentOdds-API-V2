@@ -11,7 +11,12 @@ for book, book_details in BOOKS.items():
             "task": book_details["task"],
             "schedule": book_details["interval"],
             "args": (book, book_details["lock_timeout"]),
-            "options": {"queue": book_details['queue'], "expires": book_details['queue_expiration']},
+            # "options": {"expires": book_details['lock_timeout']},
+            "options": {
+                "expires": book_details['lock_timeout'],
+                "soft_time_limit": book_details['soft_limit'],
+                "time_limit": book_details['hard_limit']
+            },
         }
 
 celery_app.conf.beat_schedule = beat_schedule

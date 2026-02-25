@@ -48,6 +48,47 @@ class RedisBaseManager:
         finally:
             await lock.release()
 
+    async def add_seen(self, key: str, values: list, ttl: int = 86400):
+        """Adds a list of values to a set in Redis."""
+        if not values:
+            return
+
+        await self.redis_client.sadd(key, *values)
+        if await self.redis_client.ttl(key) == -1:
+            await self.redis_client.expire(key, ttl)
+
+    async def is_seen(self, key: str, value: str) -> bool:
+        """Check if a value is already in the set."""
+        if not key or not value:
+            return False
+
+        return bool(await self.redis_client.sismember(key, value))
+
+
+    async def store_mappings(self, key: str, mapping: dict):
+        """ Store mapping data in a Redis Hash."""
+        if not key or not mapping:
+            return
+
+        serialized = {
+            k: orjson.dumps(v)
+            for k, v in mapping.items()
+        }
+
+        await self.redis_client.hset(key, mapping=serialized)
+        if await self.redis_client.ttl(key) == -1:
+            await self.redis_client.expire(key, 86400)
+
+    async def get_mappings(self, key: str) -> dict:
+        data = await self.redis_client.hgetall(key)
+
+        if not data:
+            return {}
+
+        return {
+            (k.decode() if isinstance(k, bytes) else k): orjson.loads(v)
+            for k, v in data.items()
+        }
 
     # Use only when the connection needs to be closed (like cron jobs). Do not use on celery tasks.
     async def close_for_shutdown(self):

@@ -199,7 +199,7 @@ class Epicks(DFSBookBase):
 
             epicks_data = list(events_dict.values())
 
-            mapped_data = await self.external_mapper(epicks_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=epicks_data)
 
             await self.store_data(
                 database=self.redis_database,

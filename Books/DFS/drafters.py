@@ -123,7 +123,7 @@ class Drafters(DFSBookBase):
                 self.add_to_events(events, game_data, GameData)
 
             drafters_data = list(events.values())
-            mapped_data = await self.external_mapper(drafters_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=drafters_data)
 
             await self.store_data(
                 database=self.redis_database,

@@ -1,5 +1,13 @@
 1. Add internal Mapper (BO)
-2. Add 4cx
-3. Map Bet105, STG
-4. Check futures on STG
-5. Caesar AUth - Proxies
+2. Map Bet105, STG, 4CX
+3. Check futures on STG
+4. Caesar AUth - Proxies
+5. Rename find_mapping to a better name.
+6. Fix the tests for Prediction/Liquidity
+
+
+Local Pre-Push Checklist:
+API []
+Celery []
+Cron Jobs []
+Auth / Mapping [X] - Scheduler

@@ -22,21 +22,21 @@ from Tests.common_test_helper import create_json_file, run_static
 STATIC_MAPPING = static_mapping_service.get()
 
 DFS_BOOKS = [
-    { "book_name": "underdog", "book_cls": Underdog, "save_json": True, "is_active": True},
-    { "book_name": "betr", "book_cls": Betr, "save_json": True, "is_active": True },
-    { "book_name": "boom", "book_cls": Boom, "save_json": True, "is_active": True },
-    { "book_name": "chalkboard", "book_cls": Chalkboard, "save_json": True, "is_active": True },
-    { "book_name": "dabble", "book_cls": Dabble, "save_json": True, "is_active": True },
-    { "book_name": "draftkings_6", "book_cls": DraftKingsPickSix, "save_json": True, "is_active": True },
-    { "book_name": "drafters", "book_cls": Drafters, "save_json": True, "is_active": False },
-    { "book_name": "epicks", "book_cls": Epicks, "save_json": True, "is_active": True },
-    { "book_name": "splashsports", "book_cls": SplashSports, "save_json": True, "is_active": True },
-    { "book_name": "ownerbox", "book_cls": Ownerbox, "save_json": True, "is_active": True },
-    { "book_name": "sleeper", "book_cls": Sleeper, "save_json": True, "is_active": True },
-    { "book_name": "prizepicks", "book_cls": Prizepicks, "save_json": True, "is_active": True },
-    { "book_name": "parlaye", "book_cls": Parlaye, "save_json": True, "is_active": True },
-    { "book_name": "parlayplay", "book_cls": Parlayplay, "save_json": True, "is_active": True },
-    { "book_name": "fanduel_picks", "book_cls": FanDuelPicks, "save_json": True, "is_active": True },
+    { "book_name": "underdog", "book_cls": Underdog, "save_json": True, "active": True},
+    { "book_name": "betr", "book_cls": Betr, "save_json": True, "active": True },
+    { "book_name": "boom", "book_cls": Boom, "save_json": True, "active": True },
+    { "book_name": "chalkboard", "book_cls": Chalkboard, "save_json": True, "active": True },
+    { "book_name": "dabble", "book_cls": Dabble, "save_json": True, "active": True },
+    { "book_name": "draftkings_6", "book_cls": DraftKingsPickSix, "save_json": True, "active": True },
+    { "book_name": "drafters", "book_cls": Drafters, "save_json": True, "active": False },
+    { "book_name": "epicks", "book_cls": Epicks, "save_json": True, "active": True },
+    { "book_name": "splashsports", "book_cls": SplashSports, "save_json": True, "active": True },
+    { "book_name": "ownerbox", "book_cls": Ownerbox, "save_json": True, "active": False },
+    { "book_name": "sleeper", "book_cls": Sleeper, "save_json": True, "active": True },
+    { "book_name": "prizepicks", "book_cls": Prizepicks, "save_json": True, "active": True },
+    { "book_name": "parlaye", "book_cls": Parlaye, "save_json": True, "active": True },
+    { "book_name": "parlayplay", "book_cls": Parlayplay, "save_json": True, "active": True },
+    { "book_name": "fanduel_picks", "book_cls": FanDuelPicks, "save_json": True, "active": True },
 ]
 
 
@@ -45,7 +45,7 @@ tables = ["stat_mapper", "league_mapper"]
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "dfs_items",
-    [dfs for dfs in DFS_BOOKS if dfs.get("is_active")],
+    [dfs for dfs in DFS_BOOKS if dfs.get("active")],
     ids=lambda item: (item.get("book_name") or "unknown"),
 )
 

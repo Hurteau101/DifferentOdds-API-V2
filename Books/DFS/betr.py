@@ -354,9 +354,9 @@ class Betr(DFSBookBase):
                         self.add_to_events(events, game_data, GameData)
 
 
-            betr = list(events.values())
+            betr_data = list(events.values())
 
-            mapped_data = await self.external_mapper(betr)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=betr_data)
 
             await self.store_data(
                 database=self.redis_database,

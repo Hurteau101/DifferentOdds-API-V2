@@ -58,10 +58,10 @@ class GameData:
             temp_key = self.game_key
             if not temp_key:
                 self.event_name = "N/A"
-
-            # Remove the date portion.
-            split_key = temp_key.split("_")[:-1]
-            self.event_name = " ".join(split_key).replace("_", " ").strip()
+            else:
+                # Remove the date portion.
+                split_key = temp_key.split("_")[:-1]
+                self.event_name = " ".join(split_key).replace("_", " ").strip()
 
             # self.event_name = self.game_key.replace("_", " ") if self.game_key else "N/A"
         elif self.team_data.team_a and self.team_data.team_b:

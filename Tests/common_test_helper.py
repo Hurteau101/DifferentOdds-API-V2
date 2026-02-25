@@ -145,5 +145,5 @@ def create_json_file(current_directory: str, book_name: str, returned_data: dict
         book_name: returned_data
     }
 
-    with open(f"{current_directory}/{book_name}_data.json", "w", ) as f:
-        json.dump(stored_data, f, indent=2)
+    with open(f"{current_directory}/{book_name}_data.json", "w", encoding="utf-8") as f:
+        json.dump(stored_data, f, indent=2, ensure_ascii=False)

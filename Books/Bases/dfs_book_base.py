@@ -1,36 +1,22 @@
-import asyncio
-import json
-import os
 import aiohttp
 from dotenv import load_dotenv
 from Books.Bases.book_base import BookBase
-from Monitoring.monitoring import create_sentry_message
 from Utils.request_caller import SportbookRequestType
-from Utils.helpers import map_bettorodds
 from Settings.Models.dfs_models import DFSStats
 from Settings.Models.base_models import GameData
-from itertools import batched, zip_longest
 
 class DFSBookBase(BookBase):
     load_dotenv()
     def __init__(self, book_name: str, request_type: SportbookRequestType):
-        super().__init__(category="DFS", book_name=book_name, request_type=request_type, redis_database=0)
+        super().__init__(category="DFS", book_name=book_name, request_type=request_type, redis_database=0, payload_batch=10, async_batch=20)
         self.esport_leagues = ["LOL", "CS2", "DOTA2", "VAL", "COD", "APEX", "R6"]
 
-    def solo_mapper(self, stats: DFSStats, game_data: GameData, mapped_teams: dict):
-        """Maps the player's name in the game data if it matches a solo game."""
-        found_team = mapped_teams.get(stats.player_name.lower())
-        if found_team:
-            game_data.league = found_team["league"]
-            game_data.player_team = found_team["team_name"]
-            self.generate_key([stats.player_name, game_data.start_date])
-
-    def player_team_mapper(self, stats: DFSStats, mapped_teams: dict):
-        """Maps the player's team name in the game data if it matches the original team name."""
-        player_team = stats.player_team
-
-        if player_team and player_team.lower() == mapped_teams["original_name"].lower():
-            stats.player_team = mapped_teams["team_name"]
+    # def player_team_mapper(self, stats: DFSStats, mapped_teams: dict):
+    #     """Maps the player's team name in the game data if it matches the original team name."""
+    #     player_team = stats.player_team
+    #
+    #     if player_team and player_team.lower() == mapped_teams["original_name"].lower():
+    #         stats.player_team = mapped_teams["team_name"]
 
     def yield_game_data(self, book_data):
         """Helper function to yield game data from nested lists. Must follow specific structure of list of lists.
@@ -40,125 +26,64 @@ class DFSBookBase(BookBase):
                 if game_data:
                     yield game_data
 
-    async def bettor_odds_external_caller(self, session: aiohttp.ClientSession, payload: dict, league: str):
-        if not payload:
-            return None
+    def market_mapper(self, stats: DFSStats, mapped_markets: dict, league: str):
+        """Maps the market name in the game data if it matches the original market name."""
+        stat_type = stats.stat_type.lower()
+        stat_key = f"{stat_type}-{league.lower()}"
 
-        api_key = os.getenv("INTERNAL_BETTORODDS_MAPPER_API_KEY")
+        if mapped_markets.get(stat_key):
+            stats.stat_type = mapped_markets[stat_key]
 
-        if not api_key:
-            create_sentry_message(
-                tag_key="BettorOdds Mapper",
-                tag_value="api_failure",
-                message="No API key provided.",
-                level="error"
-            )
+    def solo_mapper(self, stats: DFSStats, game_data: GameData, mapped_players: dict):
+        """Maps the player's name in the game data if it matches a solo game."""
 
-            return None
+        def find_player(player_name: str):
+            player_key = f"{player_name.lower()}-{game_data.league.lower()}"
+            return mapped_players.get(player_key)
 
-        api_data = await self.api_caller(
-            book_name=self.book_data.name,
-            session=session,
-            url="https://cache-api.eternitylabs.co/cache/batch",
-            method="POST",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-            },
-            payload=payload
-        )
+        def map_team(team: str):
+            if not team:
+                return team
 
+            team = team.lower()
 
-        return map_bettorodds(bettorodds_data=api_data, league=league)
+            found_dict = next((
+                player
+                for player in mapped_players.values()
+                if player.get("original_name").lower() == team or team.lower() in player.get("original_name").lower()
+            ), None)
 
+            return found_dict.get("player_name") if found_dict else team
 
-    async def run_bettorodds_external_mapper(self, session: aiohttp.ClientSession, sportsbook_data: list,
-                                             batch_size: int = 20):
-        if not sportsbook_data:
-            return []
+        for stat in stats:
+            found_player = find_player(player_name=stat.player_name)
 
-        payload_data = self.build_bettorodds_external_mapper_data(sportsbook_data)
-        results = []
+            if found_player:
+                player_name = found_player.get("player_name")
+                stat.player_name = player_name
+                game_data.league = found_player["league"]
+                game_data.player_team = player_name
 
-        for league, league_data in payload_data.items():
-            for i in range(0, len(league_data), batch_size):
-                batch = league_data[i : i + batch_size]
-                print(f"Running League: {league}\nBatch Size:{len(batch)}")
-                tasks = [
-                    self.bettor_odds_external_caller(
-                        session=session,
-                        payload=payload,
-                        league=league
-                    )
-                    for payload in batch
-                ]
+        team_a = game_data.team_data.team_a
+        team_b = game_data.team_data.team_b
 
-                batch_results = await asyncio.gather(*tasks)
-                results.extend(batch_results)
-                print(f"Batch {i // batch_size + 1} finished.")
+        if team_a and team_b:
+            for side in ["team_a", "team_b"]:
+                team_name_attr = getattr(game_data.team_data, side, None)
+                team_name = map_team(team_name_attr)
+                if not team_name:
+                    continue
+
+                setattr(game_data.team_data, side, team_name)
+
+            game_data.event_name = " vs ".join(sorted([game_data.team_data.team_a, game_data.team_data.team_b]))
+            game_data.game_key = self.generate_key(
+                [game_data.team_data.team_a, game_data.team_data.team_b, game_data.start_date])
 
 
-        print(results)
+    async def map_runner(self, sportsbook_data: list, session: aiohttp.ClientSession = None):
+        mapped_data = await self.bettorodds_mapping.run_mapping(session=session, sportsbook_data=sportsbook_data)
 
-        # for league, league_data in payload_data.items():
-        #     if league == "NBA":
-        #         test_payload = league_data[0]
-        #         data = await self.bettor_odds_external_caller(session=session, payload=test_payload, league="NBA")
-        #         print(data)
-
-        # test_payload = payload_data.get("NBA")
-
-        # await self.bettor_odds_external_caller(session=session, payload=test_payload)
-
-    def build_bettorodds_external_mapper_data(self, sportsbook_data: list) -> dict:
-        mapping_dict = {}
-
-        for data in sportsbook_data:
-            league = data.league
-
-            mapping_dict.setdefault(
-                league,
-                {
-                    "teams": set(),
-                    "players": set(),
-                    "markets": set(),
-                }
-            )
-
-            mapping_dict[league]["teams"].add(data.team_data.team_a)
-            mapping_dict[league]["teams"].add(data.team_data.team_b)
-
-            for odds in data.odds:
-                mapping_dict[league]["players"].add(odds.player_name)
-                mapping_dict[league]["markets"].add(odds.stat_type)
-
-        batched_data = {
-            league: {
-                k: list(batched(v, 10))
-                for k, v in league_data.items()
-            }
-            for league, league_data in mapping_dict.items()
-        }
-
-        return {
-            league: [
-                {
-                    "team": list(teams) or [],
-                    "player": list(players) or [],
-                    "market": list(markets) or [],
-                }
-                for teams, players, markets in zip_longest(
-                    league_data.get("teams", []),
-                    league_data.get("players", []),
-                    league_data.get("markets", []),
-                    fillvalue=[]
-                )
-            ]
-            for league, league_data in batched_data.items()
-        }
-
-
-    async def external_mapper(self, sportsbook_data: list):
-        """Maps the sportsbook data using external mappings."""
         raw_unique_data_passer = [
             {
                 "player_name": odds.player_name,
@@ -174,17 +99,22 @@ class DFSBookBase(BookBase):
             for odds in data.odds
         ]
 
-        sportsbook_name = self.__class__.__name__
-        teams_mapped = await self.team_look_up(raw_unique_data=raw_unique_data_passer, sportsbook_name=sportsbook_name)
-
-        mapped_data = self.map_helper(
-            sportsbook_data=sportsbook_data,
-            mapped_teams=teams_mapped,
-            solo_game_mapper_func=self.solo_mapper,
-            player_team_mapper_func=self.player_team_mapper,
+        mappings = await self.combine_bettorodds_internal_mapping(
+            raw_unique_data=raw_unique_data_passer,
+            bettorodds_mapped_data=mapped_data
         )
 
-        return mapped_data
+        teams = mappings.get("teams", {})
+        players = mappings.get("players", {})
+        markets = mappings.get("markets", {})
+
+        return self.map_data(
+            original_sportsbook_data=sportsbook_data,
+            mapped_teams=teams,
+            mapped_players=players,
+            mapped_markets=markets,
+            solo_game_mapper_func=self.solo_mapper,
+        )
 
 
 

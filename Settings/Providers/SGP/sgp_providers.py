@@ -256,7 +256,7 @@ SGP_PROVIDERS = [
                 'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Referer': 'https://sportsbook.caesars.com/',
                 'content-type': 'application/json',
-                'x-app-version': '7.38.0',
+                'x-app-version': '7.41.0',
                 'x-platform': 'cordova-desktop',
                 'x-unique-device-id': '53c26028-d052-4871-83e7-a6cbf3686f57',
                 'Origin': 'https://sportsbook.caesars.com',

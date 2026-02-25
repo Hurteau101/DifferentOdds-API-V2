@@ -2,6 +2,8 @@ import asyncio
 from itertools import chain
 
 import aiohttp
+
+from Database.database import Database
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
@@ -38,7 +40,7 @@ class CaesarMapper(BaseMapper):
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
         waf_token = await self._get_waf_token()
-
+        print(waf_token)
         if not waf_token:
             create_sentry_message(
                 tag_key="caesars",
@@ -61,6 +63,7 @@ class CaesarMapper(BaseMapper):
         ]
 
         event_results = await asyncio.gather(*raw_events)
+
 
         event_ids = set(
             event.get("id")
@@ -145,3 +148,13 @@ class CaesarMapper(BaseMapper):
                 data_to_store=mapping,
                 key_expiration=600
             )
+
+if __name__ == "__main__":
+    db = Database()
+    redis_instance = RedisAsyncManager(database=11)
+    mapper = CaesarMapper()
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            await mapper.run_scheduler(session=session, redis_instance=redis_instance)
+
+    asyncio.run(main())

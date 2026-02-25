@@ -1,17 +1,22 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Optional, Callable
-from Database.find_mapping import FindMapper
+
+import aiohttp
+
+from Internal_Mapping.bettorodds_mapping import BettoroddsMapping
+from Internal_Mapping.find_mapping import FindMapper
 from Settings.book_configurations import BookConfiguration
 from Utils.request_caller import SportbookRequestType, APICaller
 from Redis.redis_manager import RedisAsyncManager
 
 class BookBase(APICaller, ABC):
     def __init__(self, category: str, book_name: str, request_type: SportbookRequestType, redis_database: int,
-                 expiration_time: int = 600):
+                 payload_batch: int, async_batch: int, expiration_time: int = 600):
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self.expiration_time = expiration_time # Used for Redis data expiration
         self.redis_database = redis_database # Used for Redis database selection
+        self.bettorodds_mapping = BettoroddsMapping(payload_batch=payload_batch, async_batch=async_batch, book_name=book_name)
         super().__init__(request_type=request_type)
 
     @staticmethod
@@ -30,7 +35,7 @@ class BookBase(APICaller, ABC):
 
 
     def unique_teams_helper(self, raw_unique_data_passer: list, sportsbook_name: str) -> list[dict]:
-        """Helper to build a unique team list from raw data passed from external_mapper"""
+        """Helper to build a unique team list from raw data"""
         seen = set()
         team_data = []
 
@@ -96,28 +101,19 @@ class BookBase(APICaller, ABC):
 
         events[key].odds.extend(item.odds)
 
+    def map_data(self, original_sportsbook_data: list, mapped_teams: dict, mapped_players: dict, mapped_markets: dict,
+                 solo_game_mapper_func: Optional[Callable] = None):
 
-    def map_helper(self, sportsbook_data: list, mapped_teams: dict, solo_game_mapper_func: Optional[Callable] = None,
-                   player_team_mapper_func: Optional[Callable] = None) -> list:
-        """
-        Helper to map sportsbook data with found teams from Redis/Database.
-
-        There are 3 optional function caller parameters, due to different dataclass models, and where each attribute
-        is located. Passing the functions to map those specific attributes allows for more flexibility.
-
-        :param sportsbook_data: List of sportsbook dataclasses.
-        :param mapped_teams: Dictionary of mapped teams.
-        :param solo_game_mapper_func: Optional function to map solo games.
-        :param player_team_mapper_func: Optional function to map player team.
-        :param stat_mapper_func: Optional function to map stat_types.
-
-        :return: Mapped sportsbook data.
-        """
-        for data in sportsbook_data:
+        for data in original_sportsbook_data:
             solo_game = getattr(data, "solo_game", False)
             if solo_game and solo_game_mapper_func:
-                for stats in data.odds:
-                    solo_game_mapper_func(stats, data, mapped_teams)
+                solo_game_mapper_func(
+                    stats=data.odds,
+                    game_data=data,
+                    mapped_players=mapped_players
+                )
+
+
                 continue
 
             for side in ["team_a", "team_b"]:
@@ -133,32 +129,75 @@ class BookBase(APICaller, ABC):
                     setattr(data.team_data, side, found_team["team_name"])
                     setattr(data.team_data, f"{side}_abbreviation", found_team.get("abbreviation"))
 
-                    if player_team_mapper_func:
-                        for stats in data.odds:
-                            player_team_mapper_func(stats, found_team)
+                    for stats in data.odds:
+                        if getattr(stats, "player_team", None):
+                            attr_name = "player_team"
+                        elif getattr(stats, "bet_team", None):
+                            attr_name = "bet_team"
+                        else:
+                            continue
+
+                        team_value = getattr(stats, attr_name)
+
+                        if team_value and team_value.lower() == found_team["original_name"].lower():
+                            setattr(stats, attr_name, found_team["team_name"])
+
 
             data.game_key = self.generate_key(
                 [data.team_data.team_a, data.team_data.team_b, data.start_date])
 
-            data.event_name = " vs ".join(sorted([data.team_data.team_a, data.team_data.team_b]))
+            if data.team_data.team_a and data.team_data.team_b:
+                data.event_name = " vs ".join(sorted([data.team_data.team_a, data.team_data.team_b]))
+
+            for stats in data.odds:
+                if getattr(stats, "stat_type", None):
+                    attr_name = "stat_type"
+                elif getattr(stats, "market", None):
+                    attr_name = "market"
+                else:
+                    continue
+
+                stat_value = getattr(stats, attr_name)
+
+                stat_key = f"{stat_value.lower()}-{league.lower()}"
+
+                if stat_key in mapped_markets:
+                    setattr(stats, attr_name, mapped_markets[stat_key])
 
 
-        return sportsbook_data
+        return original_sportsbook_data
 
-
-    async def team_look_up(self, raw_unique_data: list, sportsbook_name: str) -> dict:
-        unique_data = self.unique_teams_helper(raw_unique_data_passer=raw_unique_data, sportsbook_name=sportsbook_name.lower())
+    async def team_look_up(self, team_data: list) -> dict:
+        """Look up the teams and return the dict build for players and teams"""
         mapper = FindMapper()
-        mapped_teams = await mapper.controller(team_data=unique_data)
+        mapped_teams = await mapper.controller(team_data=team_data)
+
+        def create_key(data: dict) -> str:
+            return f'{data["original_name"].lower()}-{data["league"].lower()}'
+
+        def create_build(data: dict) -> dict:
+            return {
+                **(
+                    {"team_name": data.get("team_name")}
+                    if not data.get("solo_game")
+                    else {
+                        "player_name": data.get("team_name")
+                    }
+                ),
+                "league": data.get("league"),
+                "original_league": data.get("original_league"),
+                "original_name": data.get("original_name"),
+                "source": "Internal"
+            }
 
         return {
-            f'{team["original_name"].lower()}-{team["league"].lower()}': team
-            for team in mapped_teams
+            "players": {create_key(player): create_build(player) for player in mapped_teams if player.get("solo_game")},
+            "teams": {create_key(team): create_build(team) for team in mapped_teams if not team.get("solo_game")},
         }
 
     @abstractmethod
-    async def external_mapper(self, sportsbook_data: list):
-        raise NotImplementedError("Subclasses must implement the external_mapper method.")
+    async def map_runner(self, sportsbook_data: list, session: aiohttp.ClientSession = None):
+        raise NotImplementedError("Subclasses must implement the map_runner method.")
 
     async def store_data(self, data_to_store: dict, database: int, book_name: str):
         if not data_to_store:
@@ -182,6 +221,46 @@ class BookBase(APICaller, ABC):
             data_to_store=wrapped_data,
             key_expiration=self.expiration_time
         )
+
+    def check_team_in_bettorodds(self, teams: dict, name_to_check: str):
+        name_to_check = name_to_check.lower()
+
+        return any(
+            name_to_check == mapped.get("original_name", "").lower()
+            or name_to_check == mapped.get("team_name", "").lower()
+            for mapped in teams.values()
+        )
+
+    async def combine_bettorodds_internal_mapping(self, raw_unique_data: list, bettorodds_mapped_data: dict) -> dict:
+        bettorodds_teams = bettorodds_mapped_data.get("teams", {})
+        bettorodds_players = bettorodds_mapped_data.get("players", {})
+        bettorodds_markets = bettorodds_mapped_data.get("markets", {})
+
+        sportsbook_name = self.__class__.__name__
+        unique_data = self.unique_teams_helper(raw_unique_data_passer=raw_unique_data,
+                                               sportsbook_name=sportsbook_name.lower())
+
+        filtered_unique_data = [
+            data
+            for data in unique_data
+            if not (
+                    self.check_team_in_bettorodds(bettorodds_teams, data.get("team_name"))
+                    or self.check_team_in_bettorodds(bettorodds_players, data.get("team_name"))
+            )
+        ]
+
+        internal_mapping = await self.team_look_up(team_data=filtered_unique_data)
+
+        teams = {**internal_mapping.get("teams", {}), **bettorodds_teams}
+        players = {**internal_mapping.get("players", {}), **bettorodds_players}
+
+        return {
+            # "teams": teams,
+            # "players": players,
+            "teams": bettorodds_teams,
+            "players": bettorodds_players,
+            "markets": bettorodds_markets
+        }
 
     @staticmethod
     def return_market_mapper():

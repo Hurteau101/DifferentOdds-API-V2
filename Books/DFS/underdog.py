@@ -306,17 +306,15 @@ class Underdog(DFSBookBase):
                     self.add_to_events(events, player_data, GameData)
 
             underdog_data = list(events.values())
-            await self.run_bettorodds_external_mapper(session=session, sportsbook_data=underdog_data)
+            mapped_data = await self.map_runner(session=session, sportsbook_data=underdog_data)
 
-            # mapped_data = await self.external_mapper(underdog_data)
-            #
-            # await self.store_data(
-            #     database=self.redis_database,
-            #     data_to_store=mapped_data,
-            #     book_name=self.book_data.name
-            # )
-            #
-            # return mapped_data
+            await self.store_data(
+                database=self.redis_database,
+                data_to_store=mapped_data,
+                book_name=self.book_data.name
+            )
+
+            return mapped_data
 
 if __name__ == "__main__":
     ud = Underdog()

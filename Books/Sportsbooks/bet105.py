@@ -269,7 +269,7 @@ class Bet105(SportsbooksBookBase):
             odds=[
                 SportsbookStats(
                     market=final_market,
-                    american_odds=market_data.get("price_american"),
+                    odds_format=OddsFormat(american_odds=market_data.get("price_american")),
                     bet_team=bet_team,
                     bet_type=bet_type,
                     line=line,
@@ -282,7 +282,6 @@ class Bet105(SportsbooksBookBase):
     async def run_book(self):
         auth_token = await self.load_auth()
         if not auth_token:
-            print("No Auth")
             create_sentry_message(
                 tag_key="bet105",
                 tag_value="auth_failure",
@@ -327,6 +326,17 @@ class Bet105(SportsbooksBookBase):
             results = await asyncio.gather(*sportsbook_tasks)
             results = [item for sublist in results if sublist for item in sublist]
 
-            return results
+            mapped_data = await self.map_runner(session=session, sportsbook_data=results)
+
+            await self.store_data(
+                database=self.redis_database,
+                data_to_store=mapped_data,
+                book_name=self.book_data.name
+            )
+
+            return mapped_data
 
 
+if __name__ == "__main__":
+    ud = Bet105()
+    asyncio.run(ud.run_book())

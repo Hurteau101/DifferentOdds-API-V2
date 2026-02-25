@@ -5,6 +5,8 @@ from Database.database import Database
 from Redis.redis_manager import RedisAsyncManager
 from Utils.helpers import clean_structure
 
+# TODO:
+#### RENAME FILE
 
 class FindMapper:
     def __init__(self):
@@ -36,17 +38,37 @@ class FindMapper:
     async def find_matches(self, args: tuple) -> dict:
         """Compare names against database and compare common names against RapidFuzz"""
         team_data, league_index = args
-
         league_upper = team_data.get('league', '').upper()
+
         received_name_raw = team_data.get('team_name') or ''
         received_name = received_name_raw.lower()
         sportsbook = team_data.get("sportsbook")
         source = "RapidFuzz"
 
+        # if received_name == "jan choinski":
+        #     league_upper = "ATP"
+        #     test = league_index.values()
+        #     for name in test:
+        #         for name_dict in name:
+        #             print(name_dict.keys())
+
         redis_key = f"team_map:{league_upper}:{received_name}"
 
-        # Only grab leagues that match.
-        name_sources = league_index.get(league_upper)
+        # Only grab leagues that match unless its a solo game.
+        if not team_data.get("solo_game"):
+            name_sources = league_index.get(league_upper)
+
+        else:
+            name_sources = next(
+                (
+                    pair
+                    for pair in league_index.values()
+                    for name_dict in pair
+                    if received_name in name_dict
+                ),
+                None,
+            )
+
         if not name_sources:
             result = {
                 "found": False,
@@ -77,6 +99,7 @@ class FindMapper:
                     "found": True,
                     "team_name": matched_team[0],
                     "league": matched_team[3].upper(),
+                    "solo_game": team_data.get("solo_game"),
                     "original_league": league_upper,
                     "abbreviation": matched_team[2],
                     "original_name": received_name,
@@ -111,6 +134,7 @@ class FindMapper:
                         "found": True,
                         "team_name": matched_team[0],
                         "league": matched_team[3].upper(),
+                        "solo_game": team_data.get("solo_game"),
                         "original_league": league_upper,
                         "abbreviation": matched_team[2],
                         "original_name": received_name,

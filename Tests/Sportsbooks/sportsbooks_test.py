@@ -9,14 +9,14 @@ from Utils.helpers import serialize_data
 STATIC_MAPPING = static_mapping_service.get()
 
 SPORTSBOOKS_BOOKS = [
-    { "book_name": "bet105", "book_cls": Bet105, "save_json": True, "is_active": True },
-    { "book_name": "stg", "book_cls": STG, "save_json": True, "is_active": True },
+    { "book_name": "bet105", "book_cls": Bet105, "save_json": True, "active": False },
+    { "book_name": "stg", "book_cls": STG, "save_json": True, "active": True },
 ]
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "sportsbooks_items",
-    [sportsbook for sportsbook in SPORTSBOOKS_BOOKS if sportsbook.get("is_active")],
+    [sportsbook for sportsbook in SPORTSBOOKS_BOOKS if sportsbook.get("active")],
     ids=lambda item: (item.get("book_name") or "unknown"),
 )
 async def test_sportsbook(sportsbooks_items, redis_static_mapper):
