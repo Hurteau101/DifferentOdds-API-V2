@@ -291,13 +291,20 @@ class Database:
         self.cursor.execute(sql, (names, leagues))
         self.connection.commit()
 
+    def get_auto_sgp_configs(self) -> list:
+        """Re-loads all teams from the database."""
+        self.cursor.execute("SELECT * FROM autospg_configs ")
+
+        return [dict(row) for row in self.cursor.fetchall()]
 
 
 if __name__ == "__main__":
+    from table_creation import create_autosgp_table
     db = Database()
+    data = db.get_auto_sgp_configs()
 
-    db.create_api_key(client_str="DifferentOdds-Internal")
-    api = db.get_api_keys()
+    # db.create_api_key(client_str="DifferentOdds-Internal")
+    # api = db.get_api_keys()
 
 
 

@@ -1,4 +1,24 @@
 
+def create_autosgp_table():
+    """Returns the SQL command to create the autosgp table."""
+    return """
+        CREATE TABLE IF NOT EXISTS autospg_configs
+        (
+            unique_name VARCHAR(255) PRIMARY KEY,
+            league VARCHAR(255),
+            espn_league VARCHAR(255),
+            sport VARCHAR(100),
+            stat_types TEXT[],
+            group_fields TEXT[],
+            direction TEXT[],
+            use_same_player BOOLEAN,
+            validate_players BOOLEAN,
+            minimum_ev NUMERIC,
+            number_of_unique_books INTEGER,
+            movement INTEGER,
+            active BOOLEAN DEFAULT TRUE
+        );
+    """
 
 def create_stat_mapper():
     """Returns the SQL command to create the stat_mapper table."""

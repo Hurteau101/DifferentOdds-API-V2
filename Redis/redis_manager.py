@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import os
 import ssl
 import time
@@ -79,7 +80,7 @@ class RedisBaseManager:
         if await self.redis_client.ttl(key) == -1:
             await self.redis_client.expire(key, 86400)
 
-    async def get_mappings(self, key: str) -> dict:
+    async def get_hset(self, key: str) -> dict:
         data = await self.redis_client.hgetall(key)
 
         if not data:
@@ -89,6 +90,37 @@ class RedisBaseManager:
             (k.decode() if isinstance(k, bytes) else k): orjson.loads(v)
             for k, v in data.items()
         }
+
+    async def bulk_insert_individual(self, data_to_store: dict, pipeline):
+        """Bulk insert data into Redis using a pipeline."""
+
+        for key, value in data_to_store.items():
+            ttl = (
+                    value.get("ttl")
+                    or value.get("game_date")
+                    or value.get("date")
+                    or value.get("event_date")
+                    or value.get("start_date")
+            )
+
+            if not ttl:
+                raise ValueError("ttl must be provided for each key")
+
+            if isinstance(ttl, str):
+                start_date_dt = datetime.fromisoformat(ttl.replace("Z", "+00:00"))
+                ttl = int(start_date_dt.timestamp() * 1000)
+
+            elif isinstance(ttl, datetime):
+                if ttl.tzinfo is None:
+                    ttl = ttl.replace(tzinfo=timezone.utc)
+
+                ttl = int(ttl.timestamp() * 1000)
+
+            pipeline.set(key, orjson.dumps(value))
+            pipeline.pexpireat(key, ttl)
+
+        await pipeline.execute()
+
 
     # Use only when the connection needs to be closed (like cron jobs). Do not use on celery tasks.
     async def close_for_shutdown(self):
@@ -154,25 +186,25 @@ class RedisAsyncManager(RedisBaseManager):
         )
 
 
-class RedisRemoteManager(RedisBaseManager):
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    def __init__(self):
-        load_dotenv()
-        ca_cert_path = os.path.join(RedisRemoteManager.BASE_DIR, "certs", "ca.crt")
-        if not os.path.exists(ca_cert_path):
-            raise FileNotFoundError(f"CA certificate not found at {ca_cert_path}")
-
-        super().__init__(
-            host=os.getenv("REDIS_HOST"),
-            port=int(os.getenv("REDIS_PORT")),
-            database=int(os.getenv("REDIS_DB")),
-            max_connections=100,
-            decode_response=False,
-            ssl=True,
-            ssl_ca_certs = ca_cert_path,
-            ssl_cert_reqs = ssl.CERT_REQUIRED,
-            ssl_check_hostname = False,
-        )
+# class RedisRemoteManager(RedisBaseManager):
+#     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+#     def __init__(self):
+#         load_dotenv()
+#         ca_cert_path = os.path.join(RedisRemoteManager.BASE_DIR, "certs", "ca.crt")
+#         if not os.path.exists(ca_cert_path):
+#             raise FileNotFoundError(f"CA certificate not found at {ca_cert_path}")
+#
+#         super().__init__(
+#             host=os.getenv("REDIS_HOST"),
+#             port=int(os.getenv("REDIS_PORT")),
+#             database=int(os.getenv("REDIS_DB")),
+#             max_connections=100,
+#             decode_response=False,
+#             ssl=True,
+#             ssl_ca_certs = ca_cert_path,
+#             ssl_cert_reqs = ssl.CERT_REQUIRED,
+#             ssl_check_hostname = False,
+#         )
 
 
 class RedisSyncManager:

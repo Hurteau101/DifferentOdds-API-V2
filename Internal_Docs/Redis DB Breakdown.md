@@ -21,8 +21,23 @@
 ### Redis DB - `6`
 ##### Sportsbook Cache
 
+### Redis DB - `7`
+##### This is for Prediction-Liquidity Chunked Data
+
+### Redis DB - `8`
+##### This is used to store Auto SGP Configs
+
+### Reids DB - `9`
+##### This is for Auto SGP Previously Stored Data
+
+### Redis DB - `10`
+##### This is for Auto SGP Endpoint Data
+
 ### Redis DB - `11`
 ##### This is for Database Caching
+
+### Redis DB - `12`
+##### This is for Auto SGP Previously Sent Discord Messages
 
 ### Redis DB - `15`
 ##### This is for Celery Broker

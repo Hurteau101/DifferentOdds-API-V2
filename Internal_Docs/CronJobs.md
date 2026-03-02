@@ -14,4 +14,6 @@
  - **Description**: This job stores static values from the database and stores in Redis. This static values are known mapped 
 league names and mapped stat types.
 
-   
+### `store_auto_sgp_configs.py`
+ - **Frequency**: 1 Hour
+ - **Description**: This job stores Auto SGP Configs from the database and stores in Redis.

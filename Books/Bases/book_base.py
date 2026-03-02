@@ -199,7 +199,7 @@ class BookBase(APICaller, ABC):
     async def map_runner(self, sportsbook_data: list, session: aiohttp.ClientSession = None):
         raise NotImplementedError("Subclasses must implement the map_runner method.")
 
-    async def store_data(self, data_to_store: dict, database: int, book_name: str):
+    async def store_data(self, data_to_store: dict | list, database: int, book_name: str):
         if not data_to_store:
             return
 
@@ -255,10 +255,10 @@ class BookBase(APICaller, ABC):
         players = {**internal_mapping.get("players", {}), **bettorodds_players}
 
         return {
-            # "teams": teams,
-            # "players": players,
-            "teams": bettorodds_teams,
-            "players": bettorodds_players,
+            "teams": teams,
+            "players": players,
+            # "teams": bettorodds_teams,
+            # "players": bettorodds_players,
             "markets": bettorodds_markets
         }
 

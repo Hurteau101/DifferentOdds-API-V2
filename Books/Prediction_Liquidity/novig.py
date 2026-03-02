@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timedelta
 import re
 from collections import defaultdict
 from itertools import chain
@@ -220,11 +221,17 @@ class Novig(PredictionLiquidityBase):
         merged = {}
 
         for raw_event in event_data:
+            start_date = raw_event.get("game", {}).get("scheduled_start")
+            dt = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
+            new_dt = dt - timedelta(minutes=5)
+            start_date_minus_5 = new_dt.isoformat().replace("+00:00", "Z")
+
+
             event_name = raw_event.get("description", "")
             teams = re.split(r'\s*(?:vs|@)\s*', event_name)
             event_obj = GameData(
                 league=league_name,
-                start_date=raw_event.get("game", {}).get("scheduled_start"),
+                start_date=start_date_minus_5,
                 game_key=event_name,
                 team_data=TeamData(team_a=teams[0], team_b=teams[1]),
                 odds=[],
@@ -244,15 +251,15 @@ class Novig(PredictionLiquidityBase):
                     if not orders:
                         continue
 
-                    bet_info = outcome.get("description")
+                    bet_info = outcome.get("description").lower()
 
                     modified_info = (
-                        bet_info
+                        bet_info.lower()
                         if not any(t.lower() in ["over", "under"] for t in bet_info.split())
                         else bet_info.replace(str(line), "").strip()
                     )
 
-                    if modified_info not in ["Over", "Under"]:
+                    if modified_info not in ["over", "under"]:
                         cleaned_name = re.sub(r"\s[+-].*$", "", modified_info).lower()
                         bet_team = teams[0] if (cleaned_name == teams[0].lower() or cleaned_name in teams[0].lower()) else teams[1]
 
@@ -263,7 +270,7 @@ class Novig(PredictionLiquidityBase):
                     event_obj.odds.append(
                         PredictionLiquidityStats(
                             line=line,
-                            bet_type=modified_info if modified_info in ["Over", "Under"] else None,
+                            bet_type=modified_info if modified_info in ["over", "under"] else None,
                             market=market_name,
                             liquidity_data=orders,
                             bet_player=player,
@@ -408,8 +415,10 @@ class Novig(PredictionLiquidityBase):
             await self.store_data(
                 database=self.redis_database,
                 data_to_store=mapped_data,
-                book_name=self.book_data.name
+                book_name=self.book_data.name,
             )
+
+            await self.market_chunk_processor(mapped_data=mapped_data, book_name=self.book_data.name)
 
             return mapped_data
 

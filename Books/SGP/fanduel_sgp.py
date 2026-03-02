@@ -57,7 +57,9 @@ class FanduelSGP(SGPBookBase):
 
     async def _map_data(self) -> list | None:
         """ Map the marketID from the links to the actual marketId using Redis. Due to links being external market IDs"""
-        if not self.mapped_ids:
+        mapped_ids = await self.load_mapped_ids(key_name="fanduel_ids")
+
+        if not mapped_ids:
             create_sentry_message(
                 tag_key=self.book_data.name,
                 tag_value="mapping_failure",
@@ -69,8 +71,8 @@ class FanduelSGP(SGPBookBase):
 
         return [
             {
-                "marketId": self.mapped_ids.get(f"{data.get('event_id')}_{data.get('bet_id')}", {}).get("market_id"),
-                "selectionId": self.mapped_ids.get(f"{data.get('event_id')}_{data.get('bet_id')}", {}).get("selection_id"),
+                "marketId": mapped_ids.get(f"{data.get('event_id')}_{data.get('bet_id')}", {}).get("market_id"),
+                "selectionId": mapped_ids.get(f"{data.get('event_id')}_{data.get('bet_id')}", {}).get("selection_id"),
             }
             for data in self.link_data
         ]

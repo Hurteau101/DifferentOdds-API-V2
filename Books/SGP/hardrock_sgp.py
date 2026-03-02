@@ -14,6 +14,7 @@ class HardrockSGP(SGPBookBase):
     async def run_book(self):
         hardrock_ids = [self.link_data[i]["bet_id"] for i in range(len(self.link_data))]
 
+
         payload = self.create_payload(hardrock_ids)
         websocket_data = [json.loads(msg) for msg in self.selenium_manger(payload)]
 
@@ -59,6 +60,7 @@ class HardrockSGP(SGPBookBase):
         chrome_options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
 
         driver = webdriver.Chrome(options=chrome_options)
+
         try:
             driver.get("about:blank")
             return driver.execute_async_script(f"""
@@ -91,3 +93,9 @@ class HardrockSGP(SGPBookBase):
             return None
         finally:
             driver.quit()
+
+
+if __name__ == "__main__":
+    sgp_data = {'book_name': 'hardrock', 'links': ['https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/6503125950346166615', 'https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/3088975220334264573']}
+    hardrock = HardrockSGP(sgp_data=sgp_data)
+    data = asyncio.run(hardrock.run_book())

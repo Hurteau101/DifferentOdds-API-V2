@@ -11,9 +11,9 @@ class SGPBookBase(APICaller, ABC):
                  regex_keys: list = None, **kwargs):
         self.regex_keys = regex_keys or ["bet_id", "event_id"]
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
-        self.mapped_ids = kwargs.get("mapped_ids", {})
-        self.auth_token = kwargs.get("auth_token")
         self._parse_sgp_data(sgp_data)
+        self.extras = kwargs
+
         super().__init__(request_type=request_type)
 
     @abstractmethod
@@ -23,6 +23,7 @@ class SGPBookBase(APICaller, ABC):
     def _parse_sgp_data(self, sgp_data: dict):
         self.links = sgp_data.get("links", [])
         self.link_data = self._extract_link_details()
+
 
     @staticmethod
     def ensure_link_data(func):
@@ -41,14 +42,28 @@ class SGPBookBase(APICaller, ABC):
             "decimal_odds": float(decimal_odds) if decimal_odds else None
         }
 
-    @staticmethod
-    def ensure_mapped_data(func):
-        async def wrapper(self):
-            mapped_data = getattr(self, "mapped_ids", {})
-            if not mapped_data:
-                return None
-            return await func(self)
-        return wrapper
+    async def load_auth_token(self, key_name: str):
+        """Returns the stored auth token from Redis."""
+        redis_instance = RedisAsyncManager(database=5)
+        return await redis_instance.get_data(key_name)
+
+    async def load_book_data(self, key_name: str):
+        """Returns the stored book data from Redis."""
+
+    async def load_mapped_ids(self, key_name: str):
+        """Returns the stored mapped ids from Redis."""
+        redis_instance = RedisAsyncManager(database=2)
+        return await redis_instance.get_data(key_name)
+
+
+    # @staticmethod
+    # def ensure_mapped_data(func):
+    #     async def wrapper(self):
+    #         mapped_data = getattr(self, "mapped_ids", {})
+    #         if not mapped_data:
+    #             return None
+    #         return await func(self)
+    #     return wrapper
 
     def _extract_link_details(self) -> list[dict]:
         """ Extract IDs from the provided links based on regex patterns."""

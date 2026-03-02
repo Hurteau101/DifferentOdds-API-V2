@@ -297,7 +297,7 @@ class DraftKingsPickSix(DFSBookBase):
                 return
 
             merged_data = [result for result in results]
-
+            print(merged_data)
             events = {}
 
             for game_details in merged_data:
@@ -322,3 +322,7 @@ class DraftKingsPickSix(DFSBookBase):
             )
 
             return mapped_data
+
+if __name__ == "__main__":
+    ud = DraftKingsPickSix()
+    asyncio.run(ud.run_book())

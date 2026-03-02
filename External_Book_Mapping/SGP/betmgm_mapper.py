@@ -1,6 +1,8 @@
 import asyncio
 from itertools import chain
 import aiohttp
+
+from Database.database import Database
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
@@ -9,9 +11,9 @@ from Utils.request_caller import SportbookRequestType
 
 class BetMgmMapper(BaseMapper):
     VALID_LEAGUE_IDS = [
-        23,  # Baseball
-        11,  # Football
-        12,  # Hockey
+        # 23,  # Baseball
+        # 11,  # Football
+        # 12,  # Hockey
         7, # Basketball
     ]
     def __init__(self):
@@ -19,10 +21,14 @@ class BetMgmMapper(BaseMapper):
 
     def _filter_mapping(self, raw_data: dict) -> dict:
         # Map the ID's
+
         return {
             str(option.get("id")): {
                 "game_id": option_list.get("id"),
+                "fixture_id": data.get("id"),
                 "group_id": data.get("addons", {}).get("betBuilderId"),
+                "fixture_id_v2": data.get("addons", {}).get("betBuilderTradingV2FixtureId"),
+                "source": option_list.get("source"),
             }
 
             for data in raw_data.get("fixtures", [])
@@ -62,8 +68,17 @@ class BetMgmMapper(BaseMapper):
                 level="error"
             )
 
+
         await redis_instance.store_data(
             key_name="betmgm_ids",
             data_to_store=mapped_ids,
             key_expiration=self.default_key_expiration
         )
+
+if __name__ == "__main__":
+    redis_instance = RedisAsyncManager(database=2)
+    mapper = BetMgmMapper()
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            await mapper.run_scheduler(session=session, redis_instance=redis_instance)
+    asyncio.run(main())

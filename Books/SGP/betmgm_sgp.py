@@ -13,7 +13,9 @@ class BetmgmSGP(SGPBookBase):
     @SGPBookBase.ensure_link_data
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            if not self.mapped_ids:
+            mapped_ids = await self.load_mapped_ids(key_name="betmgm_ids")
+
+            if not mapped_ids:
                 create_sentry_message(
                     tag_key="betmgm",
                     tag_value="no_mapping",
@@ -22,7 +24,8 @@ class BetmgmSGP(SGPBookBase):
                 )
                 return None
 
-            payload = self._create_payload(self.mapped_ids)
+            payload = self._create_payload(mapped_ids)
+
             api_data = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
@@ -57,18 +60,51 @@ class BetmgmSGP(SGPBookBase):
             decimal_odds=odds.get("odds")
         )
 
-
     def _create_payload(self, mapped_data: dict) -> dict:
-        return {
-            "tv1Picks": [
-                {
-                    "fixtureId": data.get("event_id"),
-                    "gameId": int(mapped_data.get(str(-int(data.get("bet_id"))), {}).get("game_id")) if mapped_data.get(
-                        str(-int(data.get("bet_id"))), {}).get("game_id") else None,
-                    "resultId": -int(data.get("bet_id")),
-                    "useLiveFallback": False,
-                    "pickGroupId": mapped_data.get(str(-int(data.get("bet_id"))), {}).get("group_id"),
-                }
-                for data in self.link_data
-            ],
+        picks = {
+            "tv1Picks": [],
+            "tv2Picks": [],
         }
+
+        for data in self.link_data:
+            bet_id = data.get("bet_id")
+
+            if not bet_id:
+                continue
+
+            mapped = mapped_data.get(str(-int(bet_id)), {}) or mapped_data.get(str(bet_id), {})
+
+            if not mapped:
+                continue
+
+            if mapped.get("source") == "V1":
+                picks["tv1Picks"].append(
+                    {
+                        "fixtureId": mapped.get("fixture_id") if mapped.get("source") == "V1" else mapped.get(
+                            "fixture_id_v2"),
+                        "gameId": int(mapped.get("game_id")) if mapped.get("game_id") else None,
+                        "resultId": -int(bet_id),
+                        "useLiveFallback": False,
+                        "pickGroupId": mapped.get("group_id"),
+                    }
+                )
+            elif mapped.get("source") == "V2":
+                picks["tv2Picks"].append(
+                    {
+                        "fixtureId": mapped.get("fixture_id_v2"),
+                        "isClassicBetBuilder": False,
+                        "optionId": bet_id,
+                        "optionMarketId": mapped.get("game_id"),
+                        "pickGroupId": mapped.get("group_id"),
+                    }
+                )
+
+        return picks
+
+if __name__ == "__main__":
+
+    sgp_data = {'book_name': 'betmgm', 'links': ["https://sports.{state}.betmgm.com/en/sports/events/19025274?options=19025274-1470075152--166289871&type=Single", "https://sports.{state}.betmgm.com/en/sports/events/19025274?options=6:36526-2665248-3993346&type=Single"]}
+
+    book = BetmgmSGP(sgp_data=sgp_data)
+    data = asyncio.run(book.run_book())
+

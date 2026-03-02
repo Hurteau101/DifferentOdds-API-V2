@@ -65,8 +65,12 @@ SGP_PROVIDERS = [
             'Origin': 'https://www.on.betmgm.ca',
         },
         regex={
-            "event_id": r"options=([\d]+)",
-            "bet_id": r"--(\d+)",
+            # "event_id": r"options=([\d]+)",
+            # "event_id": r"options=[^&]*-(\d+)-+\d+(?:&|$)",
+
+
+            "bet_id": r"options=[^&]*?-\d+-+(\d+)"
+            # "bet_id": r"options=[^&]*-(\d+)-+\d+(?:&|$)"
         },
         method="GET",
         is_active=True,
@@ -164,7 +168,7 @@ SGP_PROVIDERS = [
             "selection_id": r"selection=([\w-]+)",
         },
         method="POST",
-        is_active=True,
+        is_active=False,
         mapping=SGPMapper(
             url={
                 "league_url": "https://api.onyxodds.com/api/odds/mainLines",
@@ -268,7 +272,56 @@ SGP_PROVIDERS = [
             method="GET",
             is_active=True
         )
-    )
+    ),
+SGPProvider(
+        title="Rebet",
+        name="rebet",
+        url={
+            "sgp_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/custom-bets/odds-calculation"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-CA,en-US;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Content-Type': 'application/json',
+            'x-api-key': 'J9xowBQZM980G97zv9VoB9Ylady1pVtS5Ix9tuL1', # This is a public API key, fine if exposed.
+            'Authorization': 'Bearer undefined',
+            'Origin': 'https://play.rebet.app',
+            'Connection': 'keep-alive',
+            'Referer': 'https://play.rebet.app/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
+            'Priority': 'u=0',
+            'TE': 'trailers'
+        },
+        method="GET",
+        is_active=False,
+        mapping=SGPMapper(
+            url={
+                "leagues_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/all-sports",
+                "games_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/tournaments/games",
+                "event_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/events/{event_id}"
+            },
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-CA,en-US;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br, zstd',
+                'x-api-key': 'J9xowBQZM980G97zv9VoB9Ylady1pVtS5Ix9tuL1',  # This is a public API key, fine if exposed.
+                'Origin': 'https://play.rebet.app',
+                'Connection': 'keep-alive',
+                'Referer': 'https://play.rebet.app/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'cross-site',
+                'TE': 'trailers'
+            },
+            method="GET",
+            is_active=True
+        )
+    ),
 ]
 
 

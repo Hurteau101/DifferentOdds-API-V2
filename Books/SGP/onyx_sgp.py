@@ -21,7 +21,9 @@ class OnyxSGP(SGPBookBase):
             return None
 
         async with aiohttp.ClientSession() as session:
-            if not self.mapped_ids:
+            mapped_ids = await self.load_mapped_ids(key_name="onyx_ids")
+
+            if not mapped_ids:
                 create_sentry_message(
                     tag_key=self.book_data.name,
                     tag_value="mapping_failure",
@@ -32,19 +34,19 @@ class OnyxSGP(SGPBookBase):
 
             payload = {
                 "betSelections": {
-                    self.mapped_ids[data["selection_id"]]["semantic_id"]: {
+                    mapped_ids[data["selection_id"]]["semantic_id"]: {
                         "marketDetails": {
-                            "name": self.mapped_ids[data["selection_id"]]["name"],
-                            "marketName": self.mapped_ids[data["selection_id"]]["market_name"],
+                            "name": mapped_ids[data["selection_id"]]["name"],
+                            "marketName": mapped_ids[data["selection_id"]]["market_name"],
                             "game": {
-                                "fixtureId": self.mapped_ids[data["selection_id"]]["fixture_id"]
+                                "fixtureId": mapped_ids[data["selection_id"]]["fixture_id"]
                             }
                         }
                     }
                     for data in self.link_data
                     if data is not None
                        and (bet_id := data.get("selection_id")) is not None
-                       and bet_id in self.mapped_ids
+                       and bet_id in mapped_ids
                 }
             }
 

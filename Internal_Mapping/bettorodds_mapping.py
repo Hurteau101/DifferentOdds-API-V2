@@ -190,7 +190,7 @@ class BettoroddsMapping(APICaller):
             return {}
 
         previously_stored = {
-            name: await self.redis_instance.get_mappings(name)
+            name: await self.redis_instance.get_hset(name)
             for name in ["players", "markets", "teams"]
         }
 

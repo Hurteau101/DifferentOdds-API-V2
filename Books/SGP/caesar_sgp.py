@@ -41,7 +41,7 @@ class CaesarsSGP(SGPBookBase):
 
         return line_data
 
-    def _add_lines(self, line_data: dict, link_data: dict) -> float:
+    def _add_lines(self, line_data: dict, link_data: dict, mapped_ids: dict) -> float:
         """Add lines to the mapped data based on link data and line data."""
         selection = link_data.get("select_id")
 
@@ -49,19 +49,20 @@ class CaesarsSGP(SGPBookBase):
             line = line_data.get(selection)
             return float(line) if line is not None else None
 
-        return float(self.mapped_ids.get(selection, {}).get("line")) if self.mapped_ids.get(selection, {}).get("line") is not None else None
+        return float(mapped_ids.get(selection, {}).get("line")) if mapped_ids.get(selection, {}).get("line") is not None else None
 
-    def _create_actual_mapping(self, line_data: dict, link_data: dict) -> dict:
+    def _create_actual_mapping(self, line_data: dict, link_data: dict, mapped_ids: dict) -> dict:
         """Create the actual mapping for a single link data entry."""
         line = self._add_lines(
             line_data=line_data,
             link_data=link_data,
+            mapped_ids=mapped_ids
         )
 
         mapped_entry = {
-            "selectionId": self.mapped_ids.get(link_data.get("select_id"), {}).get("selection_id"),
-            "eventId": self.mapped_ids.get(link_data.get("select_id"), {}).get("event_id"),
-            "marketId": self.mapped_ids.get(link_data.get("select_id"), {}).get("market_id"),
+            "selectionId": mapped_ids.get(link_data.get("select_id"), {}).get("selection_id"),
+            "eventId": mapped_ids.get(link_data.get("select_id"), {}).get("event_id"),
+            "marketId": mapped_ids.get(link_data.get("select_id"), {}).get("market_id"),
             "stakePerLine": 0,
         }
 
@@ -73,7 +74,8 @@ class CaesarsSGP(SGPBookBase):
 
     @SGPBookBase.ensure_link_data
     async def run_book(self):
-        if not self.auth_token:
+        auth_token = await self.load_auth_token(key_name="caesars_waf_token")
+        if not auth_token:
             create_sentry_message(
                 tag_key="caesars",
                 tag_value="auth_failure",
@@ -84,7 +86,9 @@ class CaesarsSGP(SGPBookBase):
 
         line_data = self._lines_extraction(self.lines if self.lines else {})
 
-        if not self.mapped_ids:
+        mapped_ids = await self.load_mapped_ids(key_name="caesar_mapped_ids")
+
+        if not mapped_ids:
             create_sentry_message(
                 tag_key=self.book_data.name,
                 tag_value="mapping_failure",
@@ -96,7 +100,8 @@ class CaesarsSGP(SGPBookBase):
         mapped_data = [
             self._create_actual_mapping(
                 line_data=line_data,
-                link_data=data
+                link_data=data,
+                mapped_ids=mapped_ids
             )
             for data in self.link_data
         ]
@@ -107,13 +112,14 @@ class CaesarsSGP(SGPBookBase):
 
         payload = self._create_payload(mapped_data)
 
+
         async with aiohttp.ClientSession() as session:
             raw_api_data = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
-                headers={**self.book_data.headers, "x-aws-waf-token": self.auth_token},
+                headers={**self.book_data.headers, "x-aws-waf-token": auth_token},
                 payload=payload
             )
 

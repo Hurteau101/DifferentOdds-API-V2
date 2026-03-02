@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import re
 from itertools import batched
@@ -71,6 +72,10 @@ class Prophetx(PredictionLiquidityBase):
                 }
 
                 for index,selection in enumerate(selection_list, start=1):
+                    liquidity = selection.get("value")
+                    if not liquidity or liquidity <= 0:
+                        continue
+
                     if "over" in selection.get("display_name") or "under" in selection.get("display_name"):
                         bet_type = selection.get("display_name").split(" ")[0]
                         bet_team = None
@@ -95,6 +100,9 @@ class Prophetx(PredictionLiquidityBase):
                             "stake": selection.get("stake")
                         }
                     ))
+
+                if not prediction_data["liquidity_data"]:
+                    continue
 
                 game_data.odds.append(PredictionLiquidityStats(**prediction_data))
 
@@ -125,10 +133,6 @@ class Prophetx(PredictionLiquidityBase):
             )
 
             event_data = self.extract_event_data(events)
-
-            with open("events.json", "w") as file:
-                import json
-                json.dump(event_data, file, indent=2)
 
             event_ids_batched = [list(batch) for batch in batched(event_data.keys(), 65)]
 
@@ -168,6 +172,8 @@ class Prophetx(PredictionLiquidityBase):
                 data_to_store=mapped_data,
                 book_name=self.book_data.name
             )
+
+            await self.market_chunk_processor(mapped_data=mapped_data, book_name=self.book_data.name)
 
             return mapped_data
 

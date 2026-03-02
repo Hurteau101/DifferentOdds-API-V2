@@ -30,6 +30,7 @@ class NovigSGP(SGPBookBase):
 
     @SGPBookBase.ensure_link_data
     async def run_book(self):
+
         ids = [{"id": link.get("event_id")} for link in self.link_data]
         payload = {
             "boostId": None,
@@ -44,6 +45,7 @@ class NovigSGP(SGPBookBase):
                 method="POST",
                 payload=payload
             )
+
 
             if not api_data:
                 return None
