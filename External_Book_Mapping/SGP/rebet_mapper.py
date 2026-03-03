@@ -14,6 +14,7 @@ def get_static_mapping():
     return static_mapping_service.get()
 
 
+##### WORK ON FIXING AS ITS NOT FUNCTIONING PROPERLY FOR MAPPING.
 
 class RebetMapper(BaseMapper):
 
@@ -32,7 +33,7 @@ class RebetMapper(BaseMapper):
                     "tournament_id": league_id,
                     "game_type": 1
                 },
-            ) or []
+            ) or {}
 
             for league_id in league_ids
         ]
@@ -62,7 +63,7 @@ class RebetMapper(BaseMapper):
                 params={
                     "market_configuration_type": "PREMATCH",
                 }
-            ) or []
+            ) or {}
 
             for event_id in event_ids
         ]
@@ -121,7 +122,7 @@ class RebetMapper(BaseMapper):
             url=self.book_data.mapping.url.get("leagues_url"),
             method=self.book_data.mapping.method,
             headers=self.book_data.mapping.headers
-        ) or []
+        ) or {}
 
         league_ids = set(
             league.get("id")

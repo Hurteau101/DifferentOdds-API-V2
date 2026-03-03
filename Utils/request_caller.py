@@ -50,11 +50,12 @@ class APICaller:
             url, headers=headers, proxy=proxy, params=params if method == "get" else None,
             json=payload if method == "post" else None
         )
+
         return self.handle_sync_response(response, parse_json, book_name)
 
     def handle_sync_response(self, response: CurlResponse, parse_json: bool, book_name: str) -> dict | None:
         """Handle a curl_cffi (non-async) response."""
-        if response.status in self.valid_status_codes:
+        if response.status_code in self.valid_status_codes:
             try:
                 return response.json() if parse_json else response.text
             except json.JSONDecodeError:

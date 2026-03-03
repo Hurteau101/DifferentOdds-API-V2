@@ -214,6 +214,7 @@ class DraftKingsPickSix(DFSBookBase):
 
             league_keys = self._extract_league_keys(api_league_keys)
 
+
             tasks = [
 
                 self.api_caller(
@@ -242,6 +243,8 @@ class DraftKingsPickSix(DFSBookBase):
                 league.get("mainPickGroupId")
                 for league in league_results
             ]
+
+
 
             tasks = [
                 self.api_caller(
@@ -273,6 +276,8 @@ class DraftKingsPickSix(DFSBookBase):
                 for market in result.get("activePickables", {})
             }
 
+
+
             tasks = [
                 self.api_caller(
                     book_name=self.book_data.name,
@@ -297,7 +302,7 @@ class DraftKingsPickSix(DFSBookBase):
                 return
 
             merged_data = [result for result in results]
-            print(merged_data)
+
             events = {}
 
             for game_details in merged_data:
@@ -312,16 +317,18 @@ class DraftKingsPickSix(DFSBookBase):
                         self.add_to_events(events, player_data, GameData)
 
             picksix_data = list(events.values())
+            print(picksix_data)
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=picksix_data)
-
-            await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
-            )
-
-            return mapped_data
+            # mapped_data = await self.map_runner(session=session, sportsbook_data=picksix_data)
+            #
+            #
+            # await self.store_data(
+            #     database=self.redis_database,
+            #     data_to_store=mapped_data,
+            #     book_name=self.book_data.name
+            # )
+            #
+            # return mapped_data
 
 if __name__ == "__main__":
     ud = DraftKingsPickSix()

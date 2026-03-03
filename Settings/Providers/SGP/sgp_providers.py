@@ -273,52 +273,121 @@ SGP_PROVIDERS = [
             is_active=True
         )
     ),
-SGPProvider(
-        title="Rebet",
-        name="rebet",
-        url={
-            "sgp_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/custom-bets/odds-calculation"
-        },
-        headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-CA,en-US;q=0.9,en;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Content-Type': 'application/json',
-            'x-api-key': 'J9xowBQZM980G97zv9VoB9Ylady1pVtS5Ix9tuL1', # This is a public API key, fine if exposed.
-            'Authorization': 'Bearer undefined',
-            'Origin': 'https://play.rebet.app',
-            'Connection': 'keep-alive',
-            'Referer': 'https://play.rebet.app/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'cross-site',
-            'Priority': 'u=0',
-            'TE': 'trailers'
-        },
-        method="GET",
-        is_active=False,
-        mapping=SGPMapper(
+    SGPProvider(
+            title="Rebet",
+            name="rebet",
             url={
-                "leagues_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/all-sports",
-                "games_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/tournaments/games",
-                "event_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/events/{event_id}"
+                "sgp_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/custom-bets/odds-calculation"
             },
             headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'en-CA,en-US;q=0.9,en;q=0.8',
                 'Accept-Encoding': 'gzip, deflate, br, zstd',
-                'x-api-key': 'J9xowBQZM980G97zv9VoB9Ylady1pVtS5Ix9tuL1',  # This is a public API key, fine if exposed.
+                'Content-Type': 'application/json',
+                'x-api-key': 'J9xowBQZM980G97zv9VoB9Ylady1pVtS5Ix9tuL1', # This is a public API key, fine if exposed.
+                'Authorization': 'Bearer undefined',
                 'Origin': 'https://play.rebet.app',
                 'Connection': 'keep-alive',
                 'Referer': 'https://play.rebet.app/',
                 'Sec-Fetch-Dest': 'empty',
                 'Sec-Fetch-Mode': 'cors',
                 'Sec-Fetch-Site': 'cross-site',
+                'Priority': 'u=0',
                 'TE': 'trailers'
             },
             method="GET",
+            is_active=False,
+            mapping=SGPMapper(
+                url={
+                    "leagues_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/all-sports",
+                    "games_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/tournaments/games",
+                    "event_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v1/events/{event_id}"
+                },
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'en-CA,en-US;q=0.9,en;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br, zstd',
+                    'x-api-key': 'J9xowBQZM980G97zv9VoB9Ylady1pVtS5Ix9tuL1',  # This is a public API key, fine if exposed.
+                    'Origin': 'https://play.rebet.app',
+                    'Connection': 'keep-alive',
+                    'Referer': 'https://play.rebet.app/',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'cross-site',
+                    'TE': 'trailers'
+                },
+                method="GET",
+                is_active=True
+            )
+        ),
+    SGPProvider(
+        title="Betonline",
+        name="betonline",
+        url={
+            "sgp_url": ""
+        },
+        headers={
+
+        },
+        method="GET",
+        is_active=False,
+        mapping=SGPMapper(
+            url={
+                "sports_url": "https://api-offering.betonline.ag/api/offering/sgp/sports",
+                "leagues_url": "https://api-offering.betonline.ag/api/offering/sgp/leagues",
+                "events_url": "https://api-offering.betonline.ag/api/offering/sgp/events",
+                "mapping_url": "https://public-prod-gen2.sportcastlive.com/public/getmarketsV2/"
+            },
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0",
+                "Accept": "application/json",
+                "Accept-Language": "en-US,en;q=0.9",
+                'Accept-Encoding': 'gzip, deflate',
+                "Referer": "https://www.betonline.ag/",
+                "Content-Type": "application/json",
+                "gsetting": "bolnasite",
+                "utc-offset": "360",
+                "Origin": "https://www.betonline.ag",
+            },
+            method="POST",
+            is_active=True
+        )
+    ),
+    SGPProvider(
+        title="Betway",
+        name="betway",
+        url={
+            "sgp_url": ""
+        },
+        headers={
+
+        },
+        method="GET",
+        is_active=False,
+        mapping=SGPMapper(
+            url={
+                "category_names": "https://betway.com/g/services/api/Content/v1/GetMenus",
+                "category_url": "https://betway.com/g/services/api/events/v2/GetCategoryDetails",
+                "events_url": "https://betway.com/g/services/api/events/v2/GetGroup",
+                "event_details": "https://betway.com/g/services/api/events/v2/GetEventDetails"
+            },
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br, zstd',
+                'Content-Type': 'application/json',
+                'Origin': 'https://betway.com',
+                'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'Priority': 'u=0',
+                'TE': 'trailers'
+            },
+            method="POST",
             is_active=True
         )
     ),
