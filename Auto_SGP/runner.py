@@ -738,7 +738,7 @@ class AutoSGP(APICaller):
 
     async def runner(self):
         async with aiohttp.ClientSession() as session:
-            sportsbook_data = await self._load_sportsbook_data(session, used_stored_json=False, store_json=True)
+            sportsbook_data = await self._load_sportsbook_data(session, used_stored_json=True, store_json=False)
 
             if not sportsbook_data:
                 create_sentry_message(

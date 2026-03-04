@@ -255,7 +255,7 @@ class FanaticsSGP(SGPBookBase):
 
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'fanatics', 'links': ['fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%223872927%22%2C%22marketId%22%3A%22520505286%22%2C%22selectionId%22%3A%221290015014%22%7D%5D%7D&deep_link_value=consume-betslip', 'fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%223872927%22%2C%22marketId%22%3A%22520450712%22%2C%22selectionId%22%3A%221289885197%22%7D%5D%7D&deep_link_value=consume-betslip']}
+    sgp_data = {'book_name': 'fanatics', 'links': ['fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%223895336%22%2C%22marketId%22%3A%22523373179%22%2C%22selectionId%22%3A%221297050619%22%7D%5D%7D&deep_link_value=consume-betslip', 'fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%223895336%22%2C%22marketId%22%3A%22523343073%22%2C%22selectionId%22%3A%221296977639%22%7D%5D%7D&deep_link_value=consume-betslip']}
 
     hardrock = FanaticsSGP(sgp_data=sgp_data)
     data = asyncio.run(hardrock.run_book())

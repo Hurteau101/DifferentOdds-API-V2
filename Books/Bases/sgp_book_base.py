@@ -1,18 +1,25 @@
+import os
 import re
 import urllib.parse
 from abc import abstractmethod, ABC
+
+from tenacity import AsyncRetrying, retry_if_result, wait_fixed
+
 from Settings.book_configurations import BookConfiguration
 from Utils.request_caller import APICaller, SportbookRequestType
 from Redis.redis_manager import RedisAsyncManager
 
 
 class SGPBookBase(APICaller, ABC):
-    def __init__(self, request_type: SportbookRequestType, category: str, book_name: str, sgp_data: dict,
-                 regex_keys: list = None, **kwargs):
+    def __init__(self, request_type: SportbookRequestType, category: str,
+                 book_name: str, sgp_data: dict, retry_amount: int = 3,
+                 retry_wait_interval: int = 2, regex_keys: list = None, **kwargs):
         self.regex_keys = regex_keys or ["bet_id", "event_id"]
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self._parse_sgp_data(sgp_data)
         self.extras = kwargs
+        self.retry_amount = retry_amount
+        self.retry_wait_interval = retry_wait_interval
 
         super().__init__(request_type=request_type)
 
@@ -105,3 +112,4 @@ class SGPBookBase(APICaller, ABC):
             american_odds = (100 * (1 - probability)) / probability
 
         return round(american_odds)
+
