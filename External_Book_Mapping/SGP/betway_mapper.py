@@ -1,9 +1,6 @@
 import asyncio
 import re
-from collections import defaultdict
 import aiohttp
-from curl_cffi import AsyncSession
-
 from Redis.redis_manager import static_mapping_service
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
@@ -16,9 +13,9 @@ def get_static_mapping():
     return static_mapping_service.get()
 
 
-##### WORK ON FIXING AS ITS NOT FUNCTIONING PROPERLY FOR MAPPING. (_CREATING_MAPPING IS BROKEN)
-
 class BetwayMapper(BaseMapper):
+    ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball"]
+
     def __init__(self):
         super().__init__(book_name="betway", category="sgp", request_type=SportbookRequestType.ASYNC)
 
@@ -94,8 +91,20 @@ class BetwayMapper(BaseMapper):
 
         return events_ids
 
+    async def is_nested_list(self, element_to_check):
+        try:
+            next(x for x in element_to_check if isinstance(x, list))
+        except StopIteration:
+            return False
+
+        return True
+
+    async def remove_team_name(self, player_name: str):
+        return re.sub(r"\s*\([a-zA-Z]{3,4}\)", "", player_name).strip()
 
     async def _get_mappings(self, session: aiohttp.ClientSession, event_ids: set):
+        # event_ids = [16434743]
+
         async def process_mapping(event_id, semaphore: asyncio.Semaphore):
             async with semaphore:
                 results = await self.api_caller(
@@ -126,52 +135,87 @@ class BetwayMapper(BaseMapper):
         tasks = [process_mapping(event_id, semaphore) for event_id in event_ids]
         results = await asyncio.gather(*tasks)
 
-        mapping_data = {}
-
         mapping = get_static_mapping()
         stat_mapping = mapping.get("stats", {})
 
+        mapping_data = {}
+
         for result in results:
-            if not result:
-                continue
+            outcome_mapping = {
+                outcome.get("Id"): {
+                    "market_name": outcome.get("BetName").lower(),
+                    "spread_display": outcome.get("HandicapDisplay")
+                }
+                for outcome in result.get("Outcomes", [])
+            }
 
             raw_event_name = result.get("Event", {}).get("EventName")
+
             if not raw_event_name:
                 continue
 
-            event_name = raw_event_name.replace("-", "vs").lower()
+            split_event_name = raw_event_name.split("-")
+            event_name = " vs ".join(sorted(split_event_name)).lower().strip()
             event_bucket = mapping_data.setdefault(event_name, {})
 
-            markets = result.get("Markets", [])
 
-            for market in markets:
-                raw_market_name = market.get("Title").lower().replace("alternate", "").strip()
-                cleaned_market_name = stat_mapping.get(raw_market_name, raw_market_name).lower()
-                market_bucket = event_bucket.setdefault(cleaned_market_name, {})
+            for market in result.get("Markets", []):
+                outcomes = market.get("Outcomes", [])
+                if await self.is_nested_list(outcomes):
+                    outcomes = outcomes[0]
 
-                selection_list = market.get("Headers", [])
-                outcome_list = market.get("Outcomes", [])[0]
+                for outcome in outcomes:
+                    found_mapping = outcome_mapping.get(outcome)
+                    if not found_mapping:
+                        continue
 
-                if not selection_list or not outcome_list:
-                    continue
-
-                for selection, outcome in zip(selection_list, outcome_list):
+                    selection_name = found_mapping.get("market_name")
+                    spread_display = found_mapping.get("spread_display")
+                    market_name = market.get("Title").lower().replace("alternate", "").strip()
                     handicap = market.get("Handicap", 0.00)
-                    selection = selection.lower()
 
-                    if handicap != 0.00:
-                        selection = f"{selection} {handicap}"
+                    if selection_name == "yes":
+                        selection_name = "over 0.5"
+                    elif selection_name == "no":
+                        selection_name = "under 0.5"
 
-                    selection_bucket = market_bucket.setdefault(selection, {})
+
+                    if "spread" in market_name:
+                        selection_name = f"{selection_name} {spread_display}"
+
+                    if selection_name in ["over", "under"]:
+                        if handicap != 0.00:
+                            selection_name = f"{selection_name} {handicap}"
+
+                    # Check if the market name contains a team abbreviation like (phx), (lal), etc.
+                    if re.search(r"\([a-zA-Z]{3,4}\)", market_name):
+                        player_part = market_name.split("-")[-1].strip()
+
+                        # Get the player name portion.
+                        player_name = await self.remove_team_name(player_part)
+                        selection_name = f"{player_name} {selection_name}"
+
+                        if market_name == "total points":
+                            market_name = "player points"
+                        else:
+                            market_name = f'player {market_name.split("-")[0].strip()}'
+
+                    if "player to get" in market_name:
+                        match = re.search(r"(\d+)\+", market_name)
+                        if match:
+                            raw_number = int(match.group(1))
+                            number = float(raw_number - 0.5)
+                            modified_market_name = market_name.split("+")[-1].strip()
+                            market_name = f"player total {modified_market_name}"
+                            selection_name = f"over {await self.remove_team_name(selection_name)} {number}"
+
+
+                    cleaned_market_name = stat_mapping.get(market_name, market_name).lower()
+                    market_bucket = event_bucket.setdefault(cleaned_market_name, {})
+                    selection_bucket = market_bucket.setdefault(selection_name, {})
                     selection_bucket.update({"outcome_id": outcome})
 
-
-
-
-
-        import json
-        with open("mapping_test.json", "w") as file:
-            json.dump(mapping_data, file, indent=2)
+        return mapping_data
 
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
@@ -198,6 +242,7 @@ class BetwayMapper(BaseMapper):
         category_names = set(
             menu.get("ClientLink", {}).get("ClientLinkValue")
             for menu in raw_categories.get("MenuData", {}).get("MenuItems", [])
+            if menu.get("ClientLink", {}).get("ClientLinkValue") in self.ALLOWED_LEAGUES
         )
 
         if not category_names:
@@ -227,10 +272,16 @@ class BetwayMapper(BaseMapper):
                 message="No event details found",
             )
 
-        mapped_data = await self._get_mappings(session, event_ids)
+        mapping = await self._get_mappings(session, event_ids)
 
+        if mapping:
+            await redis_instance.store_data(
+                key_name="betway_mapped_ids",
+                data_to_store=mapping,
+                key_expiration=600
+            )
 
-
+    ### Add to APScheduler if success
 
 if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
