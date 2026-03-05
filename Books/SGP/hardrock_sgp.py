@@ -52,7 +52,8 @@ class HardrockSGP(SGPBookBase):
         }
         return json.dumps(payload)
 
-    def selenium_manger(self, payload) -> dict | None:
+
+    def selenium_manger(self, payload, print_logs: bool = False) -> dict | None:
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--disable-gpu")
@@ -64,7 +65,8 @@ class HardrockSGP(SGPBookBase):
 
         try:
             driver.get("about:blank")
-            return driver.execute_async_script(f"""
+
+            result = driver.execute_async_script(f"""
                 const callback = arguments[arguments.length - 1];
                 const payload = {payload};
 
@@ -72,31 +74,48 @@ class HardrockSGP(SGPBookBase):
                 let messages = [];
 
                 ws.onopen = () => {{
+                    console.log("WebSocket opened");
                     ws.send(JSON.stringify(payload));
                 }};
 
                 ws.onmessage = (event) => {{
+                    console.log("Received message:", event.data);
                     messages.push(event.data);
-                    // Close immediately after receiving first message (optional)
                     ws.close();
                 }};
 
-                ws.onerror = () => {{
-                    callback(null);
+                ws.onerror = (event) => {{
+                    console.log("WebSocket error:", event);
+                    callback({{error: "WebSocket error"}});
                 }};
 
-                ws.onclose = () => {{
+                ws.onclose = (event) => {{
+                    console.log("WebSocket closed:", event.code);
                     callback(messages);
                 }};
             """)
+
+            if print_logs:
+                logs = driver.get_log("browser")
+                for log in logs:
+                    print("Hardrock Log:", log["message"])
+
+                print("Total Results:", result)
+
+            return result
+
         except Exception as e:
-            print("Error:", e)
+            print(f"Error in selenium_manger: {e}")
+            import traceback
+            traceback.print_exc()
             return None
+
         finally:
             driver.quit()
 
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'hardrock', 'links': ['https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/6503125950346166615', 'https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/3088975220334264573']}
+    sgp_data = {'book_name': 'hardrock', 'links': ["https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/2481545480648130811", "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/7324063932283486514"]}
     hardrock = HardrockSGP(sgp_data=sgp_data)
     data = asyncio.run(hardrock.run_book())
+    print(data)

@@ -37,7 +37,7 @@ BOOKS = {
     },
     "hard rock": {
         "class": HardrockSGP,
-        "active": False,
+        "active": True,
         "mapped_name": "hardrock"
     },
     "kambi": {
