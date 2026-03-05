@@ -38,10 +38,10 @@ class FanduelSGP(SGPBookBase):
             return self._extract_odds(api_data, number_of_legs)
 
     def _extract_odds(self, api_data: dict, leg_number: int) -> dict | None:
-
         odds_dict = next((
             sgp
             for bet_keys, bet_values in api_data.items()
+            if isinstance(bet_values, list)
             for sgp in bet_values
             if sgp.get("legCombinations")
                and len(sgp.get("legCombinations")) == leg_number
@@ -96,3 +96,11 @@ class FanduelSGP(SGPBookBase):
                 for leg in payload_data
             ]
         }
+
+
+if __name__ == "__main__":
+    sgp_data = {'book_name': 'fanduel', 'links': ['https://sportsbook.fanduel.com/addToBetslip?marketId=42.560510190&selectionId=18970812', 'https://sportsbook.fanduel.com/addToBetslip?marketId=42.560510203&selectionId=18970812']}
+
+    book = FanduelSGP(sgp_data=sgp_data)
+    data = asyncio.run(book.run_book())
+    print(data)

@@ -94,7 +94,6 @@ class DiscordSGP:
         return f"<@&{role_id}>" if role_id else ""
 
     def send_alert(self, sgp_data):
-        print(sgp_data)
         event_date = self._convert_to_utc(sgp_data.get("date", "N/A"))
         weighted_fair_value = sgp_data.get("weighted_fair_value", 0)
         fair_parlay_price = sgp_data.get("fair_parlay_price", 0)

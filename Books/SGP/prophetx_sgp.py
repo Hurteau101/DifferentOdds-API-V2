@@ -45,3 +45,9 @@ class ProphetxSGP(SGPBookBase):
                 decimal_odds=None
             )
 
+if __name__ == "__main__":
+    sgp_data = {'book_name': 'prophetx', 'links': ['https://www.prophetx.co/?action=addtobetslip&lineID=881bfbeec4d3c089bcd0ee9a32cd5d53&partner_id=null&currency=cash', 'https://www.prophetx.co/?action=addtobetslip&lineID=71152995a5239b78e694b87254c1b8ef&partner_id=null&currency=cash']}
+
+    book = ProphetxSGP(sgp_data=sgp_data)
+    data = asyncio.run(book.run_book())
+    print(data)

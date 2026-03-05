@@ -215,7 +215,7 @@ class ThescoreSGP(SGPBookBase):
 
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'thescore', 'links': ['https://sportsbook.thescore.bet/sport/basketball/organization/united-states/competition/nba/event/777c324e-8767-4271-92c3-600ecc348f76/section/player_props?market_selection_id[0]=MarketSelection:8cb14ff2-bf78-4495-93c9-efd0d06c83f2&odds_numerator[0]=9&odds_denominator[0]=4', 'https://sportsbook.thescore.bet/sport/basketball/organization/united-states/competition/nba/event/777c324e-8767-4271-92c3-600ecc348f76/section/player_props?market_selection_id[0]=MarketSelection:04010c7a-a158-4ae2-b9fe-ba0ee8d3dac4&odds_numerator[0]=41&odds_denominator[0]=21']}
+    sgp_data = {'book_name': 'thescore', 'links': ['https://sportsbook.thescore.bet/sport/basketball/organization/united-states/competition/nba/event/a0e973a2-833c-4ac8-9922-44e255916e27/section/player_props?market_selection_id[0]=MarketSelection:62fffb0a-1200-416e-bfd2-63e04c35e3e0&odds_numerator[0]=13&odds_denominator[0]=8', "https://sportsbook.thescore.bet/sport/basketball/organization/united-states/competition/nba/event/a0e973a2-833c-4ac8-9922-44e255916e27/section/player_props?market_selection_id[0]=MarketSelection:de13e23a-e0a2-4957-a961-113fa71fbd9b&odds_numerator[0]=43&odds_denominator[0]=23"]}
 
     thescore = ThescoreSGP(sgp_data=sgp_data)
 

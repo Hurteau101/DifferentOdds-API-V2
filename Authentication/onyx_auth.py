@@ -33,10 +33,12 @@ class OnyxAuth(BaseScheduler):
             "password": password,
         }
 
+        print(proxy)
+
         async with async_playwright() as play:
-            browser = await play.chromium.launch(
+            browser = await play.firefox.launch(
                 headless=False,
-                channel="chrome",
+                # channel="chrome",
                 proxy=proxy,
                 # args=[
                 #     "--no-sandbox",
@@ -54,83 +56,82 @@ class OnyxAuth(BaseScheduler):
                 viewport={"width": 1920, "height": 1080},
                 device_scale_factor=1,
                 locale="en-US",
-                timezone_id="America/Denver",
-                has_touch=False,
-                is_mobile=False,
-                java_script_enabled=True,
+
+
             )
 
 
-            # await context.add_init_script("""
-            #     Object.defineProperty(navigator, 'webdriver', {
-            #       get: () => undefined
-            #     })
-            # """)
+            await context.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                  get: () => undefined
+                })
+            """)
 
-            # page = await context.new_page()
-            #
-            # await page.set_extra_http_headers({
-            #     'sec-ch-ua': '"Chromium";v="125", "Not.A/Brand";v="24"'
-            # })
-            #
-            # try:
-            #     await page.goto("https://app.onyxodds.com/login")
-            #     await page.wait_for_timeout(random.randint(500, 900))
-            #
-            #     await page.fill('input[name="email"]', os.getenv("ONYX_EMAIL"))
-            #     await page.wait_for_timeout(random.randint(300, 600))
-            #     await page.fill('input[name="password"]', os.getenv("ONYX_PASSWORD"))
-            #     await page.wait_for_timeout(random.randint(300, 600))
-            #
-            #     sign_button = page.locator('button[type="submit"]')
-            #
-            #     # Logic in here,as when you sign in, sometimes will say invalid credentials. If you
-            #     # click sign in again, it typically works.
-            #     for _ in range(3):
-            #         await sign_button.click()
-            #
-            #         try:
-            #             await page.wait_for_url("https://app.onyxodds.com/", timeout=5_000)
-            #             break  # Login Successful
-            #         except:
-            #             # Invalid Login - Retry
-            #             await asyncio.sleep(2)
-            #
-            #     response = await page.request.get("https://app.onyxodds.com/api/auth/session")
-            #     await page.screenshot(path="01_login_page.png", full_page=True)
-            #
-            #     # Auth Token
-            #     data = await response.json()
-            #     auth_token = data.get("user", {}).get("accessToken")
-            #     print(auth_token)
-            #     if not auth_token:
-            #         create_sentry_message(
-            #             tag_key="onyx",
-            #             tag_value="auth_failure",
-            #             message="Auth token not found after authentication attempts.",
-            #             level="error"
-            #         )
-            #         return
-            #
-            #     await redis_instance.store_data(
-            #         key_name="onyx_auth_token",
-            #         data_to_store=auth_token,
-            #         key_expiration=21600 # 6 hours
-            #     )
-            #
-            #
-            # except Exception as e:
-            #     print(e)
-            #     create_sentry_message(
-            #         tag_key="onyx",
-            #         tag_value="auth_failure",
-            #         message=f"Auth retrieval failed with exception: {e}",
-            #         level="error"
-            #     )
-            #     return
-            # finally:
-            #     await page.close()
-            #     await browser.close()
+            page = await context.new_page()
+
+            await page.set_extra_http_headers({
+                'sec-ch-ua': '"Chromium";v="125", "Not.A/Brand";v="24"'
+            })
+
+            try:
+                await page.goto("https://app.onyxodds.com/login")
+                await asyncio.sleep(1000)
+                await page.wait_for_timeout(random.randint(500, 900))
+
+                await page.fill('input[name="email"]', os.getenv("ONYX_EMAIL"))
+                await page.wait_for_timeout(random.randint(300, 600))
+                await page.fill('input[name="password"]', os.getenv("ONYX_PASSWORD"))
+                await page.wait_for_timeout(random.randint(300, 600))
+
+                sign_button = page.locator('button[type="submit"]')
+
+                # Logic in here,as when you sign in, sometimes will say invalid credentials. If you
+                # click sign in again, it typically works.
+                for _ in range(3):
+                    await sign_button.click()
+
+                    try:
+                        await page.wait_for_url("https://app.onyxodds.com/", timeout=5_000)
+                        break  # Login Successful
+                    except:
+                        # Invalid Login - Retry
+                        await asyncio.sleep(2)
+
+                response = await page.request.get("https://app.onyxodds.com/api/auth/session")
+                await page.screenshot(path="01_login_page.png", full_page=True)
+
+                # Auth Token
+                data = await response.json()
+                auth_token = data.get("user", {}).get("accessToken")
+                print(auth_token)
+                if not auth_token:
+                    create_sentry_message(
+                        tag_key="onyx",
+                        tag_value="auth_failure",
+                        message="Auth token not found after authentication attempts.",
+                        level="error"
+                    )
+                    return
+
+                await redis_instance.store_data(
+                    key_name="onyx_auth_token",
+                    data_to_store=auth_token,
+                    key_expiration=21600 # 6 hours
+                )
+
+
+            except Exception as e:
+                print(e)
+                create_sentry_message(
+                    tag_key="onyx",
+                    tag_value="auth_failure",
+                    message=f"Auth retrieval failed with exception: {e}",
+                    level="error"
+                )
+                return
+            finally:
+                await page.close()
+                await browser.close()
 
 
 if __name__ == "__main__":

@@ -46,4 +46,11 @@ class DraftkingsSGP(SGPBookBase):
                                 american_odds=str(sgp_bet.get("displayOdds")).replace("−", "-"),
                                 decimal_odds=None
                             )
-            return {}
+            return None
+
+if __name__ == "__main__":
+    sgp_data = {'book_name': 'draftkings', 'links': ['https://sportsbook.draftkings.com/event/33742176?outcomes=0QA315305614%23519956219_14L42648Q11108961245Q20', 'https://sportsbook.draftkings.com/event/33742176?outcomes=0QA315306031%23519958201_13L42648Q1-1195564899Q20']}
+
+    book = DraftkingsSGP(sgp_data=sgp_data)
+    data = asyncio.run(book.run_book())
+    print(data)

@@ -146,3 +146,11 @@ class CaesarsSGP(SGPBookBase):
 
 
             return CaesarsSGP.return_odds(american_odds=odds.get("american"),decimal_odds=odds.get("decimal")) if odds else None
+
+
+if __name__ == "__main__":
+    sgp_data = {'book_name': 'caesars', 'links': ['https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=cc6de1a7-4d03-3f4a-99ec-37fc60e41e9b', 'https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=5077ca86-678a-36f7-b613-8d5e6a18557c']}
+
+    book = CaesarsSGP(sgp_data=sgp_data)
+    data = asyncio.run(book.run_book())
+    print(data)

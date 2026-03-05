@@ -95,7 +95,14 @@ class HardrockSGP(SGPBookBase):
                 }};
             """)
 
-            if print_logs:
+            # if print_logs:
+            #     logs = driver.get_log("browser")
+            #     for log in logs:
+            #         print("Hardrock Log:", log["message"])
+            #
+            #     print("Total Results:", result)
+
+            if not result:
                 logs = driver.get_log("browser")
                 for log in logs:
                     print("Hardrock Log:", log["message"])

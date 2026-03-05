@@ -35,11 +35,17 @@ class BetMgmMapper(BaseMapper):
                 original_line = float(original_line)
 
             rounded_up_line = str(int(math.ceil(original_line)))
+            rounded_down_line = str(int(math.floor(original_line)))
+
+
             found_match = next((
                 mapping
                 for mapping in found_mapping
-                if market_unique_id != mapping.get("id") and rounded_up_line == mapping.get("line")
+                if market_unique_id != mapping.get("id") and (
+                    rounded_up_line == mapping.get("line") or rounded_down_line == mapping.get("line")
+                )
             ), None)
+
 
             if found_match:
                 return found_match
@@ -76,13 +82,15 @@ class BetMgmMapper(BaseMapper):
                             "game_id": option_list.get("id"),
                             "fixture_id": data.get("id"),
                             "group_id": data.get("addons", {}).get("betBuilderId"),
-                            "fixture_id_v2": data.get("addons", {}).get("betBuilderTradingV2FixtureId"),
                             "source": option_list.get("source"),
+                            "title": option_list.get("name", {}).get("value"),
                             "bet_id": next((
                                 option.get("id")
                                 for option in option_list.get("options", [])
-                            ))
+                            )),
+                            "fixture_id_v2": data.get("addons", {}).get("betBuilderTradingV2FixtureId"),
                         })
+
 
         return {
             str(option.get("id")): {

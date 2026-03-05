@@ -16,6 +16,11 @@ class BetmgmSGP(SGPBookBase):
         async with aiohttp.ClientSession() as session:
             mapped_ids = await self.load_mapped_ids(key_name="betmgm_ids")
 
+
+            # import json
+            # with open("betmgm_mapped.json", "w") as file:
+            #     json.dump(mapped_ids, file, indent=2)
+
             if not mapped_ids:
                 create_sentry_message(
                     tag_key="betmgm",
@@ -76,9 +81,9 @@ class BetmgmSGP(SGPBookBase):
 
             # If it's not part of the SGP Eligibility, then we must check the parent section.
             # The parent section will contain the milestone. Example 2+, 3+ etc. This is already pre-mapped.
-            if not mapped.get("is_sgp_eligible"):
+            # if not mapped.get("is_sgp_eligible"):
+            if mapped.get("parent_data", {}):
                 mapped = mapped.get("parent_data", {})
-
                 bet_id = mapped.get("bet_id")
 
             if not mapped:
@@ -111,7 +116,8 @@ class BetmgmSGP(SGPBookBase):
         return picks
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'betmgm', 'links': ['https://sports.{state}.betmgm.com/en/sports/events/19025321?options=6:36506-2676885-4018312&type=Single', "https://sports.{state}.betmgm.com/en/sports/events/19025321?options=19025321-1471868910--161596345&type=Single"]}
+    sgp_data = {'book_name': 'betmgm', 'links': ['https://sports.{state}.betmgm.com/en/sports/events/19025785?options=6:36445-2681514-4027119&type=Single', 'https://sports.{state}.betmgm.com/en/sports/events/19025785?options=19025785-1472581698--159789675&type=Single']}
 
     book = BetmgmSGP(sgp_data=sgp_data)
     data = asyncio.run(book.run_book())
+    print(data)

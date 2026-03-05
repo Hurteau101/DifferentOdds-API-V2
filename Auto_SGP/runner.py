@@ -455,7 +455,7 @@ class AutoSGP(APICaller):
         if already_sent:
             return {}
 
-        print(f"Sending SGP Alert for {sgp_data.get('event')} on {sgp_data.get('date')} with minimum EV of {minimum_ev}%")
+        # print(f"Sending SGP Alert for {sgp_data.get('event')} on {sgp_data.get('date')} with minimum EV of {minimum_ev}%")
         self.discord_sgp.send_alert(sgp_data=sgp_data)
 
         return {
@@ -563,7 +563,7 @@ class AutoSGP(APICaller):
 
         return book_name, None
 
-    async def get_sgp_odds(self, payload_data: list, minimum_ev: float, batch_size: int = 5, retry_times: int = 1):
+    async def get_sgp_odds(self, payload_data: list, minimum_ev: float, batch_size: int = 25, retry_times: int = 1):
         mapped_names = {
             book_data.get("mapped_name"): book_data
             for book_data in BOOKS.values()
@@ -701,7 +701,7 @@ class AutoSGP(APICaller):
             }
 
 
-        payload_data = payload_data[0:3]
+        payload_data = payload_data[0:5]
 
         for i in range(0, len(payload_data), batch_size):
             print(f"Processing {i}")
@@ -754,7 +754,7 @@ class AutoSGP(APICaller):
             previous_data = await self.previously_stored_redis_instance.get_all_key_values()
             indexed_previous_data = self.index_previous_data(previous_data)
 
-            for filters in self.configs[0:5]:
+            for filters in self.configs:
                 espn_mapper = ESPN(filter_data=filters)
                 player_mapping = await espn_mapper.runner(
                     session=session,
