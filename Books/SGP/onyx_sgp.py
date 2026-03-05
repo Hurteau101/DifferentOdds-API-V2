@@ -10,6 +10,7 @@ class OnyxSGP(SGPBookBase):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="onxy", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
+    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self):
         if not self.auth_token:
             create_sentry_message(

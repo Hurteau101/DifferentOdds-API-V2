@@ -12,6 +12,7 @@ class ThescoreSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="thescore", sgp_data=sgp_data, **kwargs)
 
+    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self):
         link_data = self._custom_link_extract(self.links)
 

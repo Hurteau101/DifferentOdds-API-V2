@@ -11,6 +11,7 @@ class BetmgmSGP(SGPBookBase):
 
 
     @SGPBookBase.ensure_link_data
+    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             mapped_ids = await self.load_mapped_ids(key_name="betmgm_ids")
@@ -68,14 +69,21 @@ class BetmgmSGP(SGPBookBase):
 
         for data in self.link_data:
             bet_id = data.get("bet_id")
-
             if not bet_id:
                 continue
 
             mapped = mapped_data.get(str(-int(bet_id)), {}) or mapped_data.get(str(bet_id), {})
 
+            # If it's not part of the SGP Eligibility, then we must check the parent section.
+            # The parent section will contain the milestone. Example 2+, 3+ etc. This is already pre-mapped.
+            if not mapped.get("is_sgp_eligible"):
+                mapped = mapped.get("parent_data", {})
+
+                bet_id = mapped.get("bet_id")
+
             if not mapped:
                 continue
+
 
             if mapped.get("source") == "V1":
                 picks["tv1Picks"].append(
@@ -88,6 +96,7 @@ class BetmgmSGP(SGPBookBase):
                         "pickGroupId": mapped.get("group_id"),
                     }
                 )
+
             elif mapped.get("source") == "V2":
                 picks["tv2Picks"].append(
                     {
@@ -102,9 +111,7 @@ class BetmgmSGP(SGPBookBase):
         return picks
 
 if __name__ == "__main__":
-
-    sgp_data = {'book_name': 'betmgm', 'links': ["https://sports.{state}.betmgm.com/en/sports/events/19025274?options=19025274-1470075152--166289871&type=Single", "https://sports.{state}.betmgm.com/en/sports/events/19025274?options=6:36526-2665248-3993346&type=Single"]}
+    sgp_data = {'book_name': 'betmgm', 'links': ['https://sports.{state}.betmgm.com/en/sports/events/19025321?options=6:36506-2676885-4018312&type=Single', "https://sports.{state}.betmgm.com/en/sports/events/19025321?options=19025321-1471868910--161596345&type=Single"]}
 
     book = BetmgmSGP(sgp_data=sgp_data)
     data = asyncio.run(book.run_book())
-

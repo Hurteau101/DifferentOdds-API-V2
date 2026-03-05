@@ -11,6 +11,7 @@ class HardrockSGP(SGPBookBase):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="hardrock", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
+    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self):
         hardrock_ids = [self.link_data[i]["bet_id"] for i in range(len(self.link_data))]
 

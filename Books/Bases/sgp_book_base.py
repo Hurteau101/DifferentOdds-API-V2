@@ -1,10 +1,11 @@
+
 import os
 import re
 import urllib.parse
 from abc import abstractmethod, ABC
 
-from tenacity import AsyncRetrying, retry_if_result, wait_fixed
-
+from tenacity import AsyncRetrying, retry_if_result, wait_fixed, stop_after_attempt
+from functools import wraps
 from Settings.book_configurations import BookConfiguration
 from Utils.request_caller import APICaller, SportbookRequestType
 from Redis.redis_manager import RedisAsyncManager
@@ -13,7 +14,7 @@ from Redis.redis_manager import RedisAsyncManager
 class SGPBookBase(APICaller, ABC):
     def __init__(self, request_type: SportbookRequestType, category: str,
                  book_name: str, sgp_data: dict, retry_amount: int = 3,
-                 retry_wait_interval: int = 2, regex_keys: list = None, **kwargs):
+                 retry_wait_interval: int = 1, regex_keys: list = None, **kwargs):
         self.regex_keys = regex_keys or ["bet_id", "event_id"]
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self._parse_sgp_data(sgp_data)
@@ -99,7 +100,7 @@ class SGPBookBase(APICaller, ABC):
         probability = float(probability_str)
 
         if not 0 <= probability <= 1:
-            raise None
+            return None
 
         if probability == 0:
             return None
@@ -112,4 +113,29 @@ class SGPBookBase(APICaller, ABC):
             american_odds = (100 * (1 - probability)) / probability
 
         return round(american_odds)
+
+    @staticmethod
+    def retry_book(is_disabled: bool = False):
+        def decorator(func):
+
+            if is_disabled:
+                return func
+
+            @wraps(func)
+            async def wrapper(self, *args, **kwargs):
+
+                async for attempt in AsyncRetrying(
+                        retry=retry_if_result(lambda result: result is None),
+                        wait=wait_fixed(self.retry_wait_interval),
+                        stop=stop_after_attempt(self.retry_amount),
+                        retry_error_callback=lambda retry_state: None,
+                ):
+                    with attempt:
+                        result = await func(self, *args, **kwargs)
+
+                return result
+
+            return wrapper
+
+        return decorator
 

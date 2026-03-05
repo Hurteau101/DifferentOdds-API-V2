@@ -29,6 +29,7 @@ class NovigSGP(SGPBookBase):
 
 
     @SGPBookBase.ensure_link_data
+    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self):
 
         ids = [{"id": link.get("event_id")} for link in self.link_data]

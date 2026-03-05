@@ -9,6 +9,7 @@ class DraftkingsSGP(SGPBookBase):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="draftkings", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
+    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
             selections = [

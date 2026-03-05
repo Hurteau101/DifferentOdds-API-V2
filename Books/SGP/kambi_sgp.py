@@ -10,40 +10,32 @@ from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_result
 class KambiSGP(SGPBookBase):
     load_dotenv()
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="kambi", sgp_data=sgp_data, **kwargs)
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="kambi", retry_amount=5, sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
-    # @retry(
-    #     retry=retry_if_result(lambda x: x is None),
-    #     stop=stop_after_attempt(
-    #         lambda retry_state: retry_state.args[0].retry_amount
-    #     ),
-    #     wait=wait_fixed(2),
-    #     retry_error_callback=lambda retry_state: None,
-    #     before_sleep=(
-    #         lambda retry_state: print(f"Retrying {retry_state.args[0].book_data.name.title()} (Attempt #{retry_state.attempt_number})")
-    #         if os.getenv("ENVIRONMENT", "").upper() != "PRODUCTION"
-    #         else None
-    #     )
-    # )
-    @SGPBookBase.retry_book
+    @SGPBookBase.retry_book(is_disabled=False)
     async def run_book(self):
         bet_id_list = ",".join([bet_id.get("bet_id") for bet_id in self.link_data])
         event_id = next(iter({item["event_id"] for item in self.link_data}))
 
         async with aiohttp.ClientSession() as session:
             # Geo-Location issues, must use this proxy.
-            proxy = os.getenv("KAMBI_PROXY")
-            proxy_manger = ProxyManager(self.api_caller, proxies=[proxy])
+            # proxy = os.getenv("KAMBI_PROXY")
+            # proxy_manger = ProxyManager(self.api_caller, proxies=[proxy])
 
-            api_data = await proxy_manger.proxy_caller(
+            # api_data = await proxy_manger.proxy_caller(
+            #     book_name=self.book_data.name,
+            #     session=session,
+            #     url=self.book_data.url.get("main_url").format(event_id=event_id, bet_ids=bet_id_list),
+            #     method=self.book_data.method,
+            # )
+
+            api_data = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url").format(event_id=event_id, bet_ids=bet_id_list),
                 method=self.book_data.method,
             )
-
-            return None
 
             if not api_data:
                 return None

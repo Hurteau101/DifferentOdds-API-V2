@@ -73,6 +73,7 @@ class CaesarsSGP(SGPBookBase):
 
 
     @SGPBookBase.ensure_link_data
+    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self):
         auth_token = await self.load_auth_token(key_name="caesars_waf_token")
         if not auth_token:
