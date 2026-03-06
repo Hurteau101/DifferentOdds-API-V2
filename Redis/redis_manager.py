@@ -110,6 +110,11 @@ class RedisBaseManager:
                 start_date_dt = datetime.fromisoformat(ttl.replace("Z", "+00:00"))
                 ttl = int(start_date_dt.timestamp() * 1000)
 
+                now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+
+                if ttl <= now_ms:
+                    ttl = now_ms + 60000
+
             elif isinstance(ttl, datetime):
                 if ttl.tzinfo is None:
                     ttl = ttl.replace(tzinfo=timezone.utc)

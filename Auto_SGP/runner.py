@@ -424,16 +424,17 @@ class AutoSGP(APICaller):
         weighted_data = result.get("weighted_book_data")
         non_correlated_price = parlay_odds(*sgp_data.get("fair_value"))
 
+        ### UNCOMMENT AFTER ###
 
-        ev_count = sum(
-            1 for book_data in weighted_data.values()
-            if book_data.get("ev", 0) >= minimum_ev
-        )
+        # ev_count = sum(
+        #     1 for book_data in weighted_data.values()
+        #     if book_data.get("ev", 0) >= minimum_ev
+        # )
+        #
+        # meets_ev_threshold = ev_count == 1
 
-        meets_ev_threshold = ev_count == 1
-
-        if not meets_ev_threshold:
-            return {}
+        # if not meets_ev_threshold:
+        #     return {}
 
         filtered_links = {
             book: sgp_data.get("sgp_links", {}).get(book)
@@ -725,36 +726,25 @@ class AutoSGP(APICaller):
             if endpoint_to_store:
                 await self.endpoint_redis.bulk_insert_individual(
                     data_to_store=merged_results.get("endpoint", {}),
-                    pipeline=self.endpoint_redis.redis_client.pipeline()
+                    pipeline=self.endpoint_redis.redis_client.pipeline(transaction=False)
                 )
 
             discord_to_store = merged_results.get("discord")
             if discord_to_store:
                 await self.previously_sent_discord_redis.bulk_insert_individual(
                     data_to_store=merged_results.get("discord", {}),
-                    pipeline=self.previously_sent_discord_redis.redis_client.pipeline()
+                    pipeline=self.previously_sent_discord_redis.redis_client.pipeline(transaction=False)
                 )
 
 
     async def runner(self):
         async with aiohttp.ClientSession() as session:
-            sportsbook_data = await self._load_sportsbook_data(session, used_stored_json=False, store_json=True)
-
-            if not sportsbook_data:
-                create_sentry_message(
-                    tag_key="autosgp",
-                    tag_value="bettorodds_data_failure",
-                    message="No BettorOdds Data found",
-                    level="error"
-                )
-                return
-
             slips = SlipMapper()
 
             previous_data = await self.previously_stored_redis_instance.get_all_key_values()
             indexed_previous_data = self.index_previous_data(previous_data)
 
-            for filters in self.configs:
+            for filters in self.configs[0:5]:
                 espn_mapper = ESPN(filter_data=filters)
                 player_mapping = await espn_mapper.runner(
                     session=session,
@@ -764,6 +754,17 @@ class AutoSGP(APICaller):
                 if not player_mapping:
                     print("No Player Mapping Found. Skipping..")
                     continue
+
+                sportsbook_data = await self._load_sportsbook_data(session, used_stored_json=False, store_json=False)
+
+                if not sportsbook_data:
+                    create_sentry_message(
+                        tag_key="autosgp",
+                        tag_value="bettorodds_data_failure",
+                        message="No BettorOdds Data found",
+                        level="error"
+                    )
+                    return
 
                 filtered_data = await self._filter_data(
                     bettorodds_data=sportsbook_data,

@@ -12,6 +12,24 @@ from Utils.request_caller import SportbookRequestType
 def get_static_mapping():
     return static_mapping_service.get()
 
+# Detects player markets formatted like:
+# "total points - malik monk (sac)"
+
+# Captures:
+# group(1) -> stat portion before the dash (e.g. "total points")
+# group(2) -> player name (e.g. "malik monk")
+PLAYER_REGEX = re.compile(r"^(.*?)\s*-\s(.+?)\s*\([A-Za-z]{3,4}\)$")
+
+
+# Detects milestone markets like:
+# "player to get 50+ points"
+# "player to get 50+ points, assists and rebounds"
+
+# Captures:
+# group(1) -> milestone value before '+'
+# group(2) -> stat text after '+'
+MILESTONE_REGEX = re.compile(r"to get\s+(\d+)\s*\+\s*(.+)", re.IGNORECASE)
+
 
 class BetwayMapper(BaseMapper):
     ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball"]
@@ -92,39 +110,6 @@ class BetwayMapper(BaseMapper):
         return events_ids
 
 
-    async def remove_team_name(self, player_name: str):
-        return re.sub(r"\s*\([a-zA-Z]{3,4}\)", "", player_name).strip()
-
-    async def player_mapping(self, market_name, selection_name):
-        player_part = market_name.split("-")[-1].strip()
-        player_name = await self.remove_team_name(player_part)
-
-        selection_name = f"{player_name} {selection_name}"
-        market_name = "Player Points"
-
-        return {
-            "market_name": market_name,
-            "selection_name": selection_name
-        }
-
-
-    async def canonical_mapping(self, market_id: int, league: str, selection_name: str, market_name: str):
-        mapping = {
-            "NBA": {
-                572126316: {
-                    "market_name": "Player Points",
-                    "function": self.player_mapping,
-                }
-            }
-        }
-
-        found_match = mapping.get(league, {}).get(market_id)
-
-        if found_match:
-            return await found_match["function"](market_name, selection_name)
-
-        return None
-
     async def format_mapping(self, outcomes: list) -> dict:
         outcome_mapping = {}
 
@@ -148,9 +133,31 @@ class BetwayMapper(BaseMapper):
 
         return outcome_mapping
 
-    async def _get_mappings(self, session: aiohttp.ClientSession, event_ids: set):
-        event_ids = [16438672]
 
+    async def _detect_player(self, market_name: str, selection_name: str):
+        match = PLAYER_REGEX.match(market_name)
+
+        if match:
+            market_name = match.group(1).replace("total", "").strip()
+            market_name = f"player {market_name}"
+            found_player = match.group(2).strip()
+            selection_name = f"{found_player} {selection_name}"
+        else:
+            match = MILESTONE_REGEX.search(market_name)
+            if match:
+                str_line = match.group(1)
+                market_name = match.group(2).strip()
+                line = float(str_line) - 0.5
+                clean_selection = re.sub(r"\s*\([A-Za-z]{3,4}\)", "", selection_name).strip()
+                selection_name = f"{clean_selection} over {str(line)}"
+
+        return {
+            "market_name": market_name,
+            "selection_name": selection_name,
+        }
+
+
+    async def _get_mappings(self, session: aiohttp.ClientSession, event_ids: set):
         async def process_mapping(event_id, semaphore: asyncio.Semaphore):
             async with semaphore:
                 results = await self.api_caller(
@@ -190,8 +197,6 @@ class BetwayMapper(BaseMapper):
             event_bucket = mapping_data.setdefault(result.get("Event", {}).get("Id"), {})
             outcome_mapping = await self.format_mapping(result.get("Outcomes", []))
 
-            league = result.get("Event", {}).get("GroupName").upper()
-
             for market in result.get("Markets", []):
                 if not market.get("IsBetBuilderSupported", False):
                     continue
@@ -209,26 +214,17 @@ class BetwayMapper(BaseMapper):
                     selection_name = found_mapping.get("market_name")
                     market_name = market.get("Title").lower().replace("alternate", "").strip()
 
+                    found = await self._detect_player(market_name, selection_name)
+                    market_name = found.get("market_name")
+                    selection_name = found.get("selection_name")
+
 
                     market_bucket = event_bucket.setdefault(market_name, {})
                     selection_bucket = market_bucket.setdefault(selection_name, {})
                     selection_bucket.update({"outcome_id": outcome, **found_mapping})
 
-
-
-
-
-
-
-
-
-
-        import json
-        with open("test_mapping.json", "w") as file:
-            json.dump(mapping_data, file, indent=2)
-
-        # print(mapping_data)
         return mapping_data
+
 
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
@@ -285,7 +281,15 @@ class BetwayMapper(BaseMapper):
                 message="No event details found",
             )
 
-        mapping = await self._get_mappings(session, event_ids)
+        dirty_mapping = await self._get_mappings(session, event_ids)
+
+
+        import json
+        with open("betway_mapping.json", "w") as f:
+            json.dump(mapping, f, indent=2)
+
+
+
         #
         # if mapping:
         #     await redis_instance.store_data(

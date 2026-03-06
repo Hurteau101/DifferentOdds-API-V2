@@ -99,7 +99,7 @@ class FanduelSGP(SGPBookBase):
 
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'fanduel', 'links': ['https://sportsbook.fanduel.com/addToBetslip?marketId=42.560510190&selectionId=18970812', 'https://sportsbook.fanduel.com/addToBetslip?marketId=42.560510203&selectionId=18970812']}
+    sgp_data = {'book_name': 'fanduel', 'links': ['https://sportsbook.fanduel.com/addToBetslip?marketId=42.560449272&selectionId=43430136', 'https://sportsbook.fanduel.com/addToBetslip?marketId=42.560449291&selectionId=43430136']}
 
     book = FanduelSGP(sgp_data=sgp_data)
     data = asyncio.run(book.run_book())
