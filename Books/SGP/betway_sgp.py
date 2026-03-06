@@ -22,12 +22,12 @@ class BetwaySGP(SGPBookBase):
             market_name = data.get("market_name").lower()
             selection = data.get("selection").lower() if isinstance(data.get("selection"), str) else data.get("selection")
 
-            split_event_name = event_name.split(" vs ")
-            sorted_event_name = " vs ".join(sorted(split_event_name)).lower()
-
-            print("Event Name: ", sorted_event_name)
-            print("Market Name: ", market_name)
-            print("Selection: ", selection)
+            # split_event_name = event_name.split(" vs ")
+            # sorted_event_name = " vs ".join(sorted(split_event_name)).lower()
+            #
+            # print("Event Name: ", sorted_event_name)
+            # print("Market Name: ", market_name)
+            # print("Selection: ", selection)
 
 
 
@@ -45,7 +45,7 @@ class BetwaySGP(SGPBookBase):
 
 if __name__ == "__main__":
     book = BetwaySGP(additional_data=[
-        {"event_name": "Boston Celtics vs Charlotte Hornets", "market_name": "Total Points",
+        {"event_id": "Boston Celtics vs Charlotte Hornets", "market_name": "Total Points",
          "selection": "Under 218.5"},
         {"event_name": "Boston Celtics vs Charlotte Hornets", "market_name": "Total Points", "selection": "Over 224.5"}
     ])

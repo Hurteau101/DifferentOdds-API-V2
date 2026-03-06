@@ -31,6 +31,9 @@ PLAYER_REGEX = re.compile(r"^(.*?)\s*-\s(.+?)\s*\([A-Za-z]{3,4}\)$")
 MILESTONE_REGEX = re.compile(r"to get\s+(\d+)\s*\+\s*(.+)", re.IGNORECASE)
 
 
+TEAM_REGEX = re.compile(r"\s*\([A-Za-z]{3,4}\)")
+
+
 class BetwayMapper(BaseMapper):
     ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball"]
 
@@ -148,14 +151,13 @@ class BetwayMapper(BaseMapper):
                 str_line = match.group(1)
                 market_name = match.group(2).strip()
                 line = float(str_line) - 0.5
-                clean_selection = re.sub(r"\s*\([A-Za-z]{3,4}\)", "", selection_name).strip()
+                clean_selection = TEAM_REGEX.sub("", selection_name)
                 selection_name = f"{clean_selection} over {str(line)}"
 
         return {
             "market_name": market_name,
             "selection_name": selection_name,
         }
-
 
     async def _get_mappings(self, session: aiohttp.ClientSession, event_ids: set):
         async def process_mapping(event_id, semaphore: asyncio.Semaphore):
@@ -194,7 +196,9 @@ class BetwayMapper(BaseMapper):
         mapping_data = {}
 
         for result in results:
-            event_bucket = mapping_data.setdefault(result.get("Event", {}).get("Id"), {})
+            event_id = result.get("Event", {}).get("Id")
+            event_bucket = {}
+
             outcome_mapping = await self.format_mapping(result.get("Outcomes", []))
 
             for market in result.get("Markets", []):
@@ -215,15 +219,102 @@ class BetwayMapper(BaseMapper):
                     market_name = market.get("Title").lower().replace("alternate", "").strip()
 
                     found = await self._detect_player(market_name, selection_name)
+
                     market_name = found.get("market_name")
                     selection_name = found.get("selection_name")
 
+                    if "player" not in market_name and TEAM_REGEX.search(found_mapping.get("raw_market_name")):
+                        market_name = f"player {market_name}"
 
-                    market_bucket = event_bucket.setdefault(market_name, {})
-                    selection_bucket = market_bucket.setdefault(selection_name, {})
-                    selection_bucket.update({"outcome_id": outcome, **found_mapping})
+                    market_name = stat_mapping.get(market_name, market_name).lower()
+
+                    mapping_key = "_".join([market_name, selection_name]).replace(" ", "_").lower()
+
+
+                    market_bucket = event_bucket.setdefault(mapping_key, {})
+                    market_bucket.update({"outcome_id": outcome})
+
+            if event_bucket:
+                mapping_data[event_id] = event_bucket
+
 
         return mapping_data
+
+
+
+    # async def _get_mappings(self, session: aiohttp.ClientSession, event_ids: set):
+    #     async def process_mapping(event_id, semaphore: asyncio.Semaphore):
+    #         async with semaphore:
+    #             results = await self.api_caller(
+    #                 book_name=self.book_data.name,
+    #                 session=session,
+    #                 url=self.book_data.mapping.url.get("event_details"),
+    #                 method=self.book_data.mapping.method,
+    #                 headers=self.book_data.mapping.headers,
+    #                 parse_json=True,
+    #                 payload={
+    #                     "BrandId": 3,
+    #                     "LanguageId": 25,
+    #                     "ClientTypeId": 2,
+    #                     "JurisdictionId": 2,
+    #                     "ClientIntegratorId": 1,
+    #                     "EventId": event_id,
+    #                     "ScoreboardRequest": {
+    #                         "IncidentRequest": {},
+    #                         "ScoreboardType": 3
+    #                     }
+    #                 }
+    #             )
+    #
+    #             return results if results else {}
+    #
+    #
+    #     semaphore = asyncio.Semaphore(20)
+    #     tasks = [process_mapping(event_id, semaphore) for event_id in event_ids]
+    #     results = await asyncio.gather(*tasks)
+    #
+    #     mapping = get_static_mapping()
+    #     stat_mapping = mapping.get("stats", {})
+    #
+    #     mapping_data = {}
+    #
+    #     for result in results:
+    #         event_id = result.get("Event", {}).get("Id")
+    #         event_bucket = {}
+    #
+    #         outcome_mapping = await self.format_mapping(result.get("Outcomes", []))
+    #
+    #         for market in result.get("Markets", []):
+    #             if not market.get("IsBetBuilderSupported", False):
+    #                 continue
+    #
+    #             outcomes = market.get("Outcomes", [])
+    #             if outcomes and isinstance(outcomes[0], list):
+    #                 outcomes = [item for sublist in outcomes for item in sublist]
+    #
+    #
+    #             for outcome in outcomes:
+    #                 found_mapping = outcome_mapping.get(outcome)
+    #                 if not found_mapping:
+    #                     continue
+    #
+    #                 selection_name = found_mapping.get("market_name")
+    #                 market_name = market.get("Title").lower().replace("alternate", "").strip()
+    #
+    #                 found = await self._detect_player(market_name, selection_name)
+    #                 market_name = found.get("market_name")
+    #                 selection_name = found.get("selection_name")
+    #
+    #
+    #                 market_bucket = event_bucket.setdefault(market_name, {})
+    #                 selection_bucket = market_bucket.setdefault(selection_name, {})
+    #                 selection_bucket.update({"outcome_id": outcome, **found_mapping})
+    #
+    #         if event_bucket:
+    #             mapping_data[event_id] = event_bucket
+    #
+    #
+    #     return mapping_data
 
 
 
@@ -281,11 +372,11 @@ class BetwayMapper(BaseMapper):
                 message="No event details found",
             )
 
-        dirty_mapping = await self._get_mappings(session, event_ids)
+        mapping = await self._get_mappings(session, event_ids)
 
 
         import json
-        with open("betway_mapping.json", "w") as f:
+        with open("betway_2_mapping.json", "w") as f:
             json.dump(mapping, f, indent=2)
 
 
