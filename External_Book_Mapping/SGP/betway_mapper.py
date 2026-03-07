@@ -40,7 +40,7 @@ TEAM_REGEX = re.compile(r"\s*\([A-Za-z]{3,4}\)")
 
 
 class BetwayMapper(BaseMapper):
-    ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball"]
+    ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball", "soccer", "ufc---martial-arts", "tennis"]
 
     def __init__(self):
         super().__init__(book_name="betway", category="sgp", request_type=SportbookRequestType.ASYNC)
@@ -315,10 +315,6 @@ class BetwayMapper(BaseMapper):
             )
 
             return
-
-        import json
-        with open("betway_mapper.json", "w") as f:
-            json.dump(mapping, f, indent=2)
 
         await redis_instance.store_data(
             key_name="betway_mapped_ids",

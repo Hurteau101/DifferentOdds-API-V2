@@ -19,6 +19,9 @@ class BetMgmMapper(BaseMapper):
         11,  # Football
         12,  # Hockey
         7, # Basketball
+        4, # Soccer
+        5, # Tennis
+        45, # MMA
     ]
     def __init__(self):
         super().__init__(book_name="betmgm", category="sgp", request_type=SportbookRequestType.ASYNC)

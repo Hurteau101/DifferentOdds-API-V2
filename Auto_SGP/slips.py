@@ -5,6 +5,9 @@ class SlipMapper:
     def _grouper(self, filtered_data: dict, grouped_fields: list) -> dict:
         """
         Generic grouper function to group by specified fields.
+        ["event", "date"] - No same team restriction
+        ["event", "date", "team"] - Same team restriction
+
         :param filtered_data: The filtered data to group.
         :param grouped_fields: The list of fields to group by.
         :return: The grouped data as a dictionary.
@@ -21,6 +24,10 @@ class SlipMapper:
                                validate_players: bool):
         """
         Build all possible combinations of player legs based on specified stat types.
+
+        validate_players=True & use_same_player=True - All legs must have the same player.
+        validate_players=True & use_same_player=False - All legs must have different players.
+
         :param validate_players: Whether to validate players in combinations.
         :param market_data: The market data to build combinations from.
         :param stat_types: The list of stat types to consider for combinations.
@@ -99,7 +106,10 @@ class SlipMapper:
                     "event": event,
                     "date": date,
                     "league": combo[0].get("league"),
+                    "changes": {"movement": [], "new": []}
                 }
+
+
 
                 for i, market in enumerate(combo, start=1):
                     if not market.get("team"):
@@ -112,6 +122,9 @@ class SlipMapper:
                     else:
                         entry[f"market_type_{i}"] = market.get("market_type")
 
+                    for name, value in market.get("changes").items():
+                        entry["changes"][value.lower()].append(name)
+
 
                 for index, market in enumerate(combo, start=1):
                     entry[f"total_odds_{index}"] = market.get("total_odds")
@@ -120,6 +133,8 @@ class SlipMapper:
                     entry[f"stat_type_{index}_line"] = market.get("stat")
                     entry[f"stat_type_{index}_nvig_map"] = market.get("nvig_map")
                     entry[f"stat_type_{index}_books"] = market.get("books")
+                    # entry["changes"] = market.get("changes")
+
 
                 pairs.append(entry)
 

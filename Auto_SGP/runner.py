@@ -18,6 +18,9 @@ from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import APICaller, SportbookRequestType
 
+
+
+
 import traceback
 
 class AutoSGP(APICaller):
@@ -121,6 +124,7 @@ class AutoSGP(APICaller):
     def _get_book_information(self, book_feed: dict, valid_sgp_books: set, markets: dict):
         """Gather the over and under information from the book feed."""
         books = {"Over": {}, "Under": {}}
+
         line = markets.get("Line", None)
 
         for book_name, sides in book_feed.items():
@@ -148,6 +152,23 @@ class AutoSGP(APICaller):
 
         return books
 
+    async def detect_changes(self, previous_data: dict, current_odds: dict, current_key: str):
+        """Check if any new books were added or any odds moved"""
+        changes = {}
+
+        previous_books = previous_data.get(current_key, {}).get("current_odds", {})
+
+        for book, odds in current_odds.items():
+            previous_odds = previous_books.get(book, {})
+
+            if not previous_odds:
+                changes[book] = "New"
+                continue
+
+            if odds.get("over") != previous_odds.get("over") or odds.get("under") != previous_odds.get("under"):
+                changes[book] = "Movement"
+
+        return changes
 
 
     async def _filter_data(self, bettorodds_data: dict, filter_selection: dict, player_mapping: dict,
@@ -161,10 +182,10 @@ class AutoSGP(APICaller):
 
         results = {}
 
+
         for game_key, markets in bettorodds_data.items():
+            changes = {}
             redis_key = f"{filter_selection.get('unique_name')}-{game_key}"
-            if redis_key in previous_data.keys():
-                continue
 
             if (
                 markets.get("League", "").lower() == filter_selection.get("league", "").lower()
@@ -179,7 +200,6 @@ class AutoSGP(APICaller):
                     for book_data in sides.values()
                 )
 
-
                 if not any_main:
                     continue
 
@@ -190,6 +210,15 @@ class AutoSGP(APICaller):
                 num_unique_books = len({book for side in books.values() for book in side})
 
                 if num_unique_books >= filter_selection.get("number_of_unique_books", 0):
+
+                    if redis_key in previous_data.keys():
+                        has_changes = await self.detect_changes(previous_data=previous_data, current_odds=current_odds,
+                                                                current_key=redis_key)
+                        if not has_changes:
+                            continue
+
+                        changes.update(**has_changes)
+
                     unique_stats = ["team total"]
 
                     results[game_key] = {
@@ -209,12 +238,13 @@ class AutoSGP(APICaller):
                         "nvig_map": markets.get("nvig_map"),
                         "books": {key: value for key, value in books.items() if value},
                         "configs": configs,
+                        "changes": changes,
                     }
 
-        # await self.previously_stored_redis_instance.bulk_insert_individual(
-        #     data_to_store=results,
-        #     pipeline=self.previously_stored_redis_instance.redis_client.pipeline()
-        # )
+        await self.previously_stored_redis_instance.bulk_insert_individual(
+            data_to_store=results,
+            pipeline=self.previously_stored_redis_instance.redis_client.pipeline()
+        )
 
         return results
 
@@ -411,15 +441,13 @@ class AutoSGP(APICaller):
         weighted_data = result.get("weighted_book_data")
         non_correlated_price = parlay_odds(*sgp_data.get("fair_value"))
 
-        ### UNCOMMENT AFTER ###
-
         # ev_count = sum(
         #     1 for book_data in weighted_data.values()
         #     if book_data.get("ev", 0) >= minimum_ev
         # )
         #
         # meets_ev_threshold = ev_count == 1
-
+        #
         # if not meets_ev_threshold:
         #     return {}
 
@@ -437,11 +465,14 @@ class AutoSGP(APICaller):
             "minimum_ev": minimum_ev
         })
 
-        redis_key = sgp_data.get("redis_key")
+        ### DON'T THINK WE NEED THIS ANYMORE ###
 
-        already_sent = await self.previously_sent_discord_redis.get_data(redis_key)
-        if already_sent:
-            return {}
+        # redis_key = sgp_data.get("redis_key")
+        #
+        # already_sent = await self.previously_sent_discord_redis.get_data(redis_key)
+        # print(already_sent)
+        # if already_sent:
+        #     return {}
 
         # print(f"Sending SGP Alert for {sgp_data.get('event')} on {sgp_data.get('date')} with minimum EV of {minimum_ev}%")
         self.discord_sgp.send_alert(sgp_data=sgp_data)
@@ -545,10 +576,6 @@ class AutoSGP(APICaller):
                 if attempt == retry_times - 1:
                     print(f"Failed after retries: {e} [{book_name}]")
                     traceback.print_exc()
-            # odds = await book_cls.run_book()
-            #
-            # if odds:
-            #     return book_name, odds
 
         return book_name, None
 
@@ -594,57 +621,55 @@ class AutoSGP(APICaller):
                    and odds_value.get("american_odds") is not None
             }
 
-            ####### JUST FOR TESTING #########
-            invalid_odds = {
-                book_name
-                for book_name, odds_value in results
-                if not odds_value
-            }
-
-            if invalid_odds:
-                event = payload_item.get("event")
-                stat_type_1_line = payload_item.get("stat_type_1_line")
-                stat_type_2_line = payload_item.get("stat_type_2_line")
-                stat_type_1_direction = payload_item.get("stat_1_direction")
-                stat_type_2_direction = payload_item.get("stat_2_direction")
-                stat_name_1 = payload_item.get("stat_name_1")
-                stat_name_2 = payload_item.get("stat_name_2")
-
-                log_lines = []
-                log_lines.append("-" * 60)
-                log_lines.append(str(invalid_odds))
-                log_lines.append(f"Event: {event}")
-                log_lines.append(f"Stat Type 1: {stat_type_1_line} {stat_type_1_direction} {stat_name_1}")
-                log_lines.append(f"Stat Type 2: {stat_type_2_line} {stat_type_2_direction} {stat_name_2}")
-                log_lines.append("Payload Details:")
-
-                for book_test in invalid_odds:
-                    payload_item_test = next(
-                        (item for item in payload_item.get("payload", [])
-                         if item.get("book_name") == book_test),
-                        None
-                    )
-
-                    log_lines.append(f"- {book_test}: {payload_item_test}")
-
-                    mapping_books = {
-                        "fanduel": {"map_key": "fanduel_ids"},
-                        "caesars": {"map_key": "caesar_mapped_ids"},
-                        "betmgm": {"map_key": "betmgm_ids"}
-                    }
-
-                    if book_test in mapping_books:
-                        map_key = mapping_books[book_test]["map_key"]
-
-                        mapped_instance = RedisAsyncManager(database=2)
-                        has_mapping = await mapped_instance.get_data(map_key)
-
-                        if not has_mapping:
-                            log_lines.append(f"  -> No mapping IDS found for: {book_test}")
-
-                print("\n".join(log_lines))
-
-
+            # ####### JUST FOR TESTING #########
+            # invalid_odds = {
+            #     book_name
+            #     for book_name, odds_value in results
+            #     if not odds_value
+            # }
+            #
+            # if invalid_odds:
+            #     event = payload_item.get("event")
+            #     stat_type_1_line = payload_item.get("stat_type_1_line")
+            #     stat_type_2_line = payload_item.get("stat_type_2_line")
+            #     stat_type_1_direction = payload_item.get("stat_1_direction")
+            #     stat_type_2_direction = payload_item.get("stat_2_direction")
+            #     stat_name_1 = payload_item.get("stat_name_1")
+            #     stat_name_2 = payload_item.get("stat_name_2")
+            #
+            #     log_lines = []
+            #     log_lines.append("-" * 60)
+            #     log_lines.append(str(invalid_odds))
+            #     log_lines.append(f"Event: {event}")
+            #     log_lines.append(f"Stat Type 1: {stat_type_1_line} {stat_type_1_direction} {stat_name_1}")
+            #     log_lines.append(f"Stat Type 2: {stat_type_2_line} {stat_type_2_direction} {stat_name_2}")
+            #     log_lines.append("Payload Details:")
+            #
+            #     for book_test in invalid_odds:
+            #         payload_item_test = next(
+            #             (item for item in payload_item.get("payload", [])
+            #              if item.get("book_name") == book_test),
+            #             None
+            #         )
+            #
+            #         log_lines.append(f"- {book_test}: {payload_item_test}")
+            #
+            #         mapping_books = {
+            #             "fanduel": {"map_key": "fanduel_ids"},
+            #             "caesars": {"map_key": "caesar_mapped_ids"},
+            #             "betmgm": {"map_key": "betmgm_ids"}
+            #         }
+            #
+            #         if book_test in mapping_books:
+            #             map_key = mapping_books[book_test]["map_key"]
+            #
+            #             mapped_instance = RedisAsyncManager(database=2)
+            #             has_mapping = await mapped_instance.get_data(map_key)
+            #
+            #             if not has_mapping:
+            #                 log_lines.append(f"  -> No mapping IDS found for: {book_test}")
+            #
+            #     print("\n".join(log_lines))
 
             ##############################################
 
@@ -691,8 +716,7 @@ class AutoSGP(APICaller):
 
             }
 
-
-        payload_data = payload_data[0:5]
+        payload_data = payload_data[0:3]
 
         for i in range(0, len(payload_data), batch_size):
             print(f"Processing {i}")
@@ -720,12 +744,13 @@ class AutoSGP(APICaller):
                 )
 
             discord_to_store = merged_results.get("discord")
+            print(discord_to_store)
+
             if discord_to_store:
                 await self.previously_sent_discord_redis.bulk_insert_individual(
                     data_to_store=merged_results.get("discord", {}),
                     pipeline=self.previously_sent_discord_redis.redis_client.pipeline(transaction=False)
                 )
-
 
     async def runner(self):
         async with aiohttp.ClientSession() as session:
@@ -734,56 +759,69 @@ class AutoSGP(APICaller):
             previous_data = await self.previously_stored_redis_instance.get_all_key_values()
             indexed_previous_data = self.index_previous_data(previous_data)
 
-            for filters in self.configs[4:5]:
-                espn_mapper = ESPN(filter_data=filters)
-                player_mapping = await espn_mapper.runner(
-                    session=session,
-                    api_caller=self.api_caller
-                )
+            for filters in self.configs[0:1]:
+                # print(filters)
+                # espn_mapper = ESPN(filter_data=filters)
+                # player_mapping = await espn_mapper.runner(
+                #     session=session,
+                #     api_caller=self.api_caller
+                # )
+                # 
+                # if not player_mapping:
+                #     print("No Player Mapping Found. Skipping..")
+                #     continue
+                # 
+                # sportsbook_data = await self._load_sportsbook_data(session, used_stored_json=True, store_json=False)
+                # 
+                # if not sportsbook_data:
+                #     create_sentry_message(
+                #         tag_key="autosgp",
+                #         tag_value="bettorodds_data_failure",
+                #         message="No BettorOdds Data found",
+                #         level="error"
+                #     )
+                #     return
+                # 
+                # filtered_data = await self._filter_data(
+                #     bettorodds_data=sportsbook_data,
+                #     filter_selection=filters,
+                #     player_mapping=player_mapping,
+                #     previous_data=indexed_previous_data,
+                #     configs=filters
+                # )
+                # 
+                # # with open("filtered.json", "r") as file:
+                # #     filtered_data = json.load(file)
+                # 
+                # if not filtered_data:
+                #     print("No Filtered Data Found. Skipping..")
+                #     continue
+                # 
+                # selection_odds = slips.slip_selection(
+                #     filtered_data=filtered_data,
+                #     stat_types=filters.get("stat_types", []),
+                #     use_same_player=filters.get("use_same_player"),
+                #     grouped_fields=filters.get("group_fields", []),
+                #     validate_players=filters.get("validate_players")
+                # )
+                # 
+                # 
+                # with open("selection_odds.json", "w") as file:
+                #     json.dump(selection_odds, file, indent=2, default=str)
+                # 
+                # if not selection_odds:
+                #     print("No Selection Odds Found. Skipping..")
+                #     continue
+                # 
+                # payload_data = self._create_direction_combos(
+                #     directions=filters.get("direction", ()),
+                #     selection_odds=selection_odds
+                # )
+                # 
+                # print(payload_data)
 
-                if not player_mapping:
-                    print("No Player Mapping Found. Skipping..")
-                    continue
-
-                sportsbook_data = await self._load_sportsbook_data(session, used_stored_json=False, store_json=False)
-
-                if not sportsbook_data:
-                    create_sentry_message(
-                        tag_key="autosgp",
-                        tag_value="bettorodds_data_failure",
-                        message="No BettorOdds Data found",
-                        level="error"
-                    )
-                    return
-
-                filtered_data = await self._filter_data(
-                    bettorodds_data=sportsbook_data,
-                    filter_selection=filters,
-                    player_mapping=player_mapping,
-                    previous_data=indexed_previous_data,
-                    configs=filters
-                )
-
-                if not filtered_data:
-                    print("No Filtered Data Found. Skipping..")
-                    continue
-
-                selection_odds = slips.slip_selection(
-                    filtered_data=filtered_data,
-                    stat_types=filters.get("stat_types", []),
-                    use_same_player=filters.get("use_same_player"),
-                    grouped_fields=filters.get("group_fields", []),
-                    validate_players=filters.get("validate_players")
-                )
-
-                if not selection_odds:
-                    print("No Selection Odds Found. Skipping..")
-                    continue
-
-                payload_data = self._create_direction_combos(
-                    directions=filters.get("direction", ()),
-                    selection_odds=selection_odds
-                )
+                with open("payload.json", "r") as file:
+                    payload_data = json.load(file)
 
                 if not payload_data:
                     print("No Payload Data Found. Skipping..")

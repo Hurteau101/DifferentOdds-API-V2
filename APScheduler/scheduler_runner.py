@@ -1,3 +1,4 @@
+from External_Book_Mapping.SGP.betway_mapper import BetwayMapper
 from External_Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
 from Monitoring.monitoring import init_sentry
 init_sentry()
@@ -132,6 +133,14 @@ MAPPER_JOBS = [
         "job_type": "mapper",
         "is_active": True,
         "interval": 86400,  # 24 Hours
+        "redis_db": RedisSelector.MAPPER
+    },
+    {
+        "book_name": "betway",
+        "class": BetwayMapper,
+        "job_type": "mapper",
+        "is_active": True,
+        "interval": 600,  # 10 Minutes
         "redis_db": RedisSelector.MAPPER
     },
 ]

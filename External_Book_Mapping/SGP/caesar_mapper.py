@@ -11,7 +11,8 @@ from Utils.request_caller import SportbookRequestType
 
 
 class CaesarMapper(BaseMapper):
-    VALID_SPORTS = ["basketball", "baseball", "boxing", "football", "icehockey", "soccer", "ufcmma"]
+    # Find 'sportId' [FYI 'football' = soccer]
+    VALID_SPORTS = ["basketball", "baseball", "boxing", "football", "icehockey", "americanfootball", "ufcmma", "tennis"]
     def __init__(self):
         super().__init__(book_name="caesars", category="sgp", request_type=SportbookRequestType.ASYNC)
 

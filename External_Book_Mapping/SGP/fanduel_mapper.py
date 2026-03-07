@@ -16,7 +16,10 @@ class FanduelMapper(BaseMapper):
         "hockey": 7524,
         "baseball": 7511,
         "basketball": 7522,
-        "football": 6423
+        "football": 6423,
+        "soccer": 1,
+        "tennis": 2,
+        "ufc": 26420387
     }
 
     def __init__(self):
@@ -133,3 +136,11 @@ class FanduelMapper(BaseMapper):
             data_to_store=mapped_ids,
             key_expiration=self.default_key_expiration
         )
+
+if __name__ == "__main__":
+    redis_instance = RedisAsyncManager(database=2)
+    mapper = FanduelMapper()
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            await mapper.run_scheduler(session=session, redis_instance=redis_instance)
+    asyncio.run(main())
