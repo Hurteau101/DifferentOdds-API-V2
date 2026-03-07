@@ -176,7 +176,7 @@ SGP_PROVIDERS = [
                 "market_url": "https://api.onyxodds.com/api/odds/gameMainLines/{game_id}",
             },
             method="GET",
-            is_active=True
+            is_active=False
         )
     ),
     SGPProvider(
@@ -352,20 +352,27 @@ SGP_PROVIDERS = [
                 "Origin": "https://www.betonline.ag",
             },
             method="POST",
-            is_active=True
+            is_active=False
         )
     ),
     SGPProvider(
         title="Betway",
         name="betway",
         url={
-            "sgp_url": ""
+            "sgp_url": "https://betway.com/g/api/betting/betedge/row/betfactory/api/generatebets"
         },
         headers={
-
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Content-Type': 'application/json',
+            'x-correlation-id': 'f56ef3e5-8cbe-4b8d-b1e1-83db6f1f798b',
+            'Origin': 'https://betway.com',
+            'Connection': 'keep-alive',
         },
         method="GET",
-        is_active=False,
+        is_active=True,
         mapping=SGPMapper(
             url={
                 "category_names": "https://betway.com/g/services/api/Content/v1/GetMenus",
@@ -386,6 +393,44 @@ SGP_PROVIDERS = [
                 'Sec-Fetch-Site': 'same-origin',
                 'Priority': 'u=0',
                 'TE': 'trailers'
+            },
+            method="POST",
+            is_active=True
+        )
+    ),
+    SGPProvider(
+        title="Stake",
+        name="stake",
+        url={
+            "sgp_url": ""
+        },
+        headers={
+
+        },
+        method="GET",
+        is_active=True,
+        mapping=SGPMapper(
+            url={
+                "general_url": "https://stake.com/_api/graphql",
+            },
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0)',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip',
+                'Referer': 'https://stake.com/sports/home',
+                'access-control-allow-origin': '*',
+                'content-type': 'application/json',
+                'x-language': 'en',
+                'x-operation-name': 'SportIndex',
+                'x-operation-type': 'query',
+                'Origin': 'https://stake.com',
+                'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'Priority': 'u=4',
+                'TE': 'trailers',
             },
             method="POST",
             is_active=True

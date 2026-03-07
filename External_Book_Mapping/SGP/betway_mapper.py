@@ -8,6 +8,11 @@ from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
 
+#### WILL NEED TO MAP MLB ####
+#### WILL NEED TO MAP NFL/NCAAF ###
+
+
+
 ### MOVE GET STATIC METHOD TO BASE CLASS AFTER TESTING FURTHER
 def get_static_mapping():
     return static_mapping_service.get()
@@ -18,7 +23,7 @@ def get_static_mapping():
 # Captures:
 # group(1) -> stat portion before the dash (e.g. "total points")
 # group(2) -> player name (e.g. "malik monk")
-PLAYER_REGEX = re.compile(r"^(.*?)\s*-\s(.+?)\s*\([A-Za-z]{3,4}\)$")
+PLAYER_REGEX = re.compile(r"^(.*?)\s*-\s(.+?)\s*\([A-Za-z]{1,4}\)$")
 
 
 # Detects milestone markets like:
@@ -30,7 +35,7 @@ PLAYER_REGEX = re.compile(r"^(.*?)\s*-\s(.+?)\s*\([A-Za-z]{3,4}\)$")
 # group(2) -> stat text after '+'
 MILESTONE_REGEX = re.compile(r"to get\s+(\d+)\s*\+\s*(.+)", re.IGNORECASE)
 
-
+# Has a team in it between ( )
 TEAM_REGEX = re.compile(r"\s*\([A-Za-z]{3,4}\)")
 
 
@@ -126,6 +131,7 @@ class BetwayMapper(BaseMapper):
             if handicap_display:
                 market_name = f"{raw_market_name} {handicap_value}"
 
+
             outcome_mapping[outcome_id] = {
                 "market_name": market_name,
                 "raw_market_name": raw_market_name,
@@ -139,6 +145,7 @@ class BetwayMapper(BaseMapper):
 
     async def _detect_player(self, market_name: str, selection_name: str):
         match = PLAYER_REGEX.match(market_name)
+
 
         if match:
             market_name = match.group(1).replace("total", "").strip()
@@ -196,7 +203,10 @@ class BetwayMapper(BaseMapper):
         mapping_data = {}
 
         for result in results:
-            event_id = result.get("Event", {}).get("Id")
+            if result.get("Errors", []):
+                continue
+
+            event_id = str(result.get("Event", {}).get("Id"))
             event_bucket = {}
 
             outcome_mapping = await self.format_mapping(result.get("Outcomes", []))
@@ -232,90 +242,13 @@ class BetwayMapper(BaseMapper):
 
 
                     market_bucket = event_bucket.setdefault(mapping_key, {})
-                    market_bucket.update({"outcome_id": outcome})
+                    market_bucket.update({"OutcomeId": outcome})
 
             if event_bucket:
                 mapping_data[event_id] = event_bucket
 
 
         return mapping_data
-
-
-
-    # async def _get_mappings(self, session: aiohttp.ClientSession, event_ids: set):
-    #     async def process_mapping(event_id, semaphore: asyncio.Semaphore):
-    #         async with semaphore:
-    #             results = await self.api_caller(
-    #                 book_name=self.book_data.name,
-    #                 session=session,
-    #                 url=self.book_data.mapping.url.get("event_details"),
-    #                 method=self.book_data.mapping.method,
-    #                 headers=self.book_data.mapping.headers,
-    #                 parse_json=True,
-    #                 payload={
-    #                     "BrandId": 3,
-    #                     "LanguageId": 25,
-    #                     "ClientTypeId": 2,
-    #                     "JurisdictionId": 2,
-    #                     "ClientIntegratorId": 1,
-    #                     "EventId": event_id,
-    #                     "ScoreboardRequest": {
-    #                         "IncidentRequest": {},
-    #                         "ScoreboardType": 3
-    #                     }
-    #                 }
-    #             )
-    #
-    #             return results if results else {}
-    #
-    #
-    #     semaphore = asyncio.Semaphore(20)
-    #     tasks = [process_mapping(event_id, semaphore) for event_id in event_ids]
-    #     results = await asyncio.gather(*tasks)
-    #
-    #     mapping = get_static_mapping()
-    #     stat_mapping = mapping.get("stats", {})
-    #
-    #     mapping_data = {}
-    #
-    #     for result in results:
-    #         event_id = result.get("Event", {}).get("Id")
-    #         event_bucket = {}
-    #
-    #         outcome_mapping = await self.format_mapping(result.get("Outcomes", []))
-    #
-    #         for market in result.get("Markets", []):
-    #             if not market.get("IsBetBuilderSupported", False):
-    #                 continue
-    #
-    #             outcomes = market.get("Outcomes", [])
-    #             if outcomes and isinstance(outcomes[0], list):
-    #                 outcomes = [item for sublist in outcomes for item in sublist]
-    #
-    #
-    #             for outcome in outcomes:
-    #                 found_mapping = outcome_mapping.get(outcome)
-    #                 if not found_mapping:
-    #                     continue
-    #
-    #                 selection_name = found_mapping.get("market_name")
-    #                 market_name = market.get("Title").lower().replace("alternate", "").strip()
-    #
-    #                 found = await self._detect_player(market_name, selection_name)
-    #                 market_name = found.get("market_name")
-    #                 selection_name = found.get("selection_name")
-    #
-    #
-    #                 market_bucket = event_bucket.setdefault(market_name, {})
-    #                 selection_bucket = market_bucket.setdefault(selection_name, {})
-    #                 selection_bucket.update({"outcome_id": outcome, **found_mapping})
-    #
-    #         if event_bucket:
-    #             mapping_data[event_id] = event_bucket
-    #
-    #
-    #     return mapping_data
-
 
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
@@ -373,21 +306,25 @@ class BetwayMapper(BaseMapper):
             )
 
         mapping = await self._get_mappings(session, event_ids)
+        if not mapping:
+            create_sentry_message(
+                tag_key="betway",
+                tag_value="mapping_failure",
+                message="No mapping details found",
+                level="error"
+            )
 
+            return
 
         import json
-        with open("betway_2_mapping.json", "w") as f:
+        with open("betway_mapper.json", "w") as f:
             json.dump(mapping, f, indent=2)
 
-
-
-        #
-        # if mapping:
-        #     await redis_instance.store_data(
-        #         key_name="betway_mapped_ids",
-        #         data_to_store=mapping,
-        #         key_expiration=600
-        #     )
+        await redis_instance.store_data(
+            key_name="betway_mapped_ids",
+            data_to_store=mapping,
+            key_expiration=600
+        )
 
     ### Add to APScheduler if success
 

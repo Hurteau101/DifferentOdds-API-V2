@@ -18,6 +18,7 @@ from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import APICaller, SportbookRequestType
 
+import traceback
 
 class AutoSGP(APICaller):
     load_dotenv()
@@ -116,24 +117,34 @@ class AutoSGP(APICaller):
 
         return odds
 
-    def _get_book_information(self, book_feed: dict, valid_sgp_books: set):
+
+    def _get_book_information(self, book_feed: dict, valid_sgp_books: set, markets: dict):
         """Gather the over and under information from the book feed."""
         books = {"Over": {}, "Under": {}}
+        line = markets.get("Line", None)
 
         for book_name, sides in book_feed.items():
             if book_name.lower() not in valid_sgp_books:
                 continue
+
             mapped_book_name = BOOKS.get(book_name.lower(), book_name.lower()).get("mapped_name", book_name.lower())
 
             for side_name, side_information in sides.items():
-                if side_information.get("betlink") or side_information.get("internal_betlink"):
-                    books[side_name][mapped_book_name] = {
-                        "betlink": side_information.get("betlink") or side_information.get("internal_betlink"),
-                        "american_odds": side_information.get("am_odds"),
-                    }
+                selection_name = markets.get("Stat", None)
+                if markets.get("Player"):
+                    selection_name = f"{markets.get('Player')} {side_name} {line}"
 
-                    # if mapped_book_name == "caesars":
-                    #     books[side_name][mapped_book_name]["line"] = self._extract_betting_line(markets.get("Stat", ""))
+                if side_information.get("betlink") or side_information.get("internal_betlink"):
+                    betlink = side_information.get("betlink") or side_information.get("internal_betlink")
+                    books[side_name][mapped_book_name] = {
+                        "betlink": betlink,
+                        "american_odds": side_information.get("am_odds"),
+                        "line": {betlink: float(line)} if line else None,
+                        "event_data": {
+                            "market_name": markets.get("Prop", None),
+                            "selection_name": selection_name
+                        }
+                    }
 
         return books
 
@@ -174,7 +185,7 @@ class AutoSGP(APICaller):
 
                 current_odds = self._normalize_book_odds(markets, valid_sgp_books)
 
-                books = self._get_book_information(markets.get("book_feed", {}), valid_sgp_books)
+                books = self._get_book_information(markets.get("book_feed", {}), valid_sgp_books, markets)
 
                 num_unique_books = len({book for side in books.values() for book in side})
 
@@ -214,28 +225,6 @@ class AutoSGP(APICaller):
             for data in previous_data
         }
 
-    # async def setup(self) -> dict | None:
-    #     configs = await self._load_configs()
-    #     if not configs:
-    #         print("No Configs found")
-    #         create_sentry_message(
-    #             tag_key="autosgp",
-    #             tag_value="configs_not_found",
-    #             message="No Configs found",
-    #             level="error"
-    #         )
-    #
-    #         return None
-    #
-    #     redis_previously_stored_instance = RedisAsyncManager(database=9)
-    #     previous_data = await redis_previously_stored_instance.get_all_key_values()
-    #     indexed_previous_data = self.index_previous_data(previous_data)
-    #
-    #     return {
-    #         "configs": configs,
-    #         "previous_redis_instance": redis_previously_stored_instance,
-    #         "indexed_previous_data": indexed_previous_data,
-    #     }
 
     def _create_payload(self, odds_data: list, direction_tuple: tuple[str, str]) -> list:
         """
@@ -287,23 +276,21 @@ class AutoSGP(APICaller):
                 links = []
                 odds = []
                 lines = {}
+                event_data = []
 
                 for dir_books in leg_books:
                     entry = dir_books.get(book, {})
                     betlink = entry.get("betlink")
                     links.append(betlink)
                     odds.append(entry.get("american_odds"))
-                    line = entry.get("line")
-                    if line and book == "caesars":
-                        lines[betlink] = line
-
+                    lines.update(entry.get("line", {}))
+                    event_data.append(entry.get("event_data"))
 
                 valid_books.append({
                     "book_name": book.lower(),
                     "links": links,
-                    **(
-                        {"lines": lines} if lines else {}
-                    )
+                    "lines": lines,
+                    "event_data": event_data,
                 })
 
                 normal_books[book.lower()] = odds
@@ -557,6 +544,7 @@ class AutoSGP(APICaller):
             except Exception as e:
                 if attempt == retry_times - 1:
                     print(f"Failed after retries: {e} [{book_name}]")
+                    traceback.print_exc()
             # odds = await book_cls.run_book()
             #
             # if odds:
@@ -586,6 +574,8 @@ class AutoSGP(APICaller):
                 sgp_data = {
                     "book_name": book_name,
                     "links": book.get("links"),
+                    "lines": book.get("lines"),
+                    "event_data": book.get("event_data"),
                 }
 
 
@@ -744,7 +734,7 @@ class AutoSGP(APICaller):
             previous_data = await self.previously_stored_redis_instance.get_all_key_values()
             indexed_previous_data = self.index_previous_data(previous_data)
 
-            for filters in self.configs[0:5]:
+            for filters in self.configs[4:5]:
                 espn_mapper = ESPN(filter_data=filters)
                 player_mapping = await espn_mapper.runner(
                     session=session,
@@ -794,9 +784,6 @@ class AutoSGP(APICaller):
                     directions=filters.get("direction", ()),
                     selection_odds=selection_odds
                 )
-
-                with open("payload_data.json", "w") as f:
-                    json.dump(payload_data, f, indent=2)
 
                 if not payload_data:
                     print("No Payload Data Found. Skipping..")

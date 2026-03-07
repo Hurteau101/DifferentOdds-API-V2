@@ -1,4 +1,5 @@
 import asyncio
+import re
 
 import aiohttp
 from aiohttp import payload
@@ -9,45 +10,127 @@ from Utils.request_caller import SportbookRequestType
 
 class BetwaySGP(SGPBookBase):
     def __init__(self, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betway", sgp_data={}, **kwargs)
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betway", **kwargs)
 
-    async def _map_data(self, additional_data: list):
+    async def _get_outcome_ids(self, additional_list: list) -> list | None:
         mapped_ids = await self.load_mapped_ids(key_name="betway_mapped_ids")
 
         if not mapped_ids:
-            return
+            return None
 
-        for data in additional_data:
-            event_name = data.get("event_name")
-            market_name = data.get("market_name").lower()
-            selection = data.get("selection").lower() if isinstance(data.get("selection"), str) else data.get("selection")
+        pattern = re.compile(r"event/(\d+)")
+        event_id = next((
+            found_id.group(1)
+            for link in self.links
+            if (found_id := pattern.search(link))
+        ), None)
 
-            # split_event_name = event_name.split(" vs ")
-            # sorted_event_name = " vs ".join(sorted(split_event_name)).lower()
-            #
-            # print("Event Name: ", sorted_event_name)
-            # print("Market Name: ", market_name)
-            # print("Selection: ", selection)
+        if not event_id:
+            return None
 
+        outcome_ids = []
 
+        for additional in additional_list:
+            market_name = additional["market_name"]
+            selection = additional["selection_name"]
+            generate_key = "_".join([market_name, selection]).lower().replace(" ", "_")
 
+            found_mapping = mapped_ids.get(event_id, {}).get(generate_key)
 
+            if found_mapping:
+                outcome_ids.append(found_mapping)
+
+        if len(outcome_ids) != len(additional_list):
+            return None
+
+        return outcome_ids
+
+    async def _extract_odds(self, outcome_ids: list, session: aiohttp.ClientSession):
+        api_data = await self.api_caller(
+            book_name=self.book_data.name,
+            session=session,
+            url=self.book_data.url.get("sgp_url"),
+            method="POST",
+            headers=self.book_data.headers,
+            payload={
+                "BrandId": 3,
+                "LanguageId": 25,
+                "ClientTypeId": 2,
+                "JurisdictionId": 2,
+                "ClientIntegratorId": 1,
+                "Selections": outcome_ids,
+                "Rewards": []
+            }
+        )
+
+        if not api_data or not isinstance(api_data, dict) or api_data.get("UnavailableOutcomeIds"):
+            return None
+
+        bets = api_data.get("Bets")
+
+        if not bets or not isinstance(bets, list):
+            return None
+
+        selection_group = bets[0]
+        decimal_odds = selection_group.get("BetPrice", {}).get("dec")
+
+        selections = selection_group.get("Selections", [])
+
+        if len(outcome_ids) != len(selections) or not decimal_odds:
+            return None
+
+        american_odds = self.convert_decimal_to_american(float(decimal_odds))
+
+        return BetwaySGP.return_odds(
+            american_odds=american_odds,
+            decimal_odds=float(decimal_odds)
+        )
+
+    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self):
         async with aiohttp.ClientSession() as session:
-            additional_data = self.extras.get("additional_data")
+            additional_data = self.sgp_data.get("event_data", [])
 
             valid_input = all(
-                all(data.get(key) for key in ("event_name", "market_name", "selection"))
+                key in data
                 for data in additional_data
-            )
+                for key in ("market_name", "selection_name")
+            ) and bool(self.links)
 
-            mapped_data = self._map_data(additional_data=additional_data)
+
+            if not valid_input:
+                return None
+
+            outcome_ids = await self._get_outcome_ids(additional_list=additional_data)
+            if not outcome_ids:
+                return
+
+            return await self._extract_odds(outcome_ids=outcome_ids, session=session)
+
+
+#### CHECK OTHER MAPPING TO ENSURE ERRORS ARE SENT
 
 if __name__ == "__main__":
-    book = BetwaySGP(additional_data=[
-        {"event_id": "Boston Celtics vs Charlotte Hornets", "market_name": "Total Points",
-         "selection": "Under 218.5"},
-        {"event_name": "Boston Celtics vs Charlotte Hornets", "market_name": "Total Points", "selection": "Over 224.5"}
-    ])
+    # sgp_data = {'book_name': 'betway', 'links': ['https://{state}.betway.com/sports/event/16447462', 'https://{state}.betway.com/sports/event/16447462'], 'lines': {'https://{state}.betway.com/sports/event/16447462': 24.5}, 'event_data': [{'market_name': 'Player Assists', 'selection_name': 'Victor Wembanyama Over 3.5'}, {'market_name': 'Player Points', 'selection_name': 'Victor Wembanyama Over 24.5'}]}
+    sgp_data = {'book_name': 'betway', 'links': ['https://{state}.betway.com/sports/event/16447462', 'https://{state}.betway.com/sports/event/16447462'], 'lines': {'https://{state}.betway.com/sports/event/16447462': 15.5}, 'event_data': [{'market_name': 'Player Assists', 'selection_name': 'Stephon Castle Over 6.5'}, {'market_name': 'Player Points', 'selection_name': 'Stephon Castle Over 15.5'}]}
+
+    book = BetwaySGP(sgp_data=sgp_data)
     data = asyncio.run(book.run_book())
     print(data)
+
+
+
+    # sgp_data = {
+    #     'book_name': 'betmgm',
+    #     'links': ["https://{state}.betway.com/sports/event/16447138",
+    #               "https://{state}.betway.com/sports/event/16447138"]
+    # }
+    #
+    # additional_data = [
+    #     {"market_name": "Player Points", "selection": "PJ Washington Over 12.5"},
+    #     {"market_name": "Player Points", "selection": "Jayson Tatum Over 12.5"}
+    # ]
+    #
+    # book = BetwaySGP(sgp_data=sgp_data, additional_data=additional_data)
+    # data = asyncio.run(book.run_book())
+    # print(data)

@@ -16,11 +16,6 @@ class BetmgmSGP(SGPBookBase):
         async with aiohttp.ClientSession() as session:
             mapped_ids = await self.load_mapped_ids(key_name="betmgm_ids")
 
-
-            # import json
-            # with open("betmgm_mapped.json", "w") as file:
-            #     json.dump(mapped_ids, file, indent=2)
-
             if not mapped_ids:
                 create_sentry_message(
                     tag_key="betmgm",

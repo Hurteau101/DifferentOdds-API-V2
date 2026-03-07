@@ -18,6 +18,7 @@ class SGPBookBase(APICaller, ABC):
         self.regex_keys = regex_keys or ["bet_id", "event_id"]
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self._parse_sgp_data(sgp_data)
+        self.sgp_data = sgp_data
         self.extras = kwargs
         self.retry_amount = retry_amount
         self.retry_wait_interval = retry_wait_interval

@@ -8,6 +8,7 @@ from Authentication.kibl_auth import KiblAuth
 from Authentication.onyx_auth import OnyxAuth
 from Authentication.ownerbox_auth import OwnerboxAuth
 from External_Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
+from External_Book_Mapping.SGP.betway_mapper import BetwayMapper
 from External_Book_Mapping.SGP.caesar_mapper import CaesarMapper
 from External_Book_Mapping.SGP.fanduel_mapper import FanduelMapper
 from External_Book_Mapping.SGP.onyx_mapper import OnyxMapper
@@ -94,13 +95,19 @@ TEST_MAPPER_BOOKS = [
         "store_json": True
     },
     {
+        "book_name": "betway",
+        "mapper_class": BetwayMapper,
+        "mapper_key": "betway_mapped_ids",
+        "active": True,
+        "store_json": True
+    },
+    {
         "book_name": "kibl",
         "mapper_class": KiblMapper,
         "mapper_key": "kibl_mapper_data",
         "active": True,
         "store_json": True
-    },
-
+    }
 ]
 
 AUTH_BOOK_BY_NAME = {book["book_name"]: book for book in TEST_AUTH_BOOKS if book.get("book_name")}

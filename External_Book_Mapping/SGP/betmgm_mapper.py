@@ -148,6 +148,8 @@ class BetMgmMapper(BaseMapper):
                 level="error"
             )
 
+            return
+
         await redis_instance.store_data(
             key_name="betmgm_ids",
             data_to_store=mapped_ids,

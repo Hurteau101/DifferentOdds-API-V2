@@ -1,4 +1,5 @@
 from Books.SGP.betmgm_sgp import BetmgmSGP
+from Books.SGP.betway_sgp import BetwaySGP
 from Books.SGP.caesar_sgp import CaesarsSGP
 from Books.SGP.draftkings_sgp import DraftkingsSGP
 from Books.SGP.fanactics_sgp import FanaticsSGP
@@ -69,8 +70,12 @@ BOOKS = {
         "class": ThescoreSGP,
         "active": True,
         "mapped_name": "thescore"
+    },
+    "betway": {
+        "class": BetwaySGP,
+        "active": True,
+        "mapped_name": "betway"
     }
-
 }
 
 
