@@ -48,6 +48,7 @@ class CaesarAuth(BaseScheduler):
                                 "username": user,
                                 "password": password,
                             },
+
                             args=[
                                 "--disable-blink-features=AutomationControlled",
                                 "--start-maximized"
@@ -101,6 +102,8 @@ class CaesarAuth(BaseScheduler):
                             message=str(e),
                             level="error"
                         )
+
+                        print(e)
 
                         continue
 

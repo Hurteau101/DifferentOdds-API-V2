@@ -1,4 +1,5 @@
 from datetime import timedelta
+from . import celery_app
 
 beat_schedule = {
     "run-autosgp": {
@@ -7,3 +8,5 @@ beat_schedule = {
         "options": {"expires": 3600},
     }
 }
+
+celery_app.conf.beat_schedule = beat_schedule
