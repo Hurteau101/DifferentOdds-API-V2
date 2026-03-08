@@ -11,6 +11,7 @@ async def run_autosgp():
 
 
 async def main():
+    print("Starting scheduler...")
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_autosgp, IntervalTrigger(seconds=120))
     scheduler.start()
