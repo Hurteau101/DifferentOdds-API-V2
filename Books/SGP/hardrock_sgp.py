@@ -12,12 +12,16 @@ class HardrockSGP(SGPBookBase):
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self):
+    async def run_book(self, session=None):
         hardrock_ids = [self.link_data[i]["bet_id"] for i in range(len(self.link_data))]
 
-
         payload = self.create_payload(hardrock_ids)
-        websocket_data = [json.loads(msg) for msg in self.selenium_manger(payload)]
+        raw_messages = await asyncio.to_thread(self.selenium_manger, payload)
+
+        if not raw_messages:
+            return None
+
+        websocket_data = [json.loads(msg) for msg in raw_messages]
 
         if not websocket_data:
             return None
@@ -40,6 +44,37 @@ class HardrockSGP(SGPBookBase):
             american_odds=odds.get("american"),
             decimal_odds=odds.get("decimal"),
         ) if odds else None
+
+    # @SGPBookBase.ensure_link_data
+    # @SGPBookBase.retry_book(is_disabled=True)
+    # async def run_book(self, session=None):
+    #     hardrock_ids = [self.link_data[i]["bet_id"] for i in range(len(self.link_data))]
+    #
+    #
+    #     payload = self.create_payload(hardrock_ids)
+    #     websocket_data = [json.loads(msg) for msg in self.selenium_manger(payload)]
+    #
+    #     if not websocket_data:
+    #         return None
+    #
+    #     betslip_data = websocket_data[0].get("Betslip", {}) if isinstance(websocket_data, list) else websocket_data.get("Betslip", {})
+    #
+    #     odds = next(
+    #         (
+    #             {
+    #                 "decimal": price,
+    #                 "american": self.convert_decimal_to_american(price),
+    #             }
+    #             for betslip in betslip_data.get("sameGameParlays", {}).values()
+    #             if (price := betslip.get("price"))
+    #         ),
+    #         None
+    #     )
+    #
+    #     return HardrockSGP.return_odds(
+    #         american_odds=odds.get("american"),
+    #         decimal_odds=odds.get("decimal"),
+    #     ) if odds else None
 
     def create_payload(self, hardrock_ids: list) -> str:
         payload = {

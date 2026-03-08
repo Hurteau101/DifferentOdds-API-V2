@@ -1,45 +1,45 @@
 import asyncio
 import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
+from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 from Monitoring.monitoring import create_sentry_message
 
 class BetmgmSGP(SGPBookBase):
-    def __init__(self, sgp_data: dict, **kwargs):
+    def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betmgm",
-                         sgp_data=sgp_data, **kwargs)
+                         sgp_data=sgp_data, mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
-            mapped_ids = await self.load_mapped_ids(key_name="betmgm_ids")
+    async def run_book(self, session):
+        mapped_ids = await self.load_mapped_ids(key_name="betmgm_ids")
 
-            if not mapped_ids:
-                create_sentry_message(
-                    tag_key="betmgm",
-                    tag_value="no_mapping",
-                    message="No mapped IDs were found in SGP",
-                    level="error"
-                )
-                return None
-
-            payload = self._create_payload(mapped_ids)
-
-            api_data = await self.api_caller(
-                book_name=self.book_data.name,
-                session=session,
-                url=self.book_data.url.get("sgp_url"),
-                method="POST",
-                headers=self.book_data.headers,
-                payload=payload
+        if not mapped_ids:
+            create_sentry_message(
+                tag_key="betmgm",
+                tag_value="no_mapping",
+                message="No mapped IDs were found in SGP",
+                level="error"
             )
+            return None
 
-            if not api_data:
-                return
+        payload = self._create_payload(mapped_ids)
 
-            return self._extract_odds(api_data)
+        api_data = await self.api_caller(
+            book_name=self.book_data.name,
+            session=session,
+            url=self.book_data.url.get("sgp_url"),
+            method="POST",
+            headers=self.book_data.headers,
+            payload=payload
+        )
+
+        if not api_data:
+            return
+
+        return self._extract_odds(api_data)
 
     def _extract_odds(self, api_data: dict) -> None | dict:
         """Extract the SGP Odds"""
@@ -73,7 +73,6 @@ class BetmgmSGP(SGPBookBase):
                 continue
 
             mapped = mapped_data.get(str(-int(bet_id)), {}) or mapped_data.get(str(bet_id), {})
-
             # If it's not part of the SGP Eligibility, then we must check the parent section.
             # The parent section will contain the milestone. Example 2+, 3+ etc. This is already pre-mapped.
             # if not mapped.get("is_sgp_eligible"):
@@ -111,8 +110,19 @@ class BetmgmSGP(SGPBookBase):
         return picks
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'betmgm', 'links': ['https://sports.{state}.betmgm.com/en/sports/events/19025785?options=6:36445-2681514-4027119&type=Single', 'https://sports.{state}.betmgm.com/en/sports/events/19025785?options=19025785-1472581698--159789675&type=Single']}
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            sgp_data = {'book_name': 'betmgm', 'links': [
+                # "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=6:36475-2689474-4040918&type=Single",
+                "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=6:36475-2689474-4040935&type=Single",
+                "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=19025410-1474076463--155984492&type=Single"]}
 
-    book = BetmgmSGP(sgp_data=sgp_data)
-    data = asyncio.run(book.run_book())
-    print(data)
+            redis_mapped = RedisAsyncManager(database=2)
+            book = BetmgmSGP(mapped_ids_redis_instance=redis_mapped, sgp_data=sgp_data)
+            data = await book.run_book(session=session)
+            print(data)
+
+    asyncio.run(main())
+
+
+# "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=6:36475-2689474-4040918&type=Single",

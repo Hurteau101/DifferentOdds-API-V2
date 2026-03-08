@@ -30,7 +30,7 @@ class NovigSGP(SGPBookBase):
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self):
+    async def run_book(self, session):
 
         ids = [{"id": link.get("event_id")} for link in self.link_data]
         payload = {
@@ -38,23 +38,22 @@ class NovigSGP(SGPBookBase):
             "outcomes": ids
         }
 
-        async with aiohttp.ClientSession() as session:
-            api_data = await self.api_caller(
-                book_name=self.book_data.name,
-                session=session,
-                url=self.book_data.url.get("main_url"),
-                method="POST",
-                payload=payload
-            )
+        api_data = await self.api_caller(
+            book_name=self.book_data.name,
+            session=session,
+            url=self.book_data.url.get("main_url"),
+            method="POST",
+            payload=payload
+        )
 
 
-            if not api_data:
-                return None
-
-
-            if api_data:
-                american_odds = self._extract_odds(api_data)
-                return NovigSGP.return_odds(american_odds=american_odds, decimal_odds=None) if american_odds else None
-
-
+        if not api_data:
             return None
+
+
+        if api_data:
+            american_odds = self._extract_odds(api_data)
+            return NovigSGP.return_odds(american_odds=american_odds, decimal_odds=None) if american_odds else None
+
+
+        return None

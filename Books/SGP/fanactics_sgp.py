@@ -7,7 +7,7 @@ from Monitoring.monitoring import create_sentry_message
 from Utils.request_caller import SportbookRequestType
 
 
-fanatics_semaphore = asyncio.Semaphore(1)
+fanatics_semaphore = asyncio.Semaphore(10)
 
 
 class FanaticsSGP(SGPBookBase):
@@ -40,7 +40,7 @@ class FanaticsSGP(SGPBookBase):
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self):
+    async def run_book(self, session=None):
         async with fanatics_semaphore:
             payload = {
                 "BetslipBuilderRequest": {

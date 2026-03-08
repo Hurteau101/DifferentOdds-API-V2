@@ -7,9 +7,10 @@ from Utils.request_caller import SportbookRequestType
 
 
 class CaesarsSGP(SGPBookBase):
-    def __init__(self, sgp_data: dict, **kwargs):
+    def __init__(self, sgp_data: dict, mapped_ids_redis_instance, auth_redis_instance, **kwargs):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="caesars",
-                         sgp_data=sgp_data, **kwargs)
+                         sgp_data=sgp_data, mapped_ids_redis_instance=mapped_ids_redis_instance,
+                         auth_redis_instance=auth_redis_instance, **kwargs)
         self.lines = sgp_data.get("lines")
 
 
@@ -74,7 +75,7 @@ class CaesarsSGP(SGPBookBase):
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self):
+    async def run_book(self, session):
         auth_token = await self.load_auth_token(key_name="caesars_waf_token")
         if not auth_token:
             create_sentry_message(
@@ -114,38 +115,38 @@ class CaesarsSGP(SGPBookBase):
         payload = self._create_payload(mapped_data)
 
 
-        async with aiohttp.ClientSession() as session:
-            raw_api_data = await self.api_caller(
-                book_name=self.book_data.name,
-                session=session,
-                url=self.book_data.url.get("main_url"),
-                method=self.book_data.method,
-                headers={**self.book_data.headers, "x-aws-waf-token": auth_token},
-                payload=payload
-            )
 
-            if not raw_api_data or not raw_api_data.get("parlays", []):
-                return None
+        raw_api_data = await self.api_caller(
+            book_name=self.book_data.name,
+            session=session,
+            url=self.book_data.url.get("main_url"),
+            method=self.book_data.method,
+            headers={**self.book_data.headers, "x-aws-waf-token": auth_token},
+            payload=payload
+        )
 
-            errors = next((
-                parlay.get("errors")
-                for parlay in raw_api_data.get("parlays", [])
-            ), 0)
+        if not raw_api_data or not raw_api_data.get("parlays", []):
+            return None
 
-            if errors and len(errors) > 0:
-                return None
+        errors = next((
+            parlay.get("errors")
+            for parlay in raw_api_data.get("parlays", [])
+        ), 0)
 
-            odds = next((
-                {
-                    "decimal": parlay.get("price", {}).get("decimal"),
-                    "american": parlay.get("price", {}).get("american"),
-                }
-                for parlay in raw_api_data.get("parlays", [])
-                if not "error" in parlay or not len(parlay.get("errors")) > 0
-            ), None)
+        if errors and len(errors) > 0:
+            return None
+
+        odds = next((
+            {
+                "decimal": parlay.get("price", {}).get("decimal"),
+                "american": parlay.get("price", {}).get("american"),
+            }
+            for parlay in raw_api_data.get("parlays", [])
+            if not "error" in parlay or not len(parlay.get("errors")) > 0
+        ), None)
 
 
-            return CaesarsSGP.return_odds(american_odds=odds.get("american"),decimal_odds=odds.get("decimal")) if odds else None
+        return CaesarsSGP.return_odds(american_odds=odds.get("american"),decimal_odds=odds.get("decimal")) if odds else None
 
 
 if __name__ == "__main__":

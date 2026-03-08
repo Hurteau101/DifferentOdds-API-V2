@@ -103,14 +103,32 @@ class BetMgmMapper(BaseMapper):
                 "fixture_id_v2": data.get("addons", {}).get("betBuilderTradingV2FixtureId"),
                 "source": option_list.get("source"),
                 "is_sgp_eligible": option_list.get("isBetBuilder"),
-                "parent_data": self._map_parent_data(
-                    parent_data=parent_ids,
-                    parent_fixture_id=option_list.get("fixtureParticipantId"),
-                    market_name=next((
-                        parameter.get("value") for parameter in option_list.get("parameters", []) if parameter.get("key") == "Happening"
-                    ), None),
-                    original_line=option_list.get("attr"),
-                    market_unique_id=option_list.get("id")
+                # "parent_data": self._map_parent_data(
+                #     parent_data=parent_ids,
+                #     parent_fixture_id=option_list.get("fixtureParticipantId"),
+                #     market_name=next((
+                #         parameter.get("value") for parameter in option_list.get("parameters", []) if parameter.get("key") == "Happening"
+                #     ), None),
+                #     original_line=option_list.get("attr"),
+                #     market_unique_id=option_list.get("id")
+                # )
+                "parent_data": (
+                    self._map_parent_data(
+                        parent_data=parent_ids,
+                        parent_fixture_id=option_list.get("fixtureParticipantId"),
+                        market_name=next(
+                            (
+                                parameter.get("value")
+                                for parameter in option_list.get("parameters", [])
+                                if parameter.get("key") == "Happening"
+                            ),
+                            None,
+                        ),
+                        original_line=option_list.get("attr"),
+                        market_unique_id=option_list.get("id"),
+                    )
+                    if "Under" not in option.get("parameters", {}).get("optionTypes", [])
+                    else {}
                 )
             }
 
@@ -152,6 +170,7 @@ class BetMgmMapper(BaseMapper):
             )
 
             return
+
 
         await redis_instance.store_data(
             key_name="betmgm_ids",

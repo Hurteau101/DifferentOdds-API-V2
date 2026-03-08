@@ -9,8 +9,9 @@ from Utils.request_caller import SportbookRequestType
 
 
 class BetwaySGP(SGPBookBase):
-    def __init__(self, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betway", **kwargs)
+    def __init__(self, mapped_ids_redis_instance, **kwargs):
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betway",
+                         mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     async def _get_outcome_ids(self, additional_list: list) -> list | None:
         mapped_ids = await self.load_mapped_ids(key_name="betway_mapped_ids")
@@ -87,25 +88,24 @@ class BetwaySGP(SGPBookBase):
         )
 
     @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
-            additional_data = self.sgp_data.get("event_data", [])
+    async def run_book(self, session):
+        additional_data = self.sgp_data.get("event_data", [])
 
-            valid_input = all(
-                key in data
-                for data in additional_data
-                for key in ("market_name", "selection_name")
-            ) and bool(self.links)
+        valid_input = all(
+            key in data
+            for data in additional_data
+            for key in ("market_name", "selection_name")
+        ) and bool(self.links)
 
 
-            if not valid_input:
-                return None
+        if not valid_input:
+            return None
 
-            outcome_ids = await self._get_outcome_ids(additional_list=additional_data)
-            if not outcome_ids:
-                return
+        outcome_ids = await self._get_outcome_ids(additional_list=additional_data)
+        if not outcome_ids:
+            return
 
-            return await self._extract_odds(outcome_ids=outcome_ids, session=session)
+        return await self._extract_odds(outcome_ids=outcome_ids, session=session)
 
 
 #### CHECK OTHER MAPPING TO ENSURE ERRORS ARE SENT

@@ -6,36 +6,36 @@ from Utils.request_caller import SportbookRequestType
 
 
 class FanduelSGP(SGPBookBase):
-    def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="fanduel", sgp_data=sgp_data, **kwargs)
+    def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="fanduel", sgp_data=sgp_data,
+                         mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
-            mapped_data = await self._map_data()
+    async def run_book(self, session):
+        mapped_data = await self._map_data()
 
-            # Check if mapped_data is empty or contains None marketId
-            if not mapped_data or any(data for data in mapped_data if data.get("marketId") is None):
-                return None
+        # Check if mapped_data is empty or contains None marketId
+        if not mapped_data or any(data for data in mapped_data if data.get("marketId") is None):
+            return None
 
-            payload = self._create_payload(mapped_data)
+        payload = self._create_payload(mapped_data)
 
-            api_data = await self.api_caller(
-                book_name=self.book_data.name,
-                session=session,
-                url=self.book_data.url.get("sgp_url"),
-                method="POST",
-                headers=self.book_data.headers,
-                payload=payload
-            )
+        api_data = await self.api_caller(
+            book_name=self.book_data.name,
+            session=session,
+            url=self.book_data.url.get("sgp_url"),
+            method="POST",
+            headers=self.book_data.headers,
+            payload=payload
+        )
 
-            if not api_data:
-                return
+        if not api_data:
+            return
 
-            number_of_legs = len(mapped_data)
+        number_of_legs = len(mapped_data)
 
-            return self._extract_odds(api_data, number_of_legs)
+        return self._extract_odds(api_data, number_of_legs)
 
     def _extract_odds(self, api_data: dict, leg_number: int) -> dict | None:
         odds_dict = next((

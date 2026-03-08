@@ -12,8 +12,9 @@ class ThescoreSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="thescore", sgp_data=sgp_data, **kwargs)
 
+    # Don't reuse session.
     @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self):
+    async def run_book(self, session=None):
         link_data = self._custom_link_extract(self.links)
 
         if not link_data:
@@ -21,10 +22,10 @@ class ThescoreSGP(SGPBookBase):
 
         cookie_jar = aiohttp.CookieJar(unsafe=True)
 
-        async with aiohttp.ClientSession(cookie_jar=cookie_jar) as session:
-            await session.get("https://sportsbook.ca-default.thescore.bet/")
+        async with aiohttp.ClientSession(cookie_jar=cookie_jar) as local_session:
+            await local_session.get("https://sportsbook.ca-default.thescore.bet/")
 
-            token = await self._get_anonymous_token(session)
+            token = await self._get_anonymous_token(local_session)
 
             if not token:
                 return None
@@ -35,12 +36,12 @@ class ThescoreSGP(SGPBookBase):
 
             length_of_links = len(link_data)
 
-            market_selection = await self._load_bet_slip(session, link_data, auth_header, length_of_links)
+            market_selection = await self._load_bet_slip(local_session, link_data, auth_header, length_of_links)
 
             if not market_selection:
                 return None
 
-            return await self._get_sgp_odds(session, auth_header, market_selection, length_of_links)
+            return await self._get_sgp_odds(local_session, auth_header, market_selection, length_of_links)
 
 
     async def _get_sgp_odds(self, session: aiohttp.ClientSession, auth_header: dict, market_selection:dict,
@@ -204,7 +205,7 @@ class ThescoreSGP(SGPBookBase):
             odds_numerator = re.search(r"odds_numerator\[0\]=(\d+)", link)
             selection_id = re.search(r"market_selection_id\[0\]=([^&]+)", link)
 
-            if odds_denominator and odds_denominator and selection_id:
+            if odds_denominator and odds_numerator and selection_id:
                 link_data.append({
                     "odds_numerator": int(odds_numerator.group(1)),
                     "odds_denominator": int(odds_denominator.group(1)),

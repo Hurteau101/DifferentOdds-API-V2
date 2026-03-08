@@ -14,7 +14,8 @@ from Redis.redis_manager import RedisAsyncManager
 class SGPBookBase(APICaller, ABC):
     def __init__(self, request_type: SportbookRequestType, category: str,
                  book_name: str, sgp_data: dict, retry_amount: int = 3,
-                 retry_wait_interval: int = 1, regex_keys: list = None, **kwargs):
+                 retry_wait_interval: int = 1, regex_keys: list = None, mapped_ids_redis_instance=None, auth_redis_instance=None,
+                 **kwargs):
         self.regex_keys = regex_keys or ["bet_id", "event_id"]
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self._parse_sgp_data(sgp_data)
@@ -22,11 +23,13 @@ class SGPBookBase(APICaller, ABC):
         self.extras = kwargs
         self.retry_amount = retry_amount
         self.retry_wait_interval = retry_wait_interval
+        self.mapped_ids_redis_instance = mapped_ids_redis_instance
+        self.auth_redis_instance = auth_redis_instance
 
         super().__init__(request_type=request_type)
 
     @abstractmethod
-    async def run_book(self):
+    async def run_book(self, session=None):
         raise NotImplementedError("Subclasses must implement the run_book method.")
 
     def _parse_sgp_data(self, sgp_data: dict):
@@ -37,11 +40,12 @@ class SGPBookBase(APICaller, ABC):
     @staticmethod
     def ensure_link_data(func):
         """Decorator to ensure there is link data before running the function."""
-        async def wrapper(self):
+        @wraps(func)
+        async def wrapper(self, *args, **kwargs):
             link_data = getattr(self, "link_data", [])
             if not link_data:
                 return None
-            return await func(self)
+            return await func(self, *args, **kwargs)
         return wrapper
 
     @staticmethod
@@ -53,16 +57,14 @@ class SGPBookBase(APICaller, ABC):
 
     async def load_auth_token(self, key_name: str):
         """Returns the stored auth token from Redis."""
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data(key_name)
+        return await self.auth_redis_instance.get_data(key_name)
 
     async def load_book_data(self, key_name: str):
         """Returns the stored book data from Redis."""
 
     async def load_mapped_ids(self, key_name: str):
         """Returns the stored mapped ids from Redis."""
-        redis_instance = RedisAsyncManager(database=2)
-        return await redis_instance.get_data(key_name)
+        return await self.mapped_ids_redis_instance.get_data(key_name)
 
 
     # @staticmethod

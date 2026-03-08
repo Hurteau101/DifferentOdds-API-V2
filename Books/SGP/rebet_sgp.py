@@ -53,47 +53,46 @@ class RebetSGP(SGPBookBase):
 
         return payload
 
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
-            additional_data = self.extras.get("additional_data")
-            valid_input = all(
-                all(data.get(key) for key in ("event_name", "market_name", "selection"))
-                for data in additional_data
-            )
+    async def run_book(self, session):
+        additional_data = self.extras.get("additional_data")
+        valid_input = all(
+            all(data.get(key) for key in ("event_name", "market_name", "selection"))
+            for data in additional_data
+        )
 
-            mapped_ids = await self.load_mapped_ids(key_name="rebet_ids")
+        mapped_ids = await self.load_mapped_ids(key_name="rebet_ids")
 
-            if not mapped_ids:
-                return
+        if not mapped_ids:
+            return
 
-            payload = self._build_payload(mapped_ids=mapped_ids, additional_data=additional_data)
+        payload = self._build_payload(mapped_ids=mapped_ids, additional_data=additional_data)
 
-            import json
-            print(json.dumps(payload, indent=2))
+        import json
+        print(json.dumps(payload, indent=2))
 
-            if len(payload["selections"]) != len(additional_data):
-                return
+        if len(payload["selections"]) != len(additional_data):
+            return
 
-            api_data = await self.api_caller(
-                book_name=self.book_data.name,
-                session=session,
-                url=self.book_data.url.get("sgp_url"),
-                method="POST",
-                headers=self.book_data.headers,
-                payload=payload
-            )
+        api_data = await self.api_caller(
+            book_name=self.book_data.name,
+            session=session,
+            url=self.book_data.url.get("sgp_url"),
+            method="POST",
+            headers=self.book_data.headers,
+            payload=payload
+        )
 
-            if not all([api_data, api_data.get("success"), api_data.get("data", {}).get("combined_odds")]):
-                return
+        if not all([api_data, api_data.get("success"), api_data.get("data", {}).get("combined_odds")]):
+            return
 
-            decimal_odds = float(api_data.get("data", {}).get("combined_odds"))
-            print(decimal_odds)
+        decimal_odds = float(api_data.get("data", {}).get("combined_odds"))
+        print(decimal_odds)
 
-            american_odds = RebetSGP.convert_decimal_to_american(decimal_odds=decimal_odds)
-            return RebetSGP.return_odds(
-                american_odds=american_odds,
-                decimal_odds=decimal_odds
-            )
+        american_odds = RebetSGP.convert_decimal_to_american(decimal_odds=decimal_odds)
+        return RebetSGP.return_odds(
+            american_odds=american_odds,
+            decimal_odds=decimal_odds
+        )
 
 
 
