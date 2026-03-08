@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-
+import gc
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -10,12 +10,19 @@ from Auto_SGP.runner import AutoSGP
 async def run_autosgp():
     autosgp = await AutoSGP.create()
     await autosgp.runner()
-
+    ## TEMP SINCE USING ON LOWER RAM SERVER
+    gc.collect()
 
 async def main():
     print("Starting scheduler...")
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(run_autosgp, IntervalTrigger(seconds=120), next_run_time=datetime.now())
+    scheduler.add_job(
+        run_autosgp,
+        IntervalTrigger(seconds=120),
+        next_run_time=datetime.now(),
+        max_instances=1,
+        coalesce=True
+    )
     scheduler.start()
 
 

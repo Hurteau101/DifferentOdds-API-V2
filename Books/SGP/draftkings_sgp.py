@@ -48,8 +48,12 @@ class DraftkingsSGP(SGPBookBase):
         return None
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'draftkings', 'links': ['https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83722837O11950_1', 'https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83681931O23450_1']}
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            sgp_data = {'book_name': 'draftkings', 'links': ['https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83722837O11950_1', 'https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83681931O23450_1']}
 
-    book = DraftkingsSGP(sgp_data=sgp_data)
-    data = asyncio.run(book.run_book())
-    print(data)
+            book = DraftkingsSGP(sgp_data=sgp_data)
+            data = await book.run_book(session=session)
+            print(data)
+
+    asyncio.run(main())
