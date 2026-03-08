@@ -261,9 +261,6 @@ class BetwayMapper(BaseMapper):
 
                     market_name = stat_mapping.get(market_name.replace("player", "").strip(), market_name).lower()
 
-                    if "corner" in market_name:
-                        print(market_name)
-
                     mapping_key = "_".join([market_name, selection_name]).replace(" ", "_").lower()
 
 

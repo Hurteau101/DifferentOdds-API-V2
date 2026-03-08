@@ -431,7 +431,6 @@ if __name__ == "__main__":
         data = await hardrock.run_book()
         print(data)
 
-        # clean shutdown
         pool = await HardrockBrowserPool.get_instance()
         await pool.shutdown()
 
