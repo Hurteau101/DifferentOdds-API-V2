@@ -21,7 +21,18 @@ class HardrockSGP(SGPBookBase):
         if not raw_messages:
             return None
 
-        websocket_data = [json.loads(msg) for msg in raw_messages]
+        # websocket_data = [json.loads(msg) for msg in raw_messages]
+
+        websocket_data = []
+
+        for msg in raw_messages:
+            if not msg:
+                continue
+
+            try:
+                websocket_data.append(json.loads(msg))
+            except json.JSONDecodeError:
+                continue
 
         if not websocket_data:
             return None
