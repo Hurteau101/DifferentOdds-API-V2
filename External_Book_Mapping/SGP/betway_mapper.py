@@ -11,7 +11,15 @@ from Utils.request_caller import SportbookRequestType
 #### WILL NEED TO MAP MLB ####
 #### WILL NEED TO MAP NFL/NCAAF ###
 
+### Not Mapped Since not in SGP ###
+### NHL
+# 1st period total goals
+# Team Total
 
+### NBA
+# 1st half total points
+
+####################################
 
 ### MOVE GET STATIC METHOD TO BASE CLASS AFTER TESTING FURTHER
 def get_static_mapping():
@@ -40,7 +48,8 @@ TEAM_REGEX = re.compile(r"\s*\([A-Za-z]{3,4}\)")
 
 
 class BetwayMapper(BaseMapper):
-    ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball", "soccer", "ufc---martial-arts", "tennis"]
+    # ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball", "soccer", "ufc---martial-arts", "tennis"]
+    ALLOWED_LEAGUES = ["soccer"]
 
     def __init__(self):
         super().__init__(book_name="betway", category="sgp", request_type=SportbookRequestType.ASYNC)
@@ -128,6 +137,7 @@ class BetwayMapper(BaseMapper):
             handicap_value = outcome.get("Handicap")
 
             market_name = raw_market_name
+
             if handicap_display:
                 market_name = f"{raw_market_name} {handicap_value}"
 
@@ -209,6 +219,9 @@ class BetwayMapper(BaseMapper):
             event_id = str(result.get("Event", {}).get("Id"))
             event_bucket = {}
 
+            home_team = result.get("Event", {}).get("HomeTeamName", {})
+            away_team = result.get("Event", {}).get("AwayTeamName", {})
+
             outcome_mapping = await self.format_mapping(result.get("Outcomes", []))
 
             for market in result.get("Markets", []):
@@ -236,7 +249,20 @@ class BetwayMapper(BaseMapper):
                     if "player" not in market_name and TEAM_REGEX.search(found_mapping.get("raw_market_name")):
                         market_name = f"player {market_name}"
 
-                    market_name = stat_mapping.get(market_name, market_name).lower()
+                    if any(team in market_name for team in ["team a", "team b", "home team", "away team"]):
+                        market_name = (
+                            market_name.replace("team a", home_team)
+                            .replace("team b", away_team)
+                            .replace("home team", home_team)
+                            .replace("away team", away_team)
+                            .replace("full time", "")
+                            .strip()
+                        )
+
+                    market_name = stat_mapping.get(market_name.replace("player", "").strip(), market_name).lower()
+
+                    if "corner" in market_name:
+                        print(market_name)
 
                     mapping_key = "_".join([market_name, selection_name]).replace(" ", "_").lower()
 
@@ -315,6 +341,10 @@ class BetwayMapper(BaseMapper):
             )
 
             return
+
+        with open("betway_mapping.json", "w") as f:
+            import json
+            json.dump(mapping, f, indent=2)
 
         await redis_instance.store_data(
             key_name="betway_mapped_ids",
