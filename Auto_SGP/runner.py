@@ -419,15 +419,15 @@ class AutoSGP(APICaller):
         weighted_data = result.get("weighted_book_data")
         non_correlated_price = parlay_odds(*sgp_data.get("fair_value"))
 
-        # ev_count = sum(
-        #     1 for book_data in weighted_data.values()
-        #     if book_data.get("ev", 0) >= minimum_ev
-        # )
-        #
-        # meets_ev_threshold = ev_count == 1
-        #
-        # if not meets_ev_threshold:
-        #     return {}
+        ev_count = sum(
+            1 for book_data in weighted_data.values()
+            if book_data.get("ev", 0) >= minimum_ev
+        )
+
+        meets_ev_threshold = ev_count == 1
+
+        if not meets_ev_threshold:
+            return {}
 
         filtered_links = {
             book: sgp_data.get("sgp_links", {}).get(book)
@@ -844,6 +844,7 @@ class AutoSGP(APICaller):
                 self.controller(sgp_data, minimum_ev=minimum_ev)
                 for sgp_data in filtered_results
             ]
+
             controller_results = await asyncio.gather(*controller_tasks, return_exceptions=True)
 
             for data in controller_results:
@@ -877,7 +878,7 @@ class AutoSGP(APICaller):
             previous_data = await self.previously_stored_redis_instance.get_all_key_values()
             indexed_previous_data = self.index_previous_data(previous_data)
 
-            for index, filters in enumerate(self.configs[0:1], start=1):
+            for index, filters in enumerate(self.configs[3::], start=1):
                 print(
                     f"{'=' * 20}\n[{index}/{len(self.configs)}] Running League: {filters.get('league', 'N/A').upper()}\nStat Types: "
                     f"{', '.join(filters.get('stat_types', []))}",
