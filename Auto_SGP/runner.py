@@ -419,15 +419,15 @@ class AutoSGP(APICaller):
         weighted_data = result.get("weighted_book_data")
         non_correlated_price = parlay_odds(*sgp_data.get("fair_value"))
 
-        # ev_count = sum(
-        #     1 for book_data in weighted_data.values()
-        #     if book_data.get("ev", 0) >= minimum_ev
-        # )
-        #
-        # meets_ev_threshold = ev_count == 1
-        #
-        # if not meets_ev_threshold:
-        #     return {}
+        ev_count = sum(
+            1 for book_data in weighted_data.values()
+            if book_data.get("ev", 0) >= minimum_ev
+        )
+
+        meets_ev_threshold = ev_count == 1
+
+        if not meets_ev_threshold:
+            return {}
 
         filtered_links = {
             book: sgp_data.get("sgp_links", {}).get(book)
