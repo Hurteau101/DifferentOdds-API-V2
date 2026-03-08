@@ -1,4 +1,6 @@
 import asyncio
+from datetime import datetime
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -13,8 +15,9 @@ async def run_autosgp():
 async def main():
     print("Starting scheduler...")
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(run_autosgp, IntervalTrigger(seconds=120))
+    scheduler.add_job(run_autosgp, IntervalTrigger(seconds=120), next_run_time=datetime.now())
     scheduler.start()
+
 
     await asyncio.Event().wait()
 
