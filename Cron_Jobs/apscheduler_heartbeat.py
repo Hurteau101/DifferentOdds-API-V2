@@ -65,7 +65,7 @@ def send_discord_message(keys_missing):
 
 
 async def apscheduler_heartbeat():
-    print("Running Heartbeat...")
+    print(f"Running Heartbeat... {datetime.now()}")
     redis_auth_instance = RedisAsyncManager(database=5)
     redis_mapper_instance = RedisAsyncManager(database=2)
 
@@ -89,6 +89,8 @@ async def apscheduler_heartbeat():
             message=f"Missing keys in Redis: {', '.join(missing_keys)}",
             level="warning"
         )
+
+    print(f"Heartbeat Complete... {datetime.now()}")
 
 
 if __name__ == "__main__":
