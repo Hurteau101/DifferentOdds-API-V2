@@ -118,37 +118,82 @@ class HardrockSGP(SGPBookBase):
 
         driver = webdriver.Chrome(options=chrome_options)
 
+        driver.set_script_timeout(7)
+
+        driver.get("about:blank")
         try:
             driver.get("about:blank")
-
             result = driver.execute_async_script(f"""
-                const callback = arguments[arguments.length - 1];
-                const payload = {payload};
+            const callback = arguments[arguments.length - 1];
+            const payload = {payload};
 
-                const ws = new WebSocket("wss://api.hardrocksportsbook.com/websocket");
-                let messages = [];
+            const ws = new WebSocket("wss://api.hardrocksportsbook.com/websocket");
 
-                ws.onopen = () => {{
-                    console.log("WebSocket opened");
-                    ws.send(JSON.stringify(payload));
-                }};
+            let messages = [];
+            let finished = false;
 
-                ws.onmessage = (event) => {{
-                    console.log("Received message:", event.data);
-                    messages.push(event.data);
-                    ws.close();
-                }};
+            function finish(result) {{
+                if (finished) return;
+                finished = true;
+                callback(result);
+            }}
 
-                ws.onerror = (event) => {{
-                    console.log("WebSocket error:", event);
-                    callback({{error: "WebSocket error"}});
-                }};
+            ws.onopen = () => {{
+                console.log("WebSocket opened");
+                ws.send(JSON.stringify(payload));
+            }};
 
-                ws.onclose = (event) => {{
-                    console.log("WebSocket closed:", event.code);
-                    callback(messages);
-                }};
+            ws.onmessage = (event) => {{
+                console.log("Received message:", event.data);
+                messages.push(event.data);
+                ws.close();
+            }};
+
+            ws.onerror = (event) => {{
+                console.log("WebSocket error:", event);
+                finish({{error: "WebSocket error"}});
+            }};
+
+            ws.onclose = () => {{
+                console.log("WebSocket closed");
+                finish(messages);
+            }};
+
+            setTimeout(() => {{
+                console.log("Timeout reached");
+                finish(messages);
+            }}, 5000);
             """)
+
+
+            # result = driver.execute_async_script(f"""
+            #     const callback = arguments[arguments.length - 1];
+            #     const payload = {payload};
+            #
+            #     const ws = new WebSocket("wss://api.hardrocksportsbook.com/websocket");
+            #     let messages = [];
+            #
+            #     ws.onopen = () => {{
+            #         console.log("WebSocket opened");
+            #         ws.send(JSON.stringify(payload));
+            #     }};
+            #
+            #     ws.onmessage = (event) => {{
+            #         console.log("Received message:", event.data);
+            #         messages.push(event.data);
+            #         ws.close();
+            #     }};
+            #
+            #     ws.onerror = (event) => {{
+            #         console.log("WebSocket error:", event);
+            #         callback({{error: "WebSocket error"}});
+            #     }};
+            #
+            #     ws.onclose = (event) => {{
+            #         console.log("WebSocket closed:", event.code);
+            #         callback(messages);
+            #     }};
+            # """)
 
             # if print_logs:
             #     logs = driver.get_log("browser")
