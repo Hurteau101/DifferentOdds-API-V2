@@ -894,7 +894,7 @@ class AutoSGP(APICaller):
                     print("No Player Mapping Found. Skipping..")
                     continue
 
-                sportsbook_data = await self._load_sportsbook_data(session, used_stored_json=False, store_json=False)
+                sportsbook_data = await self._load_sportsbook_data(session, used_stored_json=False, store_json=True)
 
                 if not sportsbook_data:
                     create_sentry_message(

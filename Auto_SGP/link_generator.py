@@ -84,7 +84,7 @@ class Link:
             [
                 link_match.group(0)
                 for link in links
-                if (link_match := re.search("(?<=events/)(.*?)(?=/oddsjam)", link))
+                if (link_match := re.search(r"(?<=events/)[^/]+", link))
             ]
         )
 
