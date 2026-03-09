@@ -828,9 +828,6 @@ class AutoSGP(APICaller):
                 "time_fetched": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             }
 
-        # Will fix afterwards, to return this data and remove from keys, for re-run as anything after this will delay things.
-        payload_data = payload_data[0:300]
-
         for i in range(0, len(payload_data), batch_size):
             batch = payload_data[i:i + batch_size]
             print(f"  → Batch {i // batch_size + 1}: {len(batch)} items")
@@ -941,8 +938,11 @@ class AutoSGP(APICaller):
                     print("No Payload Data Found. Skipping..")
                     continue
 
+                modified_payload = payload_data[0:300]
 
-                await self.get_sgp_odds(payload_data, minimum_ev=filters.get("minimum_ev", 15), session=session)
+                await self.get_sgp_odds(modified_payload, minimum_ev=filters.get("minimum_ev", 15), session=session)
+
+
 
 
 
