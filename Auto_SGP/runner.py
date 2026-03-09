@@ -172,7 +172,6 @@ class AutoSGP(APICaller):
         for game_key, markets in bettorodds_data.items():
             redis_key = f"{filter_selection.get('unique_name')}-{game_key}"
             if redis_key in previous_data.keys():
-                print(redis_key)
                 continue
 
             if (
