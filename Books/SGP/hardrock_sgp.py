@@ -248,6 +248,7 @@ from Utils.request_caller import SportbookRequestType
 class HardrockBrowserPool:
     _instance = None
     _lock = None
+    _loop = None
 
     def __init__(self, size: int = 4):
         self.size = size
@@ -273,7 +274,7 @@ class HardrockBrowserPool:
     async def get_instance(cls):
         loop = asyncio.get_running_loop()
 
-        if getattr(cls, "_loop", None) != loop:
+        if cls._loop != loop:
             cls._instance = None
             cls._lock = None
             cls._loop = loop
@@ -287,6 +288,7 @@ class HardrockBrowserPool:
                 await cls._instance.start()
 
         return cls._instance
+
 
     # @classmethod
     # def limit(cls):
@@ -315,10 +317,19 @@ class HardrockBrowserPool:
         await self.pages.put(page)
 
     async def shutdown(self):
-        if self.browser:
-            await self.browser.close()
-        if self.playwright:
-            await self.playwright.stop()
+        try:
+            if self.browser:
+                await self.browser.close()
+        finally:
+            self.browser = None
+
+        try:
+            if self.playwright:
+                await self.playwright.stop()
+        finally:
+            self.playwright = None
+            self.started = False
+
 
 class HardrockSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
