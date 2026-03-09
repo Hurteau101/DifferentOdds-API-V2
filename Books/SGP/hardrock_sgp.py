@@ -244,9 +244,10 @@ from playwright.async_api import async_playwright
 from Books.Bases.sgp_book_base import SGPBookBase
 from Utils.request_caller import SportbookRequestType
 
+
 class HardrockBrowserPool:
     _instance = None
-    _lock = asyncio.Lock()
+    _lock = None
 
     def __init__(self, size: int = 4):
         self.size = size
@@ -257,11 +258,22 @@ class HardrockBrowserPool:
 
     @classmethod
     async def get_instance(cls):
+
+        if cls._lock is None:
+            cls._lock = asyncio.Lock()
+
         async with cls._lock:
             if cls._instance is None:
                 cls._instance = HardrockBrowserPool()
                 await cls._instance.start()
+
         return cls._instance
+
+    # @classmethod
+    # def limit(cls):
+    #     if cls.hardrock_limit is None:
+    #         cls.hardrock_limit = asyncio.BoundedSemaphore(4)
+    #     return cls.hardrock_limit
 
     async def start(self):
         if self.started:
@@ -290,9 +302,6 @@ class HardrockBrowserPool:
             await self.playwright.stop()
 
 class HardrockSGP(SGPBookBase):
-
-    hardrock_limit = asyncio.Semaphore(4)
-
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(
             request_type=SportbookRequestType.ASYNC,
@@ -306,50 +315,48 @@ class HardrockSGP(SGPBookBase):
     @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session=None):
 
-        async with HardrockSGP.hardrock_limit:
+        hardrock_ids = [item["bet_id"] for item in self.link_data]
 
-            hardrock_ids = [item["bet_id"] for item in self.link_data]
+        payload = self.create_payload(hardrock_ids)
 
-            payload = self.create_payload(hardrock_ids)
+        raw_messages = await self.websocket_manager(payload)
 
-            raw_messages = await self.websocket_manager(payload)
+        if not raw_messages:
+            return None
 
-            if not raw_messages:
-                return None
+        websocket_data = []
 
-            websocket_data = []
+        for msg in raw_messages:
+            try:
+                websocket_data.append(json.loads(msg))
+            except:
+                continue
 
-            for msg in raw_messages:
-                try:
-                    websocket_data.append(json.loads(msg))
-                except:
-                    continue
+        if not websocket_data:
+            return None
 
-            if not websocket_data:
-                return None
+        betslip_data = websocket_data[0].get("Betslip", {})
 
-            betslip_data = websocket_data[0].get("Betslip", {})
+        odds = next(
+            (
+                {
+                    "decimal": price,
+                    "american": self.convert_decimal_to_american(price),
+                }
+                for betslip in betslip_data.get("sameGameParlays", {}).values()
+                if (price := betslip.get("price"))
+            ),
+            None
+        )
 
-            odds = next(
-                (
-                    {
-                        "decimal": price,
-                        "american": self.convert_decimal_to_american(price),
-                    }
-                    for betslip in betslip_data.get("sameGameParlays", {}).values()
-                    if (price := betslip.get("price"))
-                ),
-                None
+        return (
+            HardrockSGP.return_odds(
+                american_odds=odds.get("american"),
+                decimal_odds=odds.get("decimal"),
             )
-
-            return (
-                HardrockSGP.return_odds(
-                    american_odds=odds.get("american"),
-                    decimal_odds=odds.get("decimal"),
-                )
-                if odds
-                else None
-            )
+            if odds
+            else None
+        )
 
 
 

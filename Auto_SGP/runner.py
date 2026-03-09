@@ -172,6 +172,7 @@ class AutoSGP(APICaller):
         for game_key, markets in bettorodds_data.items():
             redis_key = f"{filter_selection.get('unique_name')}-{game_key}"
             if redis_key in previous_data.keys():
+                print(redis_key)
                 continue
 
             if (
@@ -878,7 +879,7 @@ class AutoSGP(APICaller):
             previous_data = await self.previously_stored_redis_instance.get_all_key_values()
             indexed_previous_data = self.index_previous_data(previous_data)
 
-            for index, filters in enumerate(self.configs, start=1):
+            for index, filters in enumerate(self.configs[0:1], start=1):
                 print(
                     f"{'=' * 20}\n[{index}/{len(self.configs)}] Running League: {filters.get('league', 'N/A').upper()}\nStat Types: "
                     f"{', '.join(filters.get('stat_types', []))}",
