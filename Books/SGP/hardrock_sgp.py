@@ -256,8 +256,27 @@ class HardrockBrowserPool:
         self.playwright = None
         self.started = False
 
+    # @classmethod
+    # async def get_instance(cls):
+    #
+    #     if cls._lock is None:
+    #         cls._lock = asyncio.Lock()
+    #
+    #     async with cls._lock:
+    #         if cls._instance is None:
+    #             cls._instance = HardrockBrowserPool()
+    #             await cls._instance.start()
+    #
+    #     return cls._instance
+
     @classmethod
     async def get_instance(cls):
+
+        loop = asyncio.get_running_loop()
+
+        if getattr(cls, "_loop", None) != loop:
+            cls._instance = None
+            cls._loop = loop
 
         if cls._lock is None:
             cls._lock = asyncio.Lock()
