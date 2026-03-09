@@ -271,11 +271,11 @@ class HardrockBrowserPool:
 
     @classmethod
     async def get_instance(cls):
-
         loop = asyncio.get_running_loop()
 
         if getattr(cls, "_loop", None) != loop:
             cls._instance = None
+            cls._lock = None
             cls._loop = loop
 
         if cls._lock is None:
