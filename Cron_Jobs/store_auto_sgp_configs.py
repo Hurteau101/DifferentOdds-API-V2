@@ -15,7 +15,9 @@ async def store_auto_sgp_configs(database_instance: Database, redis_instance: Re
             for key, value in row.items()
         }
         for row in configs
+        if row.get("active")
     ]
+
 
     await redis_instance.store_data(
         key_name="configs",
