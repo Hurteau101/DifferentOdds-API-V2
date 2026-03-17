@@ -3,6 +3,7 @@ import re
 import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
 from Monitoring.monitoring import create_sentry_message
+from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
 
@@ -150,8 +151,24 @@ class CaesarsSGP(SGPBookBase):
 
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'caesars', 'links': ['https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=cc6de1a7-4d03-3f4a-99ec-37fc60e41e9b', 'https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=5077ca86-678a-36f7-b613-8d5e6a18557c']}
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            sgp_data = {
+                "book_name": "caesars",
+                "links": [
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=30ad4dd6-4f80-38d7-bd5c-f5bb75d0eaf8",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=5f7d5e50-a93a-34a5-bd98-f55764349cd0"
+                ],
+                "lines": {
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=30ad4dd6-4f80-38d7-bd5c-f5bb75d0eaf8": 3.5,
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=5f7d5e50-a93a-34a5-bd98-f55764349cd0": 11.5
+                }
+            }
 
-    book = CaesarsSGP(sgp_data=sgp_data)
-    data = asyncio.run(book.run_book())
-    print(data)
+            redis_mapped = RedisAsyncManager(database=2)
+            redis_instance = RedisAsyncManager(database=5)
+            book = CaesarsSGP(mapped_ids_redis_instance=redis_mapped, auth_redis_instance=redis_instance, sgp_data=sgp_data)
+            data = await book.run_book(session=session)
+            print(data)
+
+    asyncio.run(main())

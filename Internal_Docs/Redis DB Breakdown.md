@@ -39,6 +39,9 @@
 ### Redis DB - `12`
 ##### This is for Auto SGP Previously Sent Discord Messages
 
+### Redis DB - `13`
+##### This is for cached BettorOdds Odds
+
 ### Redis DB - `15`
 ##### This is for Celery Broker
 

@@ -4,7 +4,7 @@ import os
 from itertools import zip_longest, batched
 import aiohttp
 from Monitoring.monitoring import create_sentry_message
-from Redis.redis_manager import RedisAsyncManager
+from Redis.redis_manager import RedisAsyncManager, RedisSyncManager, static_mapping_service
 from Utils.request_caller import APICaller, SportbookRequestType
 
 
@@ -14,7 +14,10 @@ class BettoroddsMapping(APICaller):
         self.async_batch = async_batch # Used for BettorOdds API batching
         self.book_name = book_name
         self.redis_instance = RedisAsyncManager(database=4)
+        self.league_mapping = static_mapping_service.get().get("leagues", {})
         super().__init__(request_type=SportbookRequestType.ASYNC)
+
+
 
     def _map_teams_players(self, data: dict, collection_key: str, league: str) -> dict:
         """Maps the leagues and players from BettorOdds API"""
@@ -60,10 +63,17 @@ class BettoroddsMapping(APICaller):
 
     def _map_markets(self, data: dict, league: str) -> dict:
         """Maps the markets from BettorOdds API"""
+
         mapped = {
             "mapped": {},
             "unmapped": {}
         }
+
+        league_upper = league.upper()
+        league_lower = league.lower()
+
+        sport = self.league_mapping.get(league_upper, {}).get("sport")
+        sport_lower = sport.lower() if sport else None
 
         for value in data.values():
             if not value:
@@ -71,10 +81,23 @@ class BettoroddsMapping(APICaller):
 
             original = value.get("query")
             normalized = value.get("normalized_name")
+            match_list = value.get("matches", [])
+
+            if match_list and sport_lower:
+                normalized = next(
+                    (
+                        match.get("normalized_name")
+                        for match in match_list
+                        if any(s.lower() == sport_lower for s in match.get("sports", []))
+                    ),
+                    normalized
+                )
+
+                print("Normalized Found", normalized)
 
             if original and normalized:
-                mapped["mapped"][f"{original.lower()}-{league.lower()}"] = normalized
-            else:
+                mapped["mapped"][f"{original.lower()}-{league_lower}"] = normalized
+            elif original:
                 mapped["unmapped"][original] = league
 
         return mapped
@@ -257,10 +280,6 @@ class BettoroddsMapping(APICaller):
             }
             for side in ("mapped", "unmapped")
         }
-
-        with open("mapped_data.json", "w") as f:
-            import json
-            json.dump(breakdown_results, f, indent=2)
 
         categories = ("teams", "players", "markets")
 

@@ -306,6 +306,7 @@ class Underdog(DFSBookBase):
                     self.add_to_events(events, player_data, GameData)
 
             underdog_data = list(events.values())
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=underdog_data)
 
             await self.store_data(

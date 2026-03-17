@@ -11,10 +11,6 @@ from Books.SGP.onyx_sgp import OnyxSGP
 from Books.SGP.prophetx_sgp import ProphetxSGP
 from Books.SGP.thescore_sgp import ThescoreSGP
 
-URLS = {
-    "bettorodds_url": "https://api.eternity7.dev/api/dev_internal_feed"
-}
-
 BOOKS = {
     "betmgm": {
         "class": BetmgmSGP,

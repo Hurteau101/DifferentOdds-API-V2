@@ -142,6 +142,7 @@ class CaesarMapper(BaseMapper):
             if result:
                 mapping.update(self._create_mapping(result))
 
+        print(mapping)
         if mapping:
             await redis_instance.store_data(
                 key_name="caesar_mapped_ids",
@@ -151,7 +152,7 @@ class CaesarMapper(BaseMapper):
 
 if __name__ == "__main__":
     db = Database()
-    redis_instance = RedisAsyncManager(database=11)
+    redis_instance = RedisAsyncManager(database=2)
     mapper = CaesarMapper()
     async def main():
         async with aiohttp.ClientSession() as session:

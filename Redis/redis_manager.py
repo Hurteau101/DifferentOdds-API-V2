@@ -263,7 +263,8 @@ class RedisStaticMappingService:
         if self._cache is None or now - self._last_loaded > self._ttl:
             self._cache = {
                 "stats": self.redis.get_data("stat_mapper") or {},
-                "leagues": self.redis.get_data("league_mapper") or {}
+                "leagues": self.redis.get_data("league_mapper") or {},
+                "sports": self.redis.get_data("sport_mapper") or {}
             }
 
             self._last_loaded = now

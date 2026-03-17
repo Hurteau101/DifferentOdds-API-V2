@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
 from Monitoring.monitoring import create_sentry_message
+from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
 
@@ -99,8 +100,19 @@ class FanduelSGP(SGPBookBase):
 
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'fanduel', 'links': ['https://sportsbook.fanduel.com/addToBetslip?marketId=42.560449272&selectionId=43430136', 'https://sportsbook.fanduel.com/addToBetslip?marketId=42.560449291&selectionId=43430136']}
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            sgp_data = {'book_name': 'fanduel', 'links': [
+                'https://sportsbook.fanduel.com/addToBetslip?marketId=42.562499828&selectionId=38225623',
+                'https://sportsbook.fanduel.com/addToBetslip?marketId=42.562497363&selectionId=15552474']}
 
-    book = FanduelSGP(sgp_data=sgp_data)
-    data = asyncio.run(book.run_book())
-    print(data)
+            redis_mapped = RedisAsyncManager(database=2)
+            book = FanduelSGP(mapped_ids_redis_instance=redis_mapped, sgp_data=sgp_data)
+            data = await book.run_book(session=session)
+            print(data)
+
+    asyncio.run(main())
+
+
+
+# 294

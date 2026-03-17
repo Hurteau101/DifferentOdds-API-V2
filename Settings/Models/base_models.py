@@ -50,7 +50,7 @@ class GameData:
     solo_game: Optional[bool] = None
 
     def __post_init__(self):
-        self.league = get_static_mapping().get("leagues").get(self.league.lower(), self.league.upper())
+        self.league = get_static_mapping().get("leagues", {}).get(self.league.lower(), {}).get("mapped_name", self.league.upper())
         self.start_date = cache_time(self.start_date)
 
         # Work on a better solution.

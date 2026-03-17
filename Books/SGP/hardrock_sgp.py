@@ -235,6 +235,8 @@
 #
 #
 
+#### WILL NEED TO CHECK IF RUNNING THROUGH DATA CENTER PROXIES WILL WORK PROPERLY ####
+
 
 
 import asyncio
@@ -301,7 +303,15 @@ class HardrockBrowserPool:
             return
 
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(headless=True)
+        # self.browser = await self.playwright.chromium.launch(headless=True)
+        self.browser = await self.playwright.chromium.launch(
+            headless=True,
+            proxy={
+                "server": "http://204.252.87.211:49233",
+                "username": "sOap1hQ0HEgt6Wo",
+                "password": "VANKVUBCakJNMBY"
+            }
+        )
 
         for _ in range(self.size):
             page = await self.browser.new_page()
@@ -457,10 +467,24 @@ if __name__ == "__main__":
     sgp_data = {
         "book_name": "hardrock",
         "links": [
-            "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/1226838881559773437",
-            "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/8030162598496436481",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/7324291980954042628",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/4991007360534315253"
         ],
-    }
+        "lines": {
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/7324291980954042628": 3.5,
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/4991007360534315253": 9.5
+        },
+        "event_data": [
+          {
+            "market_name": "Player Rebounds",
+            "selection_name": "Cody Williams Over 3.5"
+          },
+          {
+            "market_name": "Player Points",
+            "selection_name": "Cody Williams Over 9.5"
+          }
+        ]
+      }
 
     async def main():
         hardrock = HardrockSGP(sgp_data=sgp_data)
