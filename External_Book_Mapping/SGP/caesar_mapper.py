@@ -1,12 +1,12 @@
 import asyncio
 from itertools import chain
-
 import aiohttp
-
+import os
 from Database.database import Database
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 
 
@@ -52,8 +52,28 @@ class CaesarMapper(BaseMapper):
 
             return
 
+        proxy = os.getenv("RES_PROXY")
+        if not proxy:
+            create_sentry_message(
+                tag_key="caesars",
+                tag_value="proxy_failure",
+                message="No proxy found",
+                level="error"
+            )
+            return
+
+        proxies = proxy.split(",")
+
+        reformatted_proxies = [
+            f"{user}:{pw}:{ip}:{port}"
+            for p in proxies
+            for ip, port, user, pw in [p.split(":", 3)]
+        ]
+
+        proxy_manager = ProxyManager(proxies=reformatted_proxies, api_caller_func=self.api_caller)
+
         raw_events = [
-            self.api_caller(
+            proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("event_url").format(sport=sport),
@@ -84,7 +104,7 @@ class CaesarMapper(BaseMapper):
             return
 
         game_url_tasks = [
-            self.api_caller(
+            proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("game_url").format(event_id=event),
@@ -115,7 +135,7 @@ class CaesarMapper(BaseMapper):
             return
 
         market_url_tasks = [
-            self.api_caller(
+            proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("market_url").format(path=path),
@@ -142,7 +162,6 @@ class CaesarMapper(BaseMapper):
             if result:
                 mapping.update(self._create_mapping(result))
 
-        print(mapping)
         if mapping:
             await redis_instance.store_data(
                 key_name="caesar_mapped_ids",
