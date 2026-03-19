@@ -307,9 +307,9 @@ class HardrockBrowserPool:
         self.browser = await self.playwright.chromium.launch(
             headless=True,
             proxy={
-                "server": "http://204.252.87.211:49233",
-                "username": "sOap1hQ0HEgt6Wo",
-                "password": "VANKVUBCakJNMBY"
+                "server": "http://204.252.80.19:42624",
+                "username": "lJDjdvcOoSmG0oa",
+                "password": "aJX9SDxXhnL0AFp"
             }
         )
 
