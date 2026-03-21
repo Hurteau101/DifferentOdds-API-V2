@@ -1,4 +1,6 @@
+import inspect
 import json
+import os
 from enum import Enum
 from typing import Union
 
@@ -8,7 +10,12 @@ from aiohttp import ClientResponse
 from curl_cffi.requests import Response as CurlResponse
 from curl_cffi import AsyncSession as CurlAsyncSession
 from aiohttp import ClientSession as AiohttpClientSession
+from discordwebhook import Discord
+from dotenv import load_dotenv
 
+from Monitoring.Discord_Logging.logger import send_discord_message
+
+load_dotenv()
 
 class SportbookRequestType(Enum):
     ASYNC = "async"
@@ -19,6 +26,30 @@ class APICaller:
     def __init__(self, request_type: SportbookRequestType, valid_status_codes: list[int] | None = None):
         self.valid_status_codes = valid_status_codes or [200, 201]
         self.request_type = request_type
+
+        webhook = os.getenv("DISCORD_LOGGING_WEBHOOK_URL")
+
+        self.discord = Discord(url=webhook) if webhook else None
+
+    def check_403(self, status_code: int, book_name: str):
+        if not self.discord or status_code != 403:
+            return
+
+        stack = inspect.stack()
+        caller_class = stack[1][0].f_locals["self"].__class__.__name__
+
+        send_discord_message(
+            self.discord,
+            severity=1,
+            title=f"403 {book_name} Failure",
+            description="A 403 status code was returned.",
+            multiple_fields=True,
+            fields=[
+                {"name": "Class", "value": caller_class, "inline": False},
+            ]
+        )
+
+
 
     async def api_caller(self,
                     book_name: str,
@@ -61,7 +92,8 @@ class APICaller:
             except json.JSONDecodeError:
                 self._capture_error(book_name, "Failed to parse JSON")
         else:
-            self._capture_error(book_name, f"Invalid status code {response.status_code}")
+            self.check_403(response.status_code, book_name)
+            # self._capture_error(book_name, f"Invalid status code {response.status_code}")
 
         return None
 
@@ -83,13 +115,15 @@ class APICaller:
             except aiohttp.client_exceptions.ContentTypeError:
                 return await response.json(content_type=None)
         else:
-            self._capture_error(book_name, f"Invalid status code {response.status}")
+            self.check_403(response.status, book_name)
+            # self._capture_error(book_name, f"Invalid status code {response.status}")
 
         return None
 
 
     def _capture_error(self, book_name: str, reason: str):
-        with sentry_sdk.new_scope() as scope:
-            scope.set_tag("book_name", book_name)
-            scope.set_tag("reason", reason)
-            sentry_sdk.capture_message(f"Error for {book_name}: {reason}", level="error")
+        pass
+        # with sentry_sdk.new_scope() as scope:
+        #     scope.set_tag("book_name", book_name)
+        #     scope.set_tag("reason", reason)
+        #     sentry_sdk.capture_message(f"Error for {book_name}: {reason}", level="error")
