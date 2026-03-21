@@ -152,10 +152,10 @@ SCHEDULES = AUTH_JOBS + MAPPER_JOBS
 class ScheduleRunner:
     async def run_one(self, cls, client_session, redis_instance):
         logging.info("========================================")
-        logging.info(f"-> STARTING AUTH BOOK: {cls.__name__}")
+        logging.info(f"-> STARTING: {cls.__name__}")
         instance = cls()
         await instance.run_scheduler(session=client_session, redis_instance=redis_instance)
-        logging.info(f"-> FINISHED AUTH BOOK: {cls.__name__}")
+        logging.info(f"-> FINISHED: {cls.__name__}")
         logging.info("========================================\n")
 
     async def start(self):
