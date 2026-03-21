@@ -67,8 +67,8 @@ class APICaller:
 
     async def handle_async_response(self, response: ClientResponse, parse_json: bool, book_name: str) -> dict | None:
         """Handle aiohttp async response."""
-        if response.status not in self.valid_status_codes:
-            print(f"\n******* Failed {book_name} | Text: {await response.text()} *************\n", response.status)
+        # if response.status not in self.valid_status_codes:
+        #     print(f"\n******* Failed {book_name} | Text: {await response.text()} *************\n", response.status)
 
         if response.status in self.valid_status_codes:
             try:
