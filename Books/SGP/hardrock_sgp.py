@@ -1,12 +1,12 @@
 from Books.Bases.sgp_book_base import SGPBookBase
 from Utils.request_caller import SportbookRequestType
 import asyncio
-from Utils.socket_pooler import SocketPooler
+from Utils.socket_pooler import SocketHelper
 
-_pool = SocketPooler(url="wss://api.hardrocksportsbook.com/websocket", headers={
-    'Origin': 'https://api.hardrocksportsbook.com',
-    'Host': 'api.hardrocksportsbook.com'
-})
+# _pool = SocketPooler(url="wss://api.hardrocksportsbook.com/websocket", headers={
+#     'Origin': 'https://api.hardrocksportsbook.com',
+#     'Host': 'api.hardrocksportsbook.com'
+# })
 
 class HardrockSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
@@ -18,6 +18,8 @@ class HardrockSGP(SGPBookBase):
             **kwargs
         )
 
+
+
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session=None):
@@ -26,7 +28,15 @@ class HardrockSGP(SGPBookBase):
 
         payload = self.create_payload(hardrock_ids)
 
-        data = await _pool.send(payload)
+        socket_helper = SocketHelper(
+            url="wss://api.hardrocksportsbook.com/websocket",
+            headers={
+                'Origin': 'https://api.hardrocksportsbook.com',
+                'Host': 'api.hardrocksportsbook.com'
+            }
+        )
+
+        data = await socket_helper.send(payload)
 
         if not data:
             return None
@@ -72,8 +82,8 @@ if __name__ == "__main__":
     sgp_data = {
         "book_name": "hardrock",
         "links": [
-          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/4750305023928434937",
-          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/8788355601144086780",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/4305239316516438262",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/4653238206840570101",
         ]
       }
 

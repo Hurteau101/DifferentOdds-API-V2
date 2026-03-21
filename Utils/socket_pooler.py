@@ -69,46 +69,27 @@
 #             return {}
 #
 
-import asyncio
 import json
 from curl_cffi import requests as cf_requests
 
-class SocketPooler:
-    def __init__(self, url: str, headers: dict, size=10):
+class SocketHelper:
+    def __init__(self, url: str, headers: dict):
         self.url = url
 
         if not self.url.startswith("ws://") and not self.url.startswith("wss://"):
             raise ValueError("URL must start with ws:// or wss://")
 
         self.headers = headers or {}
-        self.size = size
-        self.session = None
-        self.lock = asyncio.Lock()
-        self.pool = asyncio.Queue()
 
     async def send(self, payload: dict):
-        async with self.lock:
-            if self.session is None:
-                self.session = cf_requests.AsyncSession(impersonate="safari15_5")
-                for _ in range(self.size):
-                    ws = await self.session.ws_connect(
-                        self.url,
-                        headers=self.headers
-                    )
-                    await self.pool.put(ws)
-
-        ws = await self.pool.get()
         try:
-            await ws.send_json(payload)
-            received_msg = await ws.recv()
-            if isinstance(received_msg, tuple):
-                received_msg, _ = received_msg
-
-            result = json.loads(received_msg)
-            await self.pool.put(ws)
-            return result
+            async with cf_requests.AsyncSession(impersonate="safari15_5") as session:
+                ws = await session.ws_connect(self.url, headers=self.headers)
+                await ws.send_json(payload)
+                received_msg = await ws.recv()
+                if isinstance(received_msg, tuple):
+                    received_msg, _ = received_msg
+                return json.loads(received_msg)
         except Exception as e:
             print(e)
-            self.session = None
-            self.pool = asyncio.Queue()
             return {}
