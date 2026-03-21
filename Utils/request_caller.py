@@ -32,22 +32,24 @@ class APICaller:
         self.discord = Discord(url=webhook) if webhook else None
 
     def check_403(self, status_code: int, book_name: str):
+
+        ### Add redis checker to ensure its not already in redis.
         if not self.discord or status_code != 403:
             return
 
-        stack = inspect.stack()
-        caller_class = stack[1][0].f_locals["self"].__class__.__name__
-
-        send_discord_message(
-            self.discord,
-            severity=1,
-            title=f"403 {book_name} Failure",
-            description="A 403 status code was returned.",
-            multiple_fields=True,
-            fields=[
-                {"name": "Class", "value": caller_class, "inline": False},
-            ]
-        )
+        # stack = inspect.stack()
+        # caller_class = stack[1][0].f_locals["self"].__class__.__name__
+        #
+        # send_discord_message(
+        #     self.discord,
+        #     severity=1,
+        #     title=f"403 {book_name} Failure",
+        #     description="A 403 status code was returned.",
+        #     multiple_fields=True,
+        #     fields=[
+        #         {"name": "Class", "value": caller_class, "inline": False},
+        #     ]
+        # )
 
 
 
