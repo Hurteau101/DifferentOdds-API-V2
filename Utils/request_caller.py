@@ -27,7 +27,7 @@ class APICaller:
         self.valid_status_codes = valid_status_codes or [200, 201]
         self.request_type = request_type
 
-        webhook = os.getenv("DISCORD_LOGGING_WEBHOOK_URL")
+        webhook = os.getenv("DISCORD_403_LOGGING_URL")
 
         self.discord = Discord(url=webhook) if webhook else None
 
