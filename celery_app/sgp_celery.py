@@ -16,7 +16,7 @@ celery_app = Celery(
 )
 
 celery_app.conf.update(
-    worker_max_tasks_per_child=5,
+    worker_max_tasks_per_child=1,
 )
 
 celery_app.conf.beat_schedule = {
