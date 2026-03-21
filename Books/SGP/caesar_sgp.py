@@ -9,7 +9,7 @@ from Utils.request_caller import SportbookRequestType
 
 class CaesarsSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, mapped_ids_redis_instance, auth_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="caesars",
+        super().__init__(request_type=SportbookRequestType.SPOOF, category="SGP", book_name="caesars",
                          sgp_data=sgp_data, mapped_ids_redis_instance=mapped_ids_redis_instance,
                          auth_redis_instance=auth_redis_instance, **kwargs)
         self.lines = sgp_data.get("lines")

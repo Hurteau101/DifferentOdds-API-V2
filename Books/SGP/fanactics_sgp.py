@@ -71,13 +71,7 @@ class FanaticsSGP(SGPBookBase):
 
 
 if __name__ == "__main__":
-    sgp_data = {
-        'book_name': 'fanatics',
-        'links': [
-            "fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%224005174%22%2C%22marketId%22%3A%22531771098%22%2C%22selectionId%22%3A%221317286429%22%7D%5D%7D&deep_link_value=consume-betslip",
-            "fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%224005174%22%2C%22marketId%22%3A%22540588691%22%2C%22selectionId%22%3A%221338764767%22%7D%5D%7D&deep_link_value=consume-betslip",
-        ]
-    }
+    sgp_data = {'book_name': 'fanatics', 'links': ['fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%224005174%22%2C%22marketId%22%3A%22540753973%22%2C%22selectionId%22%3A%221339177627%22%7D%5D%7D&deep_link_value=consume-betslip', 'fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%224005174%22%2C%22marketId%22%3A%22540753985%22%2C%22selectionId%22%3A%221339177687%22%7D%5D%7D&deep_link_value=consume-betslip'], 'lines': {'fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%224005174%22%2C%22marketId%22%3A%22540753973%22%2C%22selectionId%22%3A%221339177627%22%7D%5D%7D&deep_link_value=consume-betslip': 3.5, 'fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%224005174%22%2C%22marketId%22%3A%22540753985%22%2C%22selectionId%22%3A%221339177687%22%7D%5D%7D&deep_link_value=consume-betslip': 8.5}, 'event_data': [{'market_name': 'Player Rebounds', 'selection_name': 'Cason Wallace Over 3.5'}, {'market_name': 'Player Points', 'selection_name': 'Cason Wallace Over 8.5'}]}
 
     async def main():
         tasks = [FanaticsSGP(sgp_data=sgp_data).run_book() for _ in range(5)]

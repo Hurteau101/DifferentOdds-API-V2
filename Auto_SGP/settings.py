@@ -15,62 +15,74 @@ BOOKS = {
     "betmgm": {
         "class": BetmgmSGP,
         "active": True,
-        "mapped_name": "betmgm"
+        "mapped_name": "betmgm",
+        "session": "aiohttp"
     },
     "draftkings": {
         "class": DraftkingsSGP,
         "active": True,
-        "mapped_name": "draftkings"
+        "mapped_name": "draftkings",
+        "session": "aiohttp"
     },
     "fanatics": {
         "class": FanaticsSGP,
         "active": True,
-        "mapped_name": "fanatics"
+        "mapped_name": "fanatics",
+        "session": "aiohttp"
     },
     "fanduel": {
         "class": FanduelSGP,
         "active": True,
-        "mapped_name": "fanduel"
+        "mapped_name": "fanduel",
+        "session": "aiohttp"
     },
     "hard rock": {
         "class": HardrockSGP,
         "active": True,
-        "mapped_name": "hardrock"
+        "mapped_name": "hardrock",
+        "session": "aiohttp"
     },
     "kambi": {
         "class": KambiSGP,
         "active": True,
-        "mapped_name": "kambi"
+        "mapped_name": "kambi",
+        "session": "aiohttp"
     },
     "novig": {
         "class": NovigSGP,
         "active": True,
-        "mapped_name": "novig"
+        "mapped_name": "novig",
+        "session": "aiohttp"
     },
     "onyx odds": {
         "class": OnyxSGP,
         "active": False,
-        "mapped_name": "onyxodds"
+        "mapped_name": "onyxodds",
+        "session": "aiohttp"
     },
     "prophet x": {
         "class": ProphetxSGP,
         "active": True,
-        "mapped_name": "prophetx"
+        "mapped_name": "prophetx",
+        "session": "aiohttp"
     },
     "caesars": {
         "class": CaesarsSGP,
         "active": True,
-        "mapped_name": "caesars"
+        "mapped_name": "caesars",
+        "session": "curl"
     },
     "thescore": {
         "class": ThescoreSGP,
         "active": True,
-        "mapped_name": "thescore"
+        "mapped_name": "thescore",
+        "session": "aiohttp"
     },
     "betway": {
         "class": BetwaySGP,
         "active": True,
-        "mapped_name": "betway"
+        "mapped_name": "betway",
+        "session": "aiohttp"
     }
 }
 

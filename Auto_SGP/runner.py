@@ -20,7 +20,7 @@ from Database.database import Database
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager, RedisSyncManager
 from Utils.request_caller import APICaller, SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 
@@ -552,7 +552,7 @@ class AutoSGP(APICaller):
         return book_name, None
 
 
-    async def get_sgp_odds(self, payload_data: list, session, minimum_ev: float, batch_size: int = 10,
+    async def get_sgp_odds(self, payload_data: list, session_dict, minimum_ev: float, batch_size: int = 10,
                            retry_times: int = 1):
         mapped_names = {
             book_data.get("mapped_name"): book_data
@@ -565,18 +565,27 @@ class AutoSGP(APICaller):
         async def fetch_single(payload_item: dict):
             tasks = []
 
-            async def run_limited_book(book_cls, book_name):
+            async def run_limited_book(book_cls, book_name, session):
+
+
                 async with book_semaphore:
                     return await self.run_sgp_with_retry(
                         book_cls=book_cls,
                         book_name=book_name,
                         retry_times=retry_times,
-                        session=session
+                        session=session,
                     )
 
             for book in payload_item.get("payload", []):
                 book_name = book.get("book_name")
                 book_cls_name = mapped_names.get(book_name, {}).get("class")
+
+                session_type = mapped_names.get(book_name, {}).get("session", None)
+                session = session_dict.get(session_type) if session_type else None
+
+                if not session:
+                    print("No Session Found", book_name)
+                    continue
 
                 if not book_cls_name:
                     print("No Class Found for Book:", book_name)
@@ -589,13 +598,14 @@ class AutoSGP(APICaller):
                     "event_data": book.get("event_data"),
                 }
 
+
                 book_cls = book_cls_name(
                     sgp_data=sgp_data,
                     mapped_ids_redis_instance=self.mapped_ids_redis_instance,
                     auth_redis_instance=self.auth_redis_instance
                 )
 
-                tasks.append(run_limited_book(book_cls=book_cls, book_name=book_name))
+                tasks.append(run_limited_book(book_cls=book_cls, book_name=book_name, session=session))
 
             results = await asyncio.gather(*tasks)
 
@@ -691,8 +701,8 @@ class AutoSGP(APICaller):
 
     async def runner(self):
         timeout = aiohttp.ClientTimeout(total=40)
-
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with CurlAsyncSession(timeout=timeout) as curl_session, aiohttp.ClientSession(timeout=timeout) as aiohttp_session:
+        # async with aiohttp.ClientSession(timeout=timeout) as session:
             slips = SlipMapper()
 
             previous_data = await self.previously_stored_redis_instance.get_all_key_values()
@@ -706,7 +716,7 @@ class AutoSGP(APICaller):
 
                 espn_mapper = ESPN(filter_data=filters)
                 player_mapping = await espn_mapper.runner(
-                    session=session,
+                    session=aiohttp_session,
                     api_caller=self.api_caller
                 )
 
@@ -754,14 +764,14 @@ class AutoSGP(APICaller):
                     selection_odds=selection_odds
                 )
 
-
                 if not payload_data:
                     print("No Payload Data Found. Skipping..")
                     continue
 
                 modified_payload = payload_data[0:300]
 
-                await self.get_sgp_odds(modified_payload, minimum_ev=filters.get("minimum_ev", 15), session=session)
+                await self.get_sgp_odds(modified_payload, minimum_ev=filters.get("minimum_ev", 15),
+                                        session_dict={"curl": curl_session, "aiohttp": aiohttp_session})
 
 
 
