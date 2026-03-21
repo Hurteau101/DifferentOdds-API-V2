@@ -50,10 +50,14 @@ class SGPBookBase(APICaller, ABC):
 
     @staticmethod
     def return_odds(american_odds: str | float | int | None, decimal_odds: str | float | int | None) -> dict:
-        return {
-            "american_odds": float(american_odds) if american_odds else None,
-            "decimal_odds": float(decimal_odds) if decimal_odds else None
-        }
+        try:
+            return {
+                "american_odds": float(american_odds) if american_odds else None,
+                "decimal_odds": float(decimal_odds) if decimal_odds else None
+            }
+        except:
+            print(f"*************** THIS FAILED TO CONVERT ODDS ({american_odds} {decimal_odds}) ***************")
+            return {}
 
     async def load_auth_token(self, key_name: str):
         """Returns the stored auth token from Redis."""

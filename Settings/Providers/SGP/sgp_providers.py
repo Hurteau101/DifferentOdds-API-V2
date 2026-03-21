@@ -138,7 +138,7 @@ SGP_PROVIDERS = [
         title="HardRock",
         name="hardrock",
         url={
-            "main_url": "wss://api.hardrocksportsbook.com/websocket"
+            "main_url": 'wss://api.hardrocksportsbook.com/websocket'
         },
         regex={
             "bet_id": r"betslip/(.+)",

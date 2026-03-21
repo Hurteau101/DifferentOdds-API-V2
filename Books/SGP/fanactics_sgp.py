@@ -5,10 +5,14 @@ import websockets
 from Books.Bases.sgp_book_base import SGPBookBase
 from Monitoring.monitoring import create_sentry_message
 from Utils.request_caller import SportbookRequestType
+from Utils.socket_pooler import SocketPooler
 
-
-fanatics_semaphore = asyncio.Semaphore(10)
-
+_pool = SocketPooler(url="wss://sportsbook.1.betfanatics.com/sportsbook-streaming-ws", headers={
+    "Accept-Encoding": "gzip,deflate",
+    "Accept-Charset": "UTF-8",
+    "Accept": "*/*",
+    "User-Agent": "ktor-client",
+})
 
 class FanaticsSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
@@ -41,81 +45,44 @@ class FanaticsSGP(SGPBookBase):
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session=None):
-        async with fanatics_semaphore:
-            payload = {
-                "BetslipBuilderRequest": {
-                    "channel": "AMELCO_TN_MASTER",
-                    "currency": "USD",
-                    "selections": [
-                        {
-                            "id": int(data.get("selection_id")),
-                            "banker": False,
-                            "eachWay": False,
-                            "mostBalanced": False
-                        }
-                        for data in self.link_data
-                    ],
-                    "sessionToken": None
-                }
+        payload = {
+            "BetslipBuilderRequest": {
+                "channel": "AMELCO_TN_MASTER",
+                "currency": "USD",
+                "selections": [
+                    {
+                        "id": int(data.get("selection_id")),
+                        "banker": False,
+                        "eachWay": False,
+                        "mostBalanced": False
+                    }
+                    for data in self.link_data
+                ],
+                "sessionToken": None
             }
+        }
 
-            message_check = None
+        data = await _pool.send(payload)
 
-            try:
-                async with websockets.connect(
-                    self.book_data.url.get("main_url"),
-                    extra_headers=self.book_data.headers,
-                    ping_interval=None,
-                    open_timeout=10,
-                    close_timeout=5,
-                ) as websocket:
+        if not data:
+            return None
 
-                    await websocket.send(json.dumps(payload))
-
-                    for _ in range(5):
-                        message = await asyncio.wait_for(websocket.recv(), timeout=8)
-                        message_check = message
-
-                        try:
-                            data = json.loads(message)
-                        except json.JSONDecodeError:
-                            continue
-
-                        odds = self._extract_odds(data)
-                        if odds:
-                            return odds
-
-                    return None
-
-            except asyncio.TimeoutError:
-                if message_check:
-                    print("Fanatics timeout after receiving:", message_check)
-                return None
-
-            except websockets.ConnectionClosed as e:
-                print("Fanatics connection closed:", e)
-                return None
-
-            except Exception as e:
-                print("Fanatics Error:", e)
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="websockets",
-                    message=f"WS error: {e}",
-                    level="error"
-                )
-                return None
+        return self._extract_odds(data)
 
 
 if __name__ == "__main__":
     sgp_data = {
         'book_name': 'fanatics',
         'links': [
-            'fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%223902261%22%2C%22marketId%22%3A%22524426307%22%2C%22selectionId%22%3A%221299589793%22%7D%5D%7D&deep_link_value=consume-betslip',
-            'fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%223902261%22%2C%22marketId%22%3A%22524885572%22%2C%22selectionId%22%3A%221300689754%22%7D%5D%7D&deep_link_value=consume-betslip'
+            "fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%224005174%22%2C%22marketId%22%3A%22531771098%22%2C%22selectionId%22%3A%221317286429%22%7D%5D%7D&deep_link_value=consume-betslip",
+            "fanaticssportsbook://discover/?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%224005174%22%2C%22marketId%22%3A%22540588691%22%2C%22selectionId%22%3A%221338764767%22%7D%5D%7D&deep_link_value=consume-betslip",
         ]
     }
 
-    book = FanaticsSGP(sgp_data=sgp_data)
-    data = asyncio.run(book.run_book())
-    print(data)
+    async def main():
+        tasks = [FanaticsSGP(sgp_data=sgp_data).run_book() for _ in range(5)]
+        results = await asyncio.gather(*tasks)
+        for i, result in enumerate(results, 1):
+            print(f"Result {i}: {result}")
+
+    asyncio.run(main())

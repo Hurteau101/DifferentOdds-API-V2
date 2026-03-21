@@ -3,6 +3,8 @@ import statistics
 from datetime import datetime, timezone
 import itertools
 import os
+from decimal import Decimal
+
 import aiohttp
 from dotenv import load_dotenv
 import json
@@ -14,6 +16,7 @@ from Auto_SGP.discord_sender import DiscordSGP
 from Auto_SGP.link_generator import Link
 from Auto_SGP.settings import BOOKS
 from Auto_SGP.slips import SlipMapper
+from Database.database import Database
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager, RedisSyncManager
 from Utils.request_caller import APICaller, SportbookRequestType
@@ -25,7 +28,7 @@ import traceback
 
 class AutoSGP(APICaller):
     load_dotenv()
-    def __init__(self, endpoint_redis: RedisAsyncManager, configs: dict, previous_redis_instance: RedisAsyncManager,
+    def __init__(self, endpoint_redis: RedisAsyncManager, configs: list, previous_redis_instance: RedisAsyncManager,
                  previously_sent_discord_redis: RedisAsyncManager, mapped_ids_redis_instance: RedisAsyncManager,
                  auth_redis_instance: RedisAsyncManager, bettorodds_redis_instance: RedisSyncManager, discord_sgp: DiscordSGP):
         super().__init__(request_type=SportbookRequestType.ASYNC)
@@ -41,10 +44,20 @@ class AutoSGP(APICaller):
     @classmethod
     async def create(cls):
         """Factory method to create an instance of AutoSGP and set up configurations"""
-        config_instanace = RedisAsyncManager(database=8)
-        configs = await config_instanace.get_data("configs")
+        db = Database()
+        configs = db.get_auto_sgp_configs()
+
         if not configs:
-            raise RuntimeError("Configs not were not loaded")
+            raise RuntimeError("Configs not found in database")
+
+        modified_configs = [
+            {
+                key: float(value) if isinstance(value, Decimal) else value
+                for key, value in row.items()
+            }
+            for row in configs
+            if row.get("active")
+        ]
 
         environment_type = os.getenv("ENVIRONMENT")
         if not environment_type:
@@ -61,11 +74,12 @@ class AutoSGP(APICaller):
         discord_sgp = DiscordSGP(production=production)
 
 
-        return cls(endpoint_redis=endpoint_redis, configs=configs,
+        return cls(endpoint_redis=endpoint_redis, configs=modified_configs,
                    previous_redis_instance=redis_previously_stored_instance,
                    previously_sent_discord_redis=previously_sent_discord_redis,
                    discord_sgp=discord_sgp, auth_redis_instance=redis_auth_instance,
-                   mapped_ids_redis_instance=redis_mapped_ids_instance, bettorodds_redis_instance=bettorodds_redis_instance
+                   mapped_ids_redis_instance=redis_mapped_ids_instance,
+                   bettorodds_redis_instance=bettorodds_redis_instance
                    )
 
 
