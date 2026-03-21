@@ -146,6 +146,7 @@ class BetwayMapper(BaseMapper):
                 "market_name": market_name,
                 "raw_market_name": raw_market_name,
                 "handicap_display": handicap_display,
+                "handicap_display": handicap_display,
                 "handicap_value": handicap_value,
                 "market_id": outcome["MarketId"]
             }
@@ -338,10 +339,6 @@ class BetwayMapper(BaseMapper):
             )
 
             return
-
-        with open("betway_mapping.json", "w") as f:
-            import json
-            json.dump(mapping, f, indent=2)
 
         await redis_instance.store_data(
             key_name="betway_mapped_ids",

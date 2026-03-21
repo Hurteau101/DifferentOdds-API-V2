@@ -7,6 +7,8 @@ import redis.asyncio as async_redis
 import orjson
 from dotenv import load_dotenv
 
+from Monitoring.monitoring import create_sentry_message
+
 
 class RedisBaseManager:
     def __init__(self, **pool_kwargs):
@@ -20,19 +22,25 @@ class RedisBaseManager:
         )
         self.redis_client = async_redis.Redis(connection_pool=pool)
 
-    async def store_data(self, key_name: str, data_to_store: any, key_expiration: int = None):
+    async def store_data(self, key_name: str, data_to_store: any, key_expiration: int = None, lock_timeout: int = 120):
         """Store data in Redis after serializing."""
         if not key_name or not data_to_store:
             raise ValueError("Key name and/or data_to_store must be provided")
 
         lock = self.redis_client.lock(
             f"lock:{key_name}",
-            timeout=120,
+            timeout=lock_timeout,
             blocking=False
         )
 
         acquired = await lock.acquire()
         if not acquired:
+            create_sentry_message(
+                tag_key="redis_lock",
+                tag_value=key_name,
+                message=f"Could not acquire lock for key: {key_name}",
+                level="warning"
+            )
             return
 
         try:

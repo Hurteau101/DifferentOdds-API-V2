@@ -11,9 +11,9 @@ class DiscordSGP:
         load_dotenv()
 
         if production:
-            self.webhook = os.getenv("DISCORD_WEBHOOK_URL_PROD")
+            self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_PROD")
         else:
-            self.webhook = os.getenv("DISCORD_WEBHOOK_URL_DEV")
+            self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_DEV")
 
         if not self.webhook:
             raise ValueError("DISCORD_WEBHOOK_URL not set in environment variables.")

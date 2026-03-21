@@ -131,9 +131,6 @@ class FanduelMapper(BaseMapper):
             fanduel_ids = self._map_sgp_ids(sgp.get("attachments", {}).get("markets"))
             mapped_ids.update(fanduel_ids)
 
-        import json
-        with open("fanduel_mapped.json", "w") as f:
-            json.dump(mapped_ids, f, indent=2)
 
         await redis_instance.store_data(
             key_name="fanduel_ids",
