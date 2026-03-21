@@ -28,6 +28,16 @@ class SocketPooler:
         return self._pool
 
     async def send(self, payload: dict):
+        if self._lock is not None:
+            try:
+                loop = asyncio.get_running_loop()
+                if self._lock._loop is not loop:
+                    self._lock = None
+                    self._pool = None
+                    self.session = None
+            except RuntimeError:
+                pass
+
         async with self.lock:
             if self.session is None:
                 self.session = cf_requests.AsyncSession(impersonate="safari15_5")
