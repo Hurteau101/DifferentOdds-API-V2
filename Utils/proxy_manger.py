@@ -49,6 +49,7 @@ class ProxyManager:
         """Attempt to call the API using available proxies. Will try each proxy in the list until one works."""
         for i in range(self.proxy_amount):
             proxy = self._cycle_proxies()
+
             if proxy:
                 try:
                     api_data = await self.api_caller(
@@ -67,7 +68,7 @@ class ProxyManager:
                         continue
 
                     return api_data
-                except Exception:
+                except Exception as e:
                     continue
 
         create_sentry_message(

@@ -14,7 +14,7 @@ class CaesarMapper(BaseMapper):
     # Find 'sportId' [FYI 'football' = soccer]
     VALID_SPORTS = ["basketball", "baseball", "boxing", "football", "icehockey", "americanfootball", "ufcmma", "tennis"]
     def __init__(self):
-        super().__init__(book_name="caesars", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="caesars", category="sgp", request_type=SportbookRequestType.SPOOF)
 
     async def _get_waf_token(self):
         """Extract WAF token from Redis."""
@@ -78,7 +78,8 @@ class CaesarMapper(BaseMapper):
                 session=session,
                 url=self.book_data.mapping.url.get("event_url").format(sport=sport),
                 method=self.book_data.mapping.method,
-                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token}
+                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
+                parse_json=True
             )
             for sport in CaesarMapper.VALID_SPORTS
         ]
@@ -109,7 +110,8 @@ class CaesarMapper(BaseMapper):
                 session=session,
                 url=self.book_data.mapping.url.get("game_url").format(event_id=event),
                 method=self.book_data.mapping.method,
-                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token}
+                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
+                parse_json=True
             )
             for event in event_ids
         ]
@@ -140,7 +142,8 @@ class CaesarMapper(BaseMapper):
                 session=session,
                 url=self.book_data.mapping.url.get("market_url").format(path=path),
                 method=self.book_data.mapping.method,
-                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token}
+                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
+                parse_json=True
             )
             for path in paths
         ]
@@ -170,11 +173,14 @@ class CaesarMapper(BaseMapper):
             )
 
 if __name__ == "__main__":
+    from curl_cffi import AsyncSession as CurlAsyncSession
     db = Database()
     redis_instance = RedisAsyncManager(database=2)
     mapper = CaesarMapper()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession() as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
+        # async with aiohttp.ClientSession() as session:
+        #     await mapper.run_scheduler(session=session, redis_instance=redis_instance)
 
     asyncio.run(main())

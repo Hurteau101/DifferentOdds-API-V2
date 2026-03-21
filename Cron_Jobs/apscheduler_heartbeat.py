@@ -24,7 +24,7 @@ from Redis.redis_manager import RedisAsyncManager
 # ]
 
 AUTH_KEYS = [
-    # "caesars_waf_token",
+    "caesars_waf_token",
 ]
 
 # No onyx - Broken
@@ -35,8 +35,8 @@ AUTH_KEYS = [
 # ]
 
 MAPPER_KEYS = [
-    # "betmgm_ids", "fanduel_ids", "caesar_mapped_ids", "betmgm_ids"
-    "betmgm_ids", "fanduel_ids", "betmgm_ids"
+    "betmgm_ids", "fanduel_ids", "caesar_mapped_ids", "betmgm_ids"
+    # "betmgm_ids", "fanduel_ids", "betmgm_ids"
 ]
 
 ### TEST DISCORD MESSAGE
