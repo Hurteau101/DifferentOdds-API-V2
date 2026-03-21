@@ -180,7 +180,7 @@ class ScheduleRunner:
                             "client_session": session,
                             "redis_instance": redis_instances[schedule["redis_db"]],
                         },
-                        misfire_grace_time=60,
+                        misfire_grace_time=300,
                     )
 
             scheduler.start()
