@@ -12,13 +12,26 @@ class SocketPooler:
         self.headers = headers or {}
         self.size = size
         self.session = None
-        self.pool = asyncio.Queue()
-        self.lock = asyncio.Lock()
+        self._lock = None
+        self._pool = None
+
+    @property
+    def lock(self):
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
+
+    @property
+    def pool(self):
+        if self._pool is None:
+            self._pool = asyncio.Queue()
+        return self._pool
 
     async def send(self, payload: dict):
         async with self.lock:
             if self.session is None:
                 self.session = cf_requests.AsyncSession(impersonate="safari15_5")
+                self._pool = asyncio.Queue()
                 for _ in range(self.size):
                     ws = await self.session.ws_connect(
                         self.url,
@@ -41,7 +54,7 @@ class SocketPooler:
             return result
         except Exception as e:
             print(e)
-
+            self._pool = None
             self.session = None  # Reset the session on error to trigger reconnection
             return {}
 
