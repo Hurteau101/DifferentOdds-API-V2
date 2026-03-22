@@ -241,7 +241,12 @@ class BaseSchedulerRunner:
         logging.info("=" * 10)
         logging.info(f"-> STARTING: {cls.__name__}")
         instance = cls()
-        await instance.run_scheduler(session=session, redis_instance=redis_instance_mapper)
+        try:
+            await asyncio.wait_for(instance.run_scheduler(session=session, redis_instance=redis_instance_mapper), timeout=300)
+            # await instance.run_scheduler(session=session, redis_instance=redis_instance_mapper)
+        except asyncio.TimeoutError:
+            logging.error(f"Timeout: {cls.__name__} - Releasing Job")
+
         logging.info(f"-> FINISHED: {cls.__name__}")
         logging.info("=" * 10 + "\n")
 
