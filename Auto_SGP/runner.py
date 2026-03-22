@@ -560,15 +560,16 @@ class AutoSGP(APICaller):
             if book_data.get("active")
         }
 
-        book_semaphore = asyncio.Semaphore(5)
+        book_semaphore = asyncio.Semaphore(20)
+        socket_semaphore = asyncio.Semaphore(3)
 
         async def fetch_single(payload_item: dict):
             tasks = []
 
             async def run_limited_book(book_cls, book_name, session):
 
-
-                async with book_semaphore:
+                sem = socket_semaphore if session_type in ("fanatics", "hardrock") else book_semaphore
+                async with sem:
                     return await self.run_sgp_with_retry(
                         book_cls=book_cls,
                         book_name=book_name,
