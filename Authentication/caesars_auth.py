@@ -18,8 +18,8 @@ class CaesarAuth(BaseScheduler):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
-        # PROXY SELLER
-        proxy = os.getenv("RES_PROXY")
+
+        proxy = os.getenv("RESIDENTIAL_PROXIES")
         if not proxy:
             create_sentry_message(
                 tag_key="caesars",
@@ -35,8 +35,7 @@ class CaesarAuth(BaseScheduler):
         async with async_playwright() as play:  # ← start once
             for attempt in range(CaesarAuth.MAX_RETRY):
                 for proxy in proxies:
-                    user, password, host, port = proxy.split(":")
-                    # host, port, user, password = proxy.split(":")
+                    ip, port, username, password = proxy.split(":")
 
                     browser = None
 
@@ -44,8 +43,8 @@ class CaesarAuth(BaseScheduler):
                         browser = await play.chromium.launch(
                             headless=True,
                             proxy={
-                                "server": f"http://{host}:{port}",
-                                "username": user,
+                                "server": f"http://{ip}:{port}",
+                                "username": username,
                                 "password": password,
                             },
 

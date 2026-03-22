@@ -1,10 +1,13 @@
 import asyncio
+import os
 import re
 import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
+from Utils.proxy_manger import ProxyManager
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class CaesarsSGP(SGPBookBase):
@@ -114,16 +117,29 @@ class CaesarsSGP(SGPBookBase):
             return None
 
         payload = self._create_payload(mapped_data)
+        print(payload)
+        proxy = os.getenv("RESIDENTIAL_PROXIES")
 
+        if not proxy:
+            create_sentry_message(
+                tag_key="caesars",
+                tag_value="proxy_failure",
+                message="No proxy found",
+                level="error"
+            )
+            return
 
+        proxies = proxy.split(",")
+        proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
 
-        raw_api_data = await self.api_caller(
+        raw_api_data = await proxy_manager.proxy_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("main_url"),
             method=self.book_data.method,
             headers={**self.book_data.headers, "x-aws-waf-token": auth_token},
-            payload=payload
+            payload=payload,
+            parse_json=True
         )
 
         if not raw_api_data or not raw_api_data.get("parlays", []):
@@ -152,23 +168,20 @@ class CaesarsSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
             sgp_data = {
                 "book_name": "caesars",
                 "links": [
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=30ad4dd6-4f80-38d7-bd5c-f5bb75d0eaf8",
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=5f7d5e50-a93a-34a5-bd98-f55764349cd0"
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=a9aa77a0-f652-344b-b4d1-44ca1b5483d2",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=b2d1a928-3d0f-3e34-99be-6ab446ee305c",
                 ],
-                "lines": {
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=30ad4dd6-4f80-38d7-bd5c-f5bb75d0eaf8": 3.5,
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=5f7d5e50-a93a-34a5-bd98-f55764349cd0": 11.5
-                }
             }
 
             redis_mapped = RedisAsyncManager(database=2)
             redis_instance = RedisAsyncManager(database=5)
             book = CaesarsSGP(mapped_ids_redis_instance=redis_mapped, auth_redis_instance=redis_instance, sgp_data=sgp_data)
             data = await book.run_book(session=session)
-            print(data)
+            if data:
+                print(data)
 
     asyncio.run(main())

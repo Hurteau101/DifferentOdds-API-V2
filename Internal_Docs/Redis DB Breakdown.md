@@ -25,7 +25,7 @@
 ##### This is for Prediction-Liquidity Chunked Data
 
 ### Redis DB - `8`
-##### This is used to store Auto SGP Configs
+##### This is for cached BettorOdds Odds
 
 ### Reids DB - `9`
 ##### This is for Auto SGP Previously Stored Data
@@ -40,7 +40,7 @@
 ##### This is for Auto SGP Previously Sent Discord Messages
 
 ### Redis DB - `13`
-##### This is for cached BettorOdds Odds
+##### This is for Celery SGP Broker
 
 ### Redis DB - `15`
 ##### This is for Celery Broker

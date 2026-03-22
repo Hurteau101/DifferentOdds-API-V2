@@ -52,7 +52,7 @@ class CaesarMapper(BaseMapper):
 
             return
 
-        proxy = os.getenv("RES_PROXY")
+        proxy = os.getenv("RESIDENTIAL_PROXIES")
         if not proxy:
             create_sentry_message(
                 tag_key="caesars",
@@ -63,14 +63,7 @@ class CaesarMapper(BaseMapper):
             return
 
         proxies = proxy.split(",")
-
-        reformatted_proxies = [
-            f"{user}:{pw}:{ip}:{port}"
-            for p in proxies
-            for ip, port, user, pw in [p.split(":", 3)]
-        ]
-
-        proxy_manager = ProxyManager(proxies=reformatted_proxies, api_caller_func=self.api_caller)
+        proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
 
         raw_events = [
             proxy_manager.proxy_caller(
@@ -142,7 +135,24 @@ class CaesarMapper(BaseMapper):
                 session=session,
                 url=self.book_data.mapping.url.get("market_url").format(path=path),
                 method=self.book_data.mapping.method,
-                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
+                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token,
+                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+                         'Accept': 'application/json',
+                         'Accept-Language': 'en-US,en;q=0.9',
+                         'Accept-Encoding': 'gzip, deflate, br, zstd',
+                         'Referer': 'https://sportsbook.caesars.com/',
+                         'content-type': 'application/json',
+                         'x-app-version': '7.42.1',
+                         'x-platform': 'cordova-desktop',
+                         'x-unique-device-id': '53c26028-d052-4871-83e7-a6cbf3686f57',
+                         'Origin': 'https://sportsbook.caesars.com',
+                         'Connection': 'keep-alive',
+                         'Sec-Fetch-Dest': 'empty',
+                         'Sec-Fetch-Mode': 'cors',
+                         'Sec-Fetch-Site': 'cross-site',
+                         'Priority': 'u=0',
+                         'TE': 'trailers'
+                         },
                 parse_json=True
             )
             for path in paths
@@ -165,6 +175,7 @@ class CaesarMapper(BaseMapper):
             if result:
                 mapping.update(self._create_mapping(result))
 
+
         if mapping:
             await redis_instance.store_data(
                 key_name="caesar_mapped_ids",
@@ -178,7 +189,7 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = CaesarMapper()
     async def main():
-        async with CurlAsyncSession() as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
         # async with aiohttp.ClientSession() as session:
         #     await mapper.run_scheduler(session=session, redis_instance=redis_instance)

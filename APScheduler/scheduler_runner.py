@@ -329,7 +329,7 @@ class MappingRunner(BaseSchedulerRunner):
 
 
 async def run():
-    async with CurlAsyncSession() as curl_session, aiohttp.ClientSession() as aiohttp_session:
+    async with CurlAsyncSession(impersonate="safari15_5") as curl_session, aiohttp.ClientSession() as aiohttp_session:
         session_dict = {"curl": curl_session, "aiohttp": aiohttp_session}
         auth_runner = AuthRunner(job_list=AUTH_JOBS)
         await auth_runner.start(session_dict=session_dict)

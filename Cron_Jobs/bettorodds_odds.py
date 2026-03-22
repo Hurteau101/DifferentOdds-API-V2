@@ -26,7 +26,7 @@ def load_bettorodds(limit: str="all", retry_amount: int = 3):
                                     headers={"auth_token": api_key, "limit": limit}, timeout=50)
 
             if response.status_code == 200:
-                redis_instance = RedisSyncManager(database=13)
+                redis_instance = RedisSyncManager(database=8)
                 redis_instance.store_data(
                     key_name="bettoroddds_odds",
                     data_to_store=response.json(),
