@@ -560,7 +560,7 @@ class AutoSGP(APICaller):
             if book_data.get("active")
         }
 
-        book_semaphore = asyncio.Semaphore(30)
+        book_semaphore = asyncio.Semaphore(5)
 
         async def fetch_single(payload_item: dict):
             tasks = []
