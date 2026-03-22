@@ -68,7 +68,7 @@ class AutoSGP(APICaller):
         previously_sent_discord_redis = RedisAsyncManager(database=12)
         redis_mapped_ids_instance = RedisAsyncManager(database=2)
         redis_auth_instance = RedisAsyncManager(database=5)
-        bettorodds_redis_instance = RedisSyncManager(database=13)
+        bettorodds_redis_instance = RedisSyncManager(database=8)
 
         production = environment_type.lower() == "production"
         discord_sgp = DiscordSGP(production=production)
