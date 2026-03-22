@@ -568,7 +568,7 @@ class AutoSGP(APICaller):
 
             async def run_limited_book(book_cls, book_name, session):
 
-                sem = socket_semaphore if session_type in ("fanatics", "hardrock") else book_semaphore
+                sem = socket_semaphore if book_name in ("fanatics", "hardrock") else book_semaphore
                 async with sem:
                     return await self.run_sgp_with_retry(
                         book_cls=book_cls,
