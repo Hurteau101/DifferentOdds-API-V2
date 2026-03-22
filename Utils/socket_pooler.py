@@ -69,27 +69,75 @@
 #             return {}
 #
 
+# import json
+# from curl_cffi import requests as cf_requests
+#
+# class SocketHelper:
+#     def __init__(self, url: str, headers: dict):
+#         self.url = url
+#
+#         if not self.url.startswith("ws://") and not self.url.startswith("wss://"):
+#             raise ValueError("URL must start with ws:// or wss://")
+#
+#         self.headers = headers or {}
+#
+#     async def send(self, payload: dict):
+#         try:
+#             async with cf_requests.AsyncSession() as session:
+#                 ws = await session.ws_connect(self.url, headers=self.headers)
+#                 await ws.send_json(payload)
+#                 received_msg = await ws.recv()
+#                 if isinstance(received_msg, tuple):
+#                     received_msg, _ = received_msg
+#                 return json.loads(received_msg)
+#         except Exception as e:
+#             print(e)
+#             return {}
 import json
+import os
+from itertools import cycle
 from curl_cffi import requests as cf_requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class SocketHelper:
     def __init__(self, url: str, headers: dict):
-        self.url = url
 
+        self.url = url
         if not self.url.startswith("ws://") and not self.url.startswith("wss://"):
             raise ValueError("URL must start with ws:// or wss://")
 
         self.headers = headers or {}
 
+        self.proxies = os.getenv("RESIDENTIAL_PROXIES", "").split(",") if os.getenv("RESIDENTIAL_PROXIES") else []
+        self._proxy_cycle = cycle(self.proxies) if self.proxies else None
+
+
+    def _next_proxy(self) -> str | None:
+        if not self._proxy_cycle:
+            return None
+        proxy = next(self._proxy_cycle)
+        ip, port, username, password = proxy.split(":")
+        return f"http://{username}:{password}@{ip}:{port}"
+
+
     async def send(self, payload: dict):
-        try:
-            async with cf_requests.AsyncSession() as session:
-                ws = await session.ws_connect(self.url, headers=self.headers)
-                await ws.send_json(payload)
-                received_msg = await ws.recv()
-                if isinstance(received_msg, tuple):
-                    received_msg, _ = received_msg
-                return json.loads(received_msg)
-        except Exception as e:
-            print(e)
-            return {}
+        attempts = len(self.proxies) if self.proxies else 1
+
+        for _ in range(attempts):
+            proxy = self._next_proxy()
+            try:
+                async with cf_requests.AsyncSession() as session:
+                    ws = await session.ws_connect(self.url, headers=self.headers, proxy=proxy)
+                    await ws.send_json(payload)
+                    received_msg = await ws.recv()
+                    if isinstance(received_msg, tuple):
+                        received_msg, _ = received_msg
+                    return json.loads(received_msg)
+            except Exception as e:
+                print(f"Proxy failed ({proxy}): {e} — trying next")
+                continue
+
+        print("All proxies failed")
+        return {}
