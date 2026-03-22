@@ -9,7 +9,7 @@ celerybeat-schedule.bak
 celerybeat-schedule.dat
 celerybeat-schedule.dir
 *.json
-
+Auto_SGP/new_runner.py
 
 
 

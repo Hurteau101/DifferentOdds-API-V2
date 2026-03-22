@@ -117,7 +117,7 @@ class CaesarsSGP(SGPBookBase):
             return None
 
         payload = self._create_payload(mapped_data)
-        print(payload)
+
         proxy = os.getenv("RESIDENTIAL_PROXIES")
 
         if not proxy:
