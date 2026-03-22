@@ -83,7 +83,7 @@ class AutoSGP(APICaller):
                    )
 
 
-    def _load_sportsbook_data(self, store_json: bool = False, used_stored_json: bool = False):
+    def load_sportsbook_data(self, store_json: bool = False, used_stored_json: bool = False):
         """Loads BettorOdds Sportsbook data"""
         if store_json and used_stored_json:
             raise ValueError("Cannot store and use stored JSON")
@@ -105,7 +105,7 @@ class AutoSGP(APICaller):
 
         return sports_data
 
-    def _normalize_book_odds(self, markets: dict, valid_sgp_books: set) -> dict:
+    def normalize_book_odds(self, markets: dict, valid_sgp_books: set) -> dict:
         """
         Normalize the book odds from the markets data. Returns a dictionary with book name and over/under odds.
         """
@@ -121,7 +121,6 @@ class AutoSGP(APICaller):
                     odds.setdefault(book_name.lower(), {})[side.lower()] = am_odds
 
         return odds
-
 
     def _get_book_information(self, book_feed: dict, valid_sgp_books: set, markets: dict):
         """Gather the over and under information from the book feed."""
@@ -155,7 +154,7 @@ class AutoSGP(APICaller):
         return books
 
     async def _filter_data(self, bettorodds_data: dict, filter_selection: dict, player_mapping: dict,
-                           previous_data: dict, configs: dict) -> dict:
+                           previous_data: set, configs: dict) -> dict:
 
         valid_sgp_books = set(
             book_name
@@ -166,8 +165,10 @@ class AutoSGP(APICaller):
         results = {}
 
         for game_key, markets in bettorodds_data.items():
+
             redis_key = f"{filter_selection.get('unique_name')}-{game_key}"
-            if redis_key in previous_data.keys():
+            if redis_key in previous_data:
+                print("Exists", redis_key)
                 continue
 
             if (
@@ -183,11 +184,10 @@ class AutoSGP(APICaller):
                     for book_data in sides.values()
                 )
 
-
                 if not any_main:
                     continue
 
-                current_odds = self._normalize_book_odds(markets, valid_sgp_books)
+                current_odds = self.normalize_book_odds(markets, valid_sgp_books)
 
                 books = self._get_book_information(markets.get("book_feed", {}), valid_sgp_books, markets)
 
@@ -196,8 +196,9 @@ class AutoSGP(APICaller):
                 if num_unique_books >= filter_selection.get("number_of_unique_books", 0):
                     unique_stats = ["team total"]
 
-                    results[game_key] = {
+                    results[redis_key] = {
                         "game_key": redis_key,
+                        "bettorodds_key": game_key,
                         "stat_name": markets.get("Prop").replace("Player", "").strip(),
                         "market_type": "player" if "Player" in markets.get("Prop") else "team",
                         "league": markets.get("League"),
@@ -215,20 +216,41 @@ class AutoSGP(APICaller):
                         "configs": configs,
                     }
 
-        await self.previously_stored_redis_instance.bulk_insert_individual(
-            data_to_store=results,
-            pipeline=self.previously_stored_redis_instance.redis_client.pipeline()
-        )
-
         return results
 
 
-    def index_previous_data(self, previous_data: list):
-        return {
-            data.get("game_key"): data
-            for data in previous_data
-        }
+    def _create_direction_combos(self, directions: tuple, selection_odds: list) -> list:
+        """
+        Create all possible direction combinations based on the provided directions and selection odds.
+        :param directions: The tuple of directions (e.g., ("over", "under")).
+        :param selection_odds: The selection odds data.
+        :return: Returns the created direction combinations in a list.
+        """
 
+        if not directions or not selection_odds:
+            raise ValueError("Directions and selection_odds cannot be empty.")
+
+        lower_dirs = tuple(d.lower() for d in directions)
+
+        # In case all directions are the same, only create two combinations [all over, all under]
+        if len(set(lower_dirs)) == 1:
+            results = []
+            results.extend(self._create_payload(selection_odds, lower_dirs))
+
+            opposite = tuple("under" if d == "over" else "over" for d in lower_dirs)
+            results.extend(self._create_payload(selection_odds, opposite))
+
+            return results
+
+
+        all_directions = list(itertools.product(["over", "under"], repeat=len(directions)))
+
+        direction_combos = []
+        for combo in all_directions:
+            payload = self._create_payload(selection_odds, combo)
+            direction_combos.extend(payload)
+
+        return direction_combos
 
     def _create_payload(self, odds_data: list, direction_tuple: tuple[str, str]) -> list:
         """
@@ -316,85 +338,6 @@ class AutoSGP(APICaller):
 
         return payload
 
-    def _create_direction_combos(self, directions: tuple, selection_odds: list) -> list:
-        """
-        Create all possible direction combinations based on the provided directions and selection odds.
-        :param directions: The tuple of directions (e.g., ("over", "under")).
-        :param selection_odds: The selection odds data.
-        :return: Returns the created direction combinations in a list.
-        """
-
-        if not directions or not selection_odds:
-            raise ValueError("Directions and selection_odds cannot be empty.")
-
-        lower_dirs = tuple(d.lower() for d in directions)
-
-        # In case all directions are the same, only create two combinations [all over, all under]
-        if len(set(lower_dirs)) == 1:
-            results = []
-            results.extend(self._create_payload(selection_odds, lower_dirs))
-
-            opposite = tuple("under" if d == "over" else "over" for d in lower_dirs)
-            results.extend(self._create_payload(selection_odds, opposite))
-
-            return results
-
-
-        all_directions = list(itertools.product(["over", "under"], repeat=len(directions)))
-        direction_combos = []
-        for combo in all_directions:
-            payload = self._create_payload(selection_odds, combo)
-            direction_combos.extend(payload)
-
-        return direction_combos
-
-    def _generate_links(self, payload: list, sgp_books_with_odds) -> dict:
-        """
-        Generate links for the given payload.
-        :param payload: Payload of data
-        :return: Returns a dictionary of generated links.
-        """
-        filtered_payload = [
-            item
-            for item in payload
-            if item.get("book_name") in sgp_books_with_odds
-        ]
-
-        links = Link()
-        return links.link_creator(filtered_payload)
-
-    def extract_endpoint_data(self, sgp_data: dict, books: dict, individual_odds_dict: dict, fair_value_odds: dict):
-        if not books.get("valid"):
-            return {}
-
-        sorted_data_sgp_odds = dict(
-            sorted(books.get("filtered_sgp_books", {}).items(), key=lambda x: x[1], reverse=True))
-
-        sgp_data.update({
-            "filtered_sgp_odds": sorted_data_sgp_odds,
-            "non_met_books": books.get("non_met_books"),
-            "filtered_individual_odds": books.get("filtered_individual_books"),
-        })
-
-        result = get_sgp_data(
-            normal_books=individual_odds_dict,
-            sgp_results=sorted_data_sgp_odds,
-            fair_odds=fair_value_odds
-        )
-
-        weighted_data = result.get("weighted_book_data")
-        weighted_fair = result.get("weighted_fair_value")
-
-        return {
-            sgp_data.get("redis_key"): {
-                **sgp_data,
-                "ev_results": {
-                    "weighted_book_data": dict(sorted(weighted_data.items(), key=lambda x: x[1]['ev'], reverse=True)),
-                    "weighted_fair_value": weighted_fair,
-                }
-            }
-        }
-
     async def extract_and_send_discord_data(self, sgp_data: dict, books: dict, individual_odds_dict: dict,
                                       fair_value_odds: dict, minimum_ev: float):
         if not books.get("valid"):
@@ -452,34 +395,37 @@ class AutoSGP(APICaller):
             redis_key: sgp_data
         }
 
-
-    async def controller(self, sgp_data: dict, minimum_ev: float) -> dict:
-        individual_odds_dict = sgp_data.get("individual_odds_dict", {})
-        sgp_odds = sgp_data.get("sgp_odds", {})
-        fair_value = sgp_data.get("fair_value", {})
-
-        if not any([individual_odds_dict, sgp_odds, fair_value]):
+    def extract_endpoint_data(self, sgp_data: dict, books: dict, individual_odds_dict: dict, fair_value_odds: dict):
+        if not books.get("valid"):
             return {}
 
-        endpoint_books = self._check_median(sgp_odds=sgp_odds, valid_amount_of_books=2,
-                                            individual_odds_dict=individual_odds_dict)
+        sorted_data_sgp_odds = dict(
+            sorted(books.get("filtered_sgp_books", {}).items(), key=lambda x: x[1], reverse=True))
 
-        discord_books = self._check_median(sgp_odds=sgp_odds, individual_odds_dict=individual_odds_dict, valid_amount_of_books=4)
+        sgp_data.update({
+            "filtered_sgp_odds": sorted_data_sgp_odds,
+            "non_met_books": books.get("non_met_books"),
+            "filtered_individual_odds": books.get("filtered_individual_books"),
+        })
 
-        endpoint_sgp_data = self.extract_endpoint_data(
-            sgp_data=copy.deepcopy(sgp_data), books=endpoint_books, individual_odds_dict=individual_odds_dict,
-            fair_value_odds=fair_value)
+        result = get_sgp_data(
+            normal_books=individual_odds_dict,
+            sgp_results=sorted_data_sgp_odds,
+            fair_odds=fair_value_odds
+        )
 
-        discord_sgp_data = await self.extract_and_send_discord_data(sgp_data=sgp_data, books=discord_books,
-                                                              individual_odds_dict=individual_odds_dict,
-                                                              fair_value_odds=fair_value, minimum_ev=minimum_ev)
+        weighted_data = result.get("weighted_book_data")
+        weighted_fair = result.get("weighted_fair_value")
 
         return {
-            "endpoint": endpoint_sgp_data,
-            "discord": discord_sgp_data
+            sgp_data.get("redis_key"): {
+                **sgp_data,
+                "ev_results": {
+                    "weighted_book_data": dict(sorted(weighted_data.items(), key=lambda x: x[1]['ev'], reverse=True)),
+                    "weighted_fair_value": weighted_fair,
+                }
+            }
         }
-
-
 
     def _check_median(self, sgp_odds: dict, individual_odds_dict: dict, valid_amount_of_books: int = 4, lower_ratio: float = 0.60, ) -> dict:
         """
@@ -535,7 +481,6 @@ class AutoSGP(APICaller):
             "non_met_books": non_met_books
         }
 
-
     async def run_sgp_with_retry(self, book_cls, book_name, session, retry_times=3):
         for attempt in range(retry_times):
             try:
@@ -550,6 +495,68 @@ class AutoSGP(APICaller):
                     traceback.print_exc()
 
         return book_name, None
+
+    async def controller(self, sgp_data: dict, minimum_ev: float) -> dict:
+        individual_odds_dict = sgp_data.get("individual_odds_dict", {})
+        sgp_odds = sgp_data.get("sgp_odds", {})
+        fair_value = sgp_data.get("fair_value", {})
+
+        if not any([individual_odds_dict, sgp_odds, fair_value]):
+            return {}
+
+        endpoint_books = self._check_median(sgp_odds=sgp_odds, valid_amount_of_books=2,
+                                            individual_odds_dict=individual_odds_dict)
+
+        discord_books = self._check_median(sgp_odds=sgp_odds, individual_odds_dict=individual_odds_dict, valid_amount_of_books=4)
+
+        endpoint_sgp_data = self.extract_endpoint_data(
+            sgp_data=copy.deepcopy(sgp_data), books=endpoint_books, individual_odds_dict=individual_odds_dict,
+            fair_value_odds=fair_value)
+
+        discord_sgp_data = await self.extract_and_send_discord_data(sgp_data=sgp_data, books=discord_books,
+                                                              individual_odds_dict=individual_odds_dict,
+                                                              fair_value_odds=fair_value, minimum_ev=minimum_ev)
+
+        return {
+            "endpoint": endpoint_sgp_data,
+            "discord": discord_sgp_data
+        }
+
+    def _generate_links(self, payload: list, sgp_books_with_odds) -> dict:
+        """
+        Generate links for the given payload.
+        :param payload: Payload of data
+        :return: Returns a dictionary of generated links.
+        """
+        filtered_payload = [
+            item
+            for item in payload
+            if item.get("book_name") in sgp_books_with_odds
+        ]
+
+        links = Link()
+        return links.link_creator(filtered_payload)
+
+
+    async def validate_payload(self, batched_payload_data: list) -> list:
+        """Check bettorodds key names, and ensure nothing has changed before running SGP"""
+        sportsbook_data = self.load_sportsbook_data(used_stored_json=False, store_json=False)
+        if not sportsbook_data:
+            print("No sportsbook data found for validation")
+            return []
+
+        valid_batched_data = []
+
+        for payload in batched_payload_data:
+            bettorodds_keys = [
+                value for key,value in payload.items()
+                if key.startswith("bettorodds_key")
+            ]
+
+            if bettorodds_keys and all(sportsbook_data.get(value) for value in bettorodds_keys):
+                valid_batched_data.append(payload)
+
+        return valid_batched_data
 
 
     async def get_sgp_odds(self, payload_data: list, session_dict, minimum_ev: float, batch_size: int = 10,
@@ -650,6 +657,14 @@ class AutoSGP(APICaller):
                     payload_item.get(f"game_key_{index}")
                     for index in indices
                 ],
+                "raw_odds": {
+                    payload_item.get(f"bettorodds_key_{index}"): payload_item.get(f"current_odds_{index}")
+                    for index in indices
+                },
+                "key_mapper": {
+                    payload_item.get(f"bettorodds_key_{index}"): payload_item.get(f"game_key_{index}")
+                    for index in indices
+                },
                 "sgp_odds": valid_odds,
                 "sgp_links": self._generate_links(payload_item.get("payload", []),
                                                   sgp_books_with_odds=valid_odds.keys()),
@@ -658,8 +673,12 @@ class AutoSGP(APICaller):
                 "time_fetched": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             }
 
+        seen_keys = set()
+
         for i in range(0, len(payload_data), batch_size):
-            batch = payload_data[i:i + batch_size]
+            raw_batch = payload_data[i:i + batch_size]
+            batch = await self.validate_payload(raw_batch)
+
             print(f"  → Batch {i // batch_size + 1}: {len(batch)} items")
             tasks = [fetch_single(item) for item in batch]
             results = await asyncio.gather(*tasks)
@@ -667,6 +686,12 @@ class AutoSGP(APICaller):
 
             if not filtered_results:
                 print(f"Skipping batch {i // batch_size + 1}")
+
+            seen_keys.update(
+                (game_key, result.get("date"))
+                for result in filtered_results
+                for game_key in result.get("game_keys", [])
+            )
 
             merged_results = {}
 
@@ -699,16 +724,32 @@ class AutoSGP(APICaller):
                     pipeline=self.previously_sent_discord_redis.redis_client.pipeline(transaction=False)
                 )
 
+        data_to_store = {
+            game_key: {
+                "game_key": game_key,
+                "ttl": ttl
+            }
+            for (game_key, ttl) in seen_keys
+        }
+
+        await self.previously_stored_redis_instance.bulk_insert_individual(
+            data_to_store=data_to_store,
+            pipeline=self.previously_stored_redis_instance.redis_client.pipeline()
+        )
+
     async def runner(self):
         timeout = aiohttp.ClientTimeout(total=40)
         async with CurlAsyncSession(timeout=timeout) as curl_session, aiohttp.ClientSession(timeout=timeout) as aiohttp_session:
-        # async with aiohttp.ClientSession(timeout=timeout) as session:
             slips = SlipMapper()
 
-            previous_data = await self.previously_stored_redis_instance.get_all_key_values()
-            indexed_previous_data = self.index_previous_data(previous_data)
+            raw_previous_data = await self.previously_stored_redis_instance.get_all_key_values()
 
-            for index, filters in enumerate(self.configs, start=1):
+            previous_data = set(
+                previous.get("game_key")
+                for previous in raw_previous_data
+            )
+
+            for index, filters in enumerate(self.configs[0:2], start=1):
                 print(
                     f"{'=' * 20}\n[{index}/{len(self.configs)}] Running League: {filters.get('league', 'N/A').upper()}\nStat Types: "
                     f"{', '.join(filters.get('stat_types', []))}",
@@ -724,7 +765,7 @@ class AutoSGP(APICaller):
                     print("No Player Mapping Found. Skipping..")
                     continue
 
-                sportsbook_data = self._load_sportsbook_data(used_stored_json=False, store_json=False)
+                sportsbook_data = self.load_sportsbook_data(used_stored_json=False, store_json=False)
 
                 if not sportsbook_data:
                     create_sentry_message(
@@ -739,7 +780,7 @@ class AutoSGP(APICaller):
                     bettorodds_data=sportsbook_data,
                     filter_selection=filters,
                     player_mapping=player_mapping,
-                    previous_data=indexed_previous_data,
+                    previous_data=previous_data,
                     configs=filters
                 )
 
@@ -759,27 +800,19 @@ class AutoSGP(APICaller):
                     print("No Selection Odds Found. Skipping..")
                     continue
 
+                # Splice the payload data to only include the first 300 entries. Computing doesn't take long, so doing it here.
                 payload_data = self._create_direction_combos(
                     directions=filters.get("direction", ()),
                     selection_odds=selection_odds
-                )
+                )[0:300]
 
                 if not payload_data:
                     print("No Payload Data Found. Skipping..")
                     continue
 
-                modified_payload = payload_data[0:300]
 
-                await self.get_sgp_odds(modified_payload, minimum_ev=filters.get("minimum_ev", 15),
+                await self.get_sgp_odds(payload_data, minimum_ev=filters.get("minimum_ev", 15),
                                         session_dict={"curl": curl_session, "aiohttp": aiohttp_session})
-
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":

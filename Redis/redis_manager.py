@@ -99,6 +99,17 @@ class RedisBaseManager:
             for k, v in data.items()
         }
 
+    async def delete_keys(self, keys: list | set, redis_client):
+        """
+        Delete multiple keys from Redis.
+        """
+        pipeline = redis_client.pipeline()
+
+        for key in keys:
+            pipeline.unlink(key)
+
+        await pipeline.execute()
+
     async def bulk_insert_individual(self, data_to_store: dict, pipeline):
         """Bulk insert data into Redis using a pipeline."""
 

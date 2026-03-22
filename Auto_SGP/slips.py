@@ -112,14 +112,23 @@ class SlipMapper:
                     else:
                         entry[f"market_type_{i}"] = market.get("market_type")
 
+                    if not market.get("current_odds"):
+                        entry[f"current_odds_{i}"] = None
+                    else:
+                        entry[f"current_odds_{i}"] = market.get("current_odds")
+
+                    if not market.get("bettorodds_key"):
+                        entry[f"bettorodds_key_{i}"] = None
+                    else:
+                        entry[f"bettorodds_key_{i}"] = market.get("bettorodds_key")
 
                 for index, market in enumerate(combo, start=1):
-                    entry[f"total_odds_{index}"] = market.get("total_odds")
                     entry[f"game_key_{index}"] = market.get("game_key")
                     entry[f"stat_name_{index}"] = market.get("stat_name")
                     entry[f"stat_type_{index}_line"] = market.get("stat")
                     entry[f"stat_type_{index}_nvig_map"] = market.get("nvig_map")
                     entry[f"stat_type_{index}_books"] = market.get("books")
+
 
                 pairs.append(entry)
 
