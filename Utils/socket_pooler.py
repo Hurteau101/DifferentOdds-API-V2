@@ -68,7 +68,7 @@
 #             self.session = None  # Reset the session on error to trigger reconnection
 #             return {}
 #
-
+import asyncio
 import json
 from curl_cffi import requests as cf_requests
 
@@ -83,6 +83,7 @@ class SocketHelper:
 
     async def send(self, payload: dict):
         try:
+            await asyncio.sleep(1)
             async with cf_requests.AsyncSession(impersonate="safari15_5") as session:
                 ws = await session.ws_connect(self.url, headers=self.headers)
                 await ws.send_json(payload)
