@@ -3,12 +3,12 @@ from Books.Bases.sgp_book_base import SGPBookBase
 from Utils.request_caller import SportbookRequestType
 from Utils.socket_pooler import SocketHelper
 
-_pool = SocketHelper(url="wss://sportsbook.1.betfanatics.com/sportsbook-streaming-ws", headers={
-    "Accept-Encoding": "gzip,deflate",
-    "Accept-Charset": "UTF-8",
-    "Accept": "*/*",
-    "User-Agent": "ktor-client",
-})
+# _pool = SocketPooler(url="wss://sportsbook.1.betfanatics.com/sportsbook-streaming-ws", headers={
+#     "Accept-Encoding": "gzip,deflate",
+#     "Accept-Charset": "UTF-8",
+#     "Accept": "*/*",
+#     "User-Agent": "ktor-client",
+# })
 
 class FanaticsSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
@@ -58,7 +58,17 @@ class FanaticsSGP(SGPBookBase):
             }
         }
 
-        data = await _pool.send(payload=payload)
+        socket_helper = SocketHelper(
+            url="wss://sportsbook.1.betfanatics.com/sportsbook-streaming-ws",
+            headers={
+                "Accept-Encoding": "gzip,deflate",
+                "Accept-Charset": "UTF-8",
+                "Accept": "*/*",
+                "User-Agent": "ktor-client",
+            }
+        )
+
+        data = await socket_helper.send(payload=payload)
 
         if not data:
             return None

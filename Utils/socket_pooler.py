@@ -69,44 +69,27 @@
 #             return {}
 #
 
-import asyncio
 import json
 from curl_cffi import requests as cf_requests
-
 
 class SocketHelper:
     def __init__(self, url: str, headers: dict):
         self.url = url
+
         if not self.url.startswith("ws://") and not self.url.startswith("wss://"):
             raise ValueError("URL must start with ws:// or wss://")
+
         self.headers = headers or {}
-        self._ws = None
-        self._session = None
-        self._lock = None
-
-    @property
-    def lock(self):
-        if self._lock is None:
-            self._lock = asyncio.Lock()
-        return self._lock
-
-    async def _get_connection(self):
-        if self._session is None or self._ws is None:
-            self._session = cf_requests.AsyncSession(impersonate="safari15_5")
-            self._ws = await self._session.ws_connect(self.url, headers=self.headers)
-        return self._ws
 
     async def send(self, payload: dict):
-        async with self.lock:
-            try:
-                ws = await self._get_connection()
+        try:
+            async with cf_requests.AsyncSession() as session:
+                ws = await session.ws_connect(self.url, headers=self.headers)
                 await ws.send_json(payload)
                 received_msg = await ws.recv()
                 if isinstance(received_msg, tuple):
                     received_msg, _ = received_msg
                 return json.loads(received_msg)
-            except Exception as e:
-                print(e)
-                self._ws = None
-                self._session = None
-                return {}
+        except Exception as e:
+            print(e)
+            return {}

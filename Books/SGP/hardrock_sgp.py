@@ -3,10 +3,10 @@ from Utils.request_caller import SportbookRequestType
 import asyncio
 from Utils.socket_pooler import SocketHelper
 
-_pool = SocketHelper(url="wss://api.hardrocksportsbook.com/websocket", headers={
-    'Origin': 'https://api.hardrocksportsbook.com',
-    'Host': 'api.hardrocksportsbook.com'
-})
+# _pool = SocketPooler(url="wss://api.hardrocksportsbook.com/websocket", headers={
+#     'Origin': 'https://api.hardrocksportsbook.com',
+#     'Host': 'api.hardrocksportsbook.com'
+# })
 
 class HardrockSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
@@ -28,7 +28,15 @@ class HardrockSGP(SGPBookBase):
 
         payload = self.create_payload(hardrock_ids)
 
-        data = await _pool.send(payload)
+        socket_helper = SocketHelper(
+            url="wss://api.hardrocksportsbook.com/websocket",
+            headers={
+                'Origin': 'https://api.hardrocksportsbook.com',
+                'Host': 'api.hardrocksportsbook.com'
+            }
+        )
+
+        data = await socket_helper.send(payload)
 
         if not data:
             return None
