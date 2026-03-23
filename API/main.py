@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from API.dfs import router as dfs
 from API.sportsbooks import router as sportsbooks
 from API.sgp import router as sgp
+from API.liquidity import router as liquidity
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
         "sgp_mapped_ids": RedisAsyncManager(database=2),
         "sgp_auth": RedisAsyncManager(database=5),
         "auto_sgp": RedisAsyncManager(database=10),
+        "prediction_liquidity": RedisAsyncManager(database=7),
     }
 
     try:
@@ -56,3 +58,4 @@ async def custom_docs():
 app.include_router(dfs)
 app.include_router(sportsbooks)
 app.include_router(sgp)
+app.include_router(liquidity)

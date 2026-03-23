@@ -1,3 +1,4 @@
+
 from Monitoring.Discord_Logging.logger import send_discord_message
 from Monitoring.monitoring import init_sentry
 init_sentry()
@@ -27,6 +28,7 @@ from Redis.redis_manager import RedisAsyncManager
 from Authentication.caesars_auth import CaesarAuth
 from Authentication.fourcx_auth import FourcxAuth
 from Authentication.fanduel_picks_auth import FanduelPicksAuth
+from Books.Prediction_Liquidity.compare import LiquidityCompare
 
 logging.basicConfig(level=logging.INFO)
 logging.info("Scheduler starting...")
@@ -333,6 +335,11 @@ class MappingRunner(BaseSchedulerRunner):
         return False
 
 
+async def run_compare():
+    instance = LiquidityCompare()
+    await instance.run()
+
+
 async def run():
     async with CurlAsyncSession(impersonate="safari15_5") as curl_session, aiohttp.ClientSession() as aiohttp_session:
         session_dict = {"curl": curl_session, "aiohttp": aiohttp_session}
@@ -342,6 +349,20 @@ async def run():
         map_runner = MappingRunner(job_list=MAPPER_JOBS)
         await map_runner.start(session_dict=session_dict)
 
+
+        ## Prediction Liquidity Comparer
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(
+            run_compare,
+            trigger=IntervalTrigger(seconds=60),
+            name="compare_job",
+            coalesce=True,
+            max_instances=1,
+            next_run_time=datetime.now(),
+            misfire_grace_time=120,
+        )
+
+        scheduler.start()
 
         await asyncio.Event().wait()
 

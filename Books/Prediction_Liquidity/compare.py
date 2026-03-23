@@ -1,334 +1,235 @@
-# from Redis.redis_manager import RedisAsyncManager
-# import json
-# import asyncio
-#
-# def index_book(book_data):
-#     index = {}
-#
-#     for game in book_data:
-#         sk = game.get("selection_key", {})
-#
-#         selection_key = (
-#             sk.get("event_name"),
-#             sk.get("market"),
-#             sk.get("line"),
-#             sk.get("bet_type"),
-#             sk.get("bet_team"),
-#             sk.get("bet_player"),
-#         )
-#
-#         index[selection_key] = game
-#
-#     return index
-#
-# def intersect_books(index_a, index_b, name_a, name_b):
-#     found_data = {}
-#
-#
-#     common_games = index_a.keys() & index_b.keys()
-#     print(f"Total Matches: {len(common_games)}")
-#
-#     for common in common_games:
-#         found_a = index_a[common]
-#         found_b = index_b[common]
-#
-#         game_details = {
-#             "league": found_a["league"],
-#             "start_date": found_a["start_date"],
-#             "event_name": found_a["event_name"],
-#             # **found_a["selection_key"],
-#             # "odds": {
-#             #     name_a: found_a["liquidity_data"],
-#             #     name_b: found_b["liquidity_data"]
-#             # }
-#         }
-#
-#         odds = {
-#             "market": found_a["selection_key"]["market"],
-#             # "event_name": found_a["selection_key"]["event_name"],
-#            "line": found_a["selection_key"]["line"],
-#            "bet_type": found_a["selection_key"]["bet_type"],
-#            "bet_team": found_a["selection_key"]["bet_team"],
-#            "bet_player": found_a["selection_key"]["bet_player"],
-#             name_a: found_a["liquidity_data"],
-#             name_b: found_b["liquidity_data"]
-#         }
-#
-#
-#         found_data.setdefault(found_a["event_name"], {
-#             **game_details,
-#             "odds": []
-#         })["odds"].append(odds)
-#
-#     return list(found_data.values())
-#
-# def find_unmatched(index_a, index_b):
-#     unmatched_keys = index_a.keys() - index_b.keys()
-#     return [index_a[key] for key in unmatched_keys]
-#
-# async def compare():
-#     redis_instance = RedisAsyncManager(database=7)
-#     novig = await redis_instance.get_data("novig")
-#     prophetx = await redis_instance.get_data("prophetx")
-#
-#     # with open("prophetx.json", "w") as f:
-#     #     json.dump(prophetx, f, indent=2)
-#
-#     with open("novig.json", "w") as f:
-#         json.dump(novig, f, indent=2)
-#
-#     novig_index = index_book(novig)
-#     prophetx_index = index_book(prophetx)
-#
-#     data = intersect_books(novig_index, prophetx_index, "Novig", "Prophetx")
-#
-#     with open("merged.json", "w") as f:
-#         json.dump(data, f, indent=2)
-#
-#     novig_unmatched = find_unmatched(novig_index, prophetx_index)
-#     prophetx_unmatched = find_unmatched(prophetx_index, novig_index)
-#
-#     with open("novig_unmatched.json", "w") as f:
-#         json.dump(novig_unmatched, f, indent=2)
-#
-#     with open("prophetx_unmatched.json", "w") as f:
-#         json.dump(prophetx_unmatched, f, indent=2)
-#
-# asyncio.run(compare())
-from os.path import split
-
+from Books.Prediction_Liquidity.novig import Novig
+from Books.Prediction_Liquidity.prophetx import Prophetx
 from Redis.redis_manager import RedisAsyncManager
 import json
 import asyncio
 
+class LiquidityCompare:
+    def _create_selection_mapping(self, books: dict):
+        combined = {}
 
-def combine_books(books, min_books=2):
-    combined = {}
+        for index, (book_name, book_data) in enumerate(books.items()):
+            if index == 0 and book_name != "novig":
+                raise ValueError("Novig should be first in the books dictionary, as their times are usually off.")
 
-    for book_name, book_data in books.items():
-        for game in book_data:
+            for game in book_data:
+                book_selection_key = game.get("selection_key", {})
+                selection_key = (
+                    book_selection_key.get("event_name"),
+                    book_selection_key.get("market"),
+                    book_selection_key.get("line"),
+                    book_selection_key.get("bet_type"),
+                    book_selection_key.get("bet_team"),
+                    book_selection_key.get("bet_player"),
+                )
 
-            sk = game.get("selection_key", {})
+                start_date = game.get("start_date", "").replace("T", "_")
+                event_name = game.get("event_name")
 
-            selection_key = (
-                sk.get("event_name"),
-                sk.get("market"),
-                sk.get("line"),
-                sk.get("bet_type"),
-                sk.get("bet_team"),
-                sk.get("bet_player"),
-            )
+                bettorodds_key = "_".join(
+                    str(value) for value in [
+                        start_date,
+                        event_name,
+                        book_selection_key.get("market"),
+                        book_selection_key.get("bet_type"),
+                        book_selection_key.get("line"),
+                        book_selection_key.get("bet_team"),
+                    ] if value is not None
+                ).replace(" ", "_").replace("-", "_").lower()
 
-            game_time = game.get("start_date", "").replace("T", "_")
-            event_name = game.get("event_name")
+                event_data = combined.setdefault(event_name, {
+                    "league": game.get("league"),
+                    "start_date": game.get("start_date"),
+                    "event_name": event_name,
+                    "odds_map": {}
+                })
 
-            bettorodds_key = "_".join(
-                str(v) for v in [
-                    game_time,
-                    event_name,
-                    sk.get("market"),
-                    sk.get("bet_type"),
-                    sk.get("line")
-                ] if v is not None
-            ).replace(" ", "_").replace("-", "_").lower()
+                selection = event_data["odds_map"].setdefault(selection_key, {
+                    "market": book_selection_key.get("market"),
+                    "line": book_selection_key.get("line"),
+                    "bettorodds_key": bettorodds_key,
+                    "bet_type": book_selection_key.get("bet_type"),
+                    "bet_team": book_selection_key.get("bet_team"),
+                    "bet_player": book_selection_key.get("bet_player"),
 
-            event = combined.setdefault(event_name, {
-                "league": game.get("league"),
-                "start_date": game.get("start_date"),
-                "event_name": event_name,
-                "odds_map": {}
-            })
+                    "books": {},
+                    "games": {}
+                })
 
-            selection = event["odds_map"].setdefault(selection_key, {
-                "market": sk.get("market"),
-                "line": sk.get("line"),
-                "bettorodds_key": bettorodds_key,
-                "bet_type": sk.get("bet_type"),
-                "bet_team": sk.get("bet_team"),
-                "bet_player": sk.get("bet_player"),
+                selection["books"][book_name] = game.get("liquidity_data")
+                selection["games"][book_name] = game
 
-                "books": {},
-                "games": {}
-            })
+        return combined
 
-            selection["books"][book_name] = game.get("liquidity_data")
-            selection["games"][book_name] = game
+    def add_book_feed(self, bettorodds_data: dict, merged_data: list):
+        excluded_values = {
+            "bettorodds_key",
+            "market",
+            "line",
+            "bet_type",
+            "bet_team",
+            "bet_player"
+        }
 
-    results = []
-    unmatched = {book: [] for book in books}
+        unmatched_data = []
+        matched_data = []
 
-    for event in combined.values():
+        for event in merged_data:
+            odds_list = []
 
-        odds_list = []
+            for odds in event["odds"]:
+                odds_key = odds.get("bettorodds_key")
+                if not odds_key:
+                    continue
 
-        for sel in event["odds_map"].values():
+                matched_bettorodds = bettorodds_data.get(odds_key, {})
+                book_feed = matched_bettorodds.get("book_feed", {})
 
-            book_count = len(sel["books"])
+                if not book_feed:
+                    continue
 
-            if book_count >= min_books:
+                odds["nvig_map"] = matched_bettorodds.get("nvig_map", {})
+                existing_books = set(odds) - excluded_values
 
-                odds = {
-                    "bettorodds_key": sel["bettorodds_key"],
-                    "market": sel["market"],
-                    "line": sel["line"],
-                    "bet_type": sel["bet_type"],
-                    "bet_team": sel["bet_team"],
-                    "bet_player": sel["bet_player"],
-                    **sel["books"]
+                new_books = {
+                    book: values
+                    for book, values in book_feed.items()
+                    if book not in existing_books
                 }
 
-                odds_list.append(odds)
+                if new_books:
+                    odds["book_feed"] = new_books
+                    odds_list.append(odds)
 
-            else:
-                # Only one book had this selection
-                for book_name, game in sel["games"].items():
-                    unmatched[book_name].append(game)
+            if odds_list:
+                matched_data.append({
+                    "league": event["league"],
+                    "start_date": event["start_date"],
+                    "event_name": event["event_name"],
+                    "odds": odds_list
+                })
 
-        if odds_list:
-            results.append({
-                "league": event["league"],
-                "start_date": event["start_date"],
-                "event_name": event["event_name"],
-                "odds": odds_list
-            })
-
-    return results, unmatched
-
-def _reformat_bettorodds(bettorodds: dict):
-    odds = {}
-
-    for record in bettorodds.values():
-        record_id = record.get("ID", "")
-        id_split = record_id.split("__")
-
-        if len(id_split) > 1 and "_vs_" in id_split[1]:
-            teams = id_split[1].split("_vs_")
-            id_split[1] = "_vs_".join(sorted(teams))
-
-        record_id = "_".join(id_split).replace(" ", "_").lower()
-
-        odds[record_id] = record
-
-    return odds
-
-def add_book_feed(bettorodds_data: dict, merged_data: list):
-
-    matched_data = []
-    unmatched_data = []
-
-    excluded_values = {
-        "bettorodds_key",
-        "market",
-        "line",
-        "bet_type",
-        "bet_team",
-        "bet_player"
-    }
-
-    for event in merged_data:
-
-        valid_odds = []
-
-        for odds in event["odds"]:
-
-            odds_key = odds.get("bettorodds_key")
-            if not odds_key:
                 continue
 
-            book_feed = bettorodds_data.get(odds_key, {}).get("book_feed")
-            if not book_feed:
-                continue
-
-            existing_books = set(odds) - excluded_values
-            key_checker = odds.get("bet_type") or odds.get("bet_team")
-
-
-            # new_books = {
-            #     book: values
-            #     for book, values in book_feed.items()
-            #     if book not in existing_books
-            # }
-
-            new_books = {
-                book: {
-                    side: data
-                    for side, data in values.items()
-                    if side.lower() == key_checker.lower()
-                       or key_checker.lower() in side.lower()
-                }
-                for book, values in book_feed.items()
-            }
-
-            if new_books:
-                odds["book_feed"] = new_books
-                valid_odds.append(odds)
-
-        if valid_odds:
-
-            matched_data.append({
-                "league": event["league"],
-                "start_date": event["start_date"],
-                "event_name": event["event_name"],
-                "odds": valid_odds
-            })
-
-        else:
             unmatched_data.append(event)
 
-    return {
-        "matched": matched_data,
-        "unmatched": unmatched_data
-    }
+        return matched_data, unmatched_data
+
+    def compare_books(self, books: dict, min_books: int = 2) -> tuple:
+        selection_mapping = self._create_selection_mapping(books)
+
+        matched = []
+        unmatched = {book: [] for book in books}
+
+        for mapping in selection_mapping.values():
+            odds_list = []
+
+            for selection in mapping["odds_map"].values():
+                book_count = len(selection["books"])
+                if book_count >= min_books:
+                    odds_list.append({
+                        "bettorodds_key": selection["bettorodds_key"],
+                        "market": selection["market"],
+                        "line": selection["line"],
+                        "bet_type": selection["bet_type"],
+                        "bet_team": selection["bet_team"],
+                        "bet_player": selection["bet_player"],
+                        **selection["books"]
+                    })
+
+                    continue
+
+                for book_name, game in selection["games"].items():
+                    unmatched[book_name].append(game)
 
 
-async def compare():
+            if odds_list:
+                matched.append({
+                    "league": mapping["league"],
+                    "start_date": mapping["start_date"],
+                    "event_name": mapping["event_name"],
+                    "odds": odds_list
+                })
 
-    # redis_instance = RedisAsyncManager(database=7)
-    # bettorodds_redis_instance = RedisAsyncManager(database=13)
-    #
-    # novig = await redis_instance.get_data("novig")
-    # prophetx = await redis_instance.get_data("prophetx")
-    # # add more books here
-    # # draftkings = await redis_instance.get_data("draftkings")
-    #
-    # books = {
-    #     "Novig": novig,
-    #     "Prophetx": prophetx,
-    #     # "DraftKings": draftkings
-    # }
-    #
-    # merged, unmatched = combine_books(books)
-    #
-    # with open("merged_NEW.json", "w") as f:
-    #     json.dump(merged, f, indent=2)
-    #
-    # # Save unmatched per book
-    # for book_name, data in unmatched.items():
-    #
-    #     filename = f"{book_name.lower()}_unmatched.json"
-    #
-    #     with open(filename, "w") as f:
-    #         json.dump(data, f, indent=2)
-    #
-    #
-    # raw_bettorodds = await bettorodds_redis_instance.get_data("bettoroddds_odds")
-    # bettorodds = _reformat_bettorodds(raw_bettorodds)
-    #
-    # with open("bettorodds_NEW.json", "w") as f:
-    #     json.dump(bettorodds, f, indent=2)
+        return matched, unmatched
 
-    with open("merged.json", "r") as file:
-        merged_data = json.load(file)
 
-    with open("bettorodds_3.json", "r") as file:
-        bettorodds_data = json.load(file)
+    def reformat_bettorodds_data(self, raw_bettorodds_data: dict):
+        bettorodds_data = {}
 
-    data = add_book_feed(bettorodds_data=bettorodds_data, merged_data=merged_data)
+        for record in raw_bettorodds_data.values():
+            record_id = record.get("ID", "")
+            id_split = record_id.split("__")
 
-    with open("final_merged.json", "w") as f:
-        json.dump(data.get("matched"), f, indent=2)
+            if len(id_split) > 1 and "_vs_" in id_split[1]:
+                teams = id_split[1].split("_vs_")
+                id_split[1] = "_vs_".join(sorted(teams))
 
-    with open("final_unmatched.json", "w") as f:
-        json.dump(data.get("unmatched"), f, indent=2)
+            record_id = "_".join(id_split).replace(" ", "_").lower()
 
-asyncio.run(compare())
+            bettorodds_data[record_id] = record
+
+        return bettorodds_data
+
+
+    async def run(self, test_mode: bool = False):
+        liquidity_redis_instance = RedisAsyncManager(database=7)
+        bettorodds_redis_instance = RedisAsyncManager(database=8)
+
+        # Ensure Novig is already first, as there times are usually off.
+        books = {
+            "novig": await liquidity_redis_instance.get_data("novig"),
+            "prophetx": await liquidity_redis_instance.get_data("prophetx"),
+        }
+
+        merged, unmatched = self.compare_books(books)
+
+        bettorodds_sportsbook_data = await bettorodds_redis_instance.get_data("bettoroddds_odds")
+
+        if not bettorodds_sportsbook_data:
+            return
+
+        formated_bettorodds = self.reformat_bettorodds_data(bettorodds_sportsbook_data)
+
+        finalized_map, finalized_unmapped = self.add_book_feed(formated_bettorodds, merged)
+
+        print(finalized_map)
+
+        if finalized_map:
+            await liquidity_redis_instance.store_data(
+                key_name=f"liquidity_comparison",
+                data_to_store=finalized_map,
+                key_expiration=120000
+            )
+
+        if test_mode:
+            with open("finalized_map.json", "w") as file:
+                json.dump(finalized_map, file, indent=2)
+
+            with open("finalized_unmapped.json", "w") as file:
+                json.dump(finalized_unmapped, file, indent=2)
+
+            with open("formatted_bettorodds.json", "w") as file:
+                json.dump(formated_bettorodds, file, indent=2)
+
+            with open("raw_bettorodds.json", "w") as file:
+                json.dump(bettorodds_sportsbook_data, file, indent=2)
+
+            with open("merged.json", "w") as f:
+                json.dump(merged, f, indent=2)
+
+            # Save unmatched per book
+            for book_name, data in unmatched.items():
+                filename = f"{book_name.lower()}_unmatched.json"
+
+                with open(filename, "w") as f:
+                    json.dump(data, f, indent=2)
+
+
+
+
+
+
+if __name__ == "__main__":
+    compare_instance = LiquidityCompare()
+    asyncio.run(compare_instance.run(test_mode=True))
