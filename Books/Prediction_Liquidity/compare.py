@@ -9,6 +9,9 @@ class LiquidityCompare:
         combined = {}
 
         for index, (book_name, book_data) in enumerate(books.items()):
+            if not book_data:
+                continue
+
             if index == 0 and book_name != "novig":
                 raise ValueError("Novig should be first in the books dictionary, as their times are usually off.")
 
