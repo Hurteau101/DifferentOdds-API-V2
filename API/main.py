@@ -10,6 +10,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from API.dfs import router as dfs
 from API.sportsbooks import router as sportsbooks
+from API.sgp import router as sgp
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -18,6 +19,9 @@ async def lifespan(app: FastAPI):
     app.state.redis = {
         "dfs": RedisAsyncManager(database=0),
         "sportsbooks": RedisAsyncManager(database=6),
+        "sgp_mapped_ids": RedisAsyncManager(database=2),
+        "sgp_auth": RedisAsyncManager(database=5),
+        "auto_sgp": RedisAsyncManager(database=10),
     }
 
     try:
@@ -51,3 +55,4 @@ async def custom_docs():
 
 app.include_router(dfs)
 app.include_router(sportsbooks)
+app.include_router(sgp)

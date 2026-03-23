@@ -739,7 +739,7 @@ class AutoSGP(APICaller):
 
     async def runner(self):
         timeout = aiohttp.ClientTimeout(total=40)
-        async with CurlAsyncSession(timeout=timeout) as curl_session, aiohttp.ClientSession(timeout=timeout) as aiohttp_session:
+        async with CurlAsyncSession(timeout=timeout, impersonate="safari15_5") as curl_session, aiohttp.ClientSession(timeout=timeout) as aiohttp_session:
             slips = SlipMapper()
 
             raw_previous_data = await self.previously_stored_redis_instance.get_all_key_values()
@@ -749,7 +749,7 @@ class AutoSGP(APICaller):
                 for previous in raw_previous_data
             )
 
-            for index, filters in enumerate(self.configs[0:2], start=1):
+            for index, filters in enumerate(self.configs, start=1):
                 print(
                     f"{'=' * 20}\n[{index}/{len(self.configs)}] Running League: {filters.get('league', 'N/A').upper()}\nStat Types: "
                     f"{', '.join(filters.get('stat_types', []))}",
