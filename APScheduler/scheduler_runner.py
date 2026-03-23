@@ -1,8 +1,8 @@
 
-from Monitoring.Discord_Logging.logger import send_discord_message
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
+from Monitoring.Discord_Logging.logger import send_discord_message
 import aiohttp
 from External_Book_Mapping.SGP.betway_mapper import BetwayMapper
 from External_Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper

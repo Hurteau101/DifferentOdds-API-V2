@@ -19,7 +19,7 @@ beat_schedule = {}
 #
 #
 #         beat_schedule[f"run-{run_book_type}-{book_name}-every-{book_info['interval']}s"] = {
-#             "task": "celery_app.tasks.run_book",
+#             "task": "Sportsbook_Celery.tasks.run_book",
 #             "schedule": book_info["interval"],
 #             "args": (book_name, redis_db, run_book_type),
 #             "options": {"queue": queue, "expires": book_info["interval"] * 3},
@@ -31,23 +31,23 @@ for run_book_type, books in BOOKS.items():
         if run_book_type == "dfs":
             redis_db = 0
             queue = "dfs"
-            task_name = "celery_app.tasks.run_book_dfs"
+            task_name = "Sportsbook_Celery.tasks.run_book_dfs"
         # elif run_book_type == "pph":
         #     redis_db = 6
         #     queue = "pph"
-        #     task_name = "celery_app.tasks.run_book_pph"
+        #     task_name = "Sportsbook_Celery.tasks.run_book_pph"
         elif run_book_type == "liquidity":
             redis_db = 4
             queue = "liquidity"
-            task_name = "celery_app.tasks.run_book_liquidity"
+            task_name = "Sportsbook_Celery.tasks.run_book_liquidity"
         elif run_book_type == "prediction":
             redis_db = 1
             queue = "prediction"
-            task_name = "celery_app.tasks.run_book_prediction"
+            task_name = "Sportsbook_Celery.tasks.run_book_prediction"
         elif run_book_type == "sportsbook":
             redis_db = 10
             queue = "sportsbook"
-            task_name = "celery_app.tasks.run_book_sportsbook"
+            task_name = "Sportsbook_Celery.tasks.run_book_sportsbook"
         else:
             continue
 
@@ -60,19 +60,19 @@ for run_book_type, books in BOOKS.items():
 
 
 beat_schedule["refresh-auths-every-6h"] = {
-    "task": "celery_app.tasks.refresh_auths",
+    "task": "Sportsbook_Celery.tasks.refresh_auths",
     "schedule": 60 * 60 * 6,  # every 6 hours
     "options": {"queue": "auths", "expires": 60 * 60 * 6 + 300},  # expires after 6h + 5m
 }
 
 beat_schedule["refresh-sportsbook-mapping-every-1h"] = {
-    "task": "celery_app.tasks.refresh_sportsbook_mapping",
+    "task": "Sportsbook_Celery.tasks.refresh_sportsbook_mapping",
     "schedule": 3600,  # every 1 hour
     "options": {"queue": "sportsbook_mapping", "expires": 7200},  # expires after 2h
 }
 
 beat_schedule["map-sgp-ids-every-10m"] = {
-    "task": "celery_app.tasks.map_sgp_ids",
+    "task": "Sportsbook_Celery.tasks.map_sgp_ids",
     "schedule": 300,  # every 5 minutes
     "options": {"queue": "sgp", "expires": 600},  # expires after 10m
 }

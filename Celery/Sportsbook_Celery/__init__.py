@@ -4,9 +4,9 @@ init_sentry()
 from celery import Celery
 
 celery_app = Celery(
-    "differentodds",
-    broker="redis://localhost:6379/14",
-    backend="redis://localhost:6379/15",
+    "sportsbook_celery",
+    broker="redis://localhost:6379/15",
+    backend="redis://localhost:6379/16",
 )
 
 celery_app.conf.update(
@@ -19,4 +19,4 @@ celery_app.conf.update(
 )
 
 app = celery_app
-celery_app.autodiscover_tasks(["celery_app"])
+celery_app.autodiscover_tasks(["Sportsbook_Celery"])

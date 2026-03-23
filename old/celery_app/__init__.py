@@ -24,16 +24,16 @@ celery_app.conf.update(
 # Expose the Celery app
 app = celery_app
 
-celery_app.autodiscover_tasks(["celery_app"])
+celery_app.autodiscover_tasks(["Sportsbook_Celery"])
 
 
 ########## RUNNING COMMANDS ##########
 ### LINUX ###
-# celery -A celery_app.beat_schedule beat --loglevel=INFO
-# celery -A celery_app.tasks worker --loglevel=INFO --concurrency=10
+# celery -A Sportsbook_Celery.beat_schedule beat --loglevel=INFO
+# celery -A Sportsbook_Celery.tasks worker --loglevel=INFO --concurrency=10
 
 ### WINDOWS ###
-# celery -A celery_app.beat_schedule beat --loglevel=INFO
-# celery -A celery_app.tasks worker --loglevel=INFO --pool=solo
+# celery -A Sportsbook_Celery.beat_schedule beat --loglevel=INFO
+# celery -A Sportsbook_Celery.tasks worker --loglevel=INFO --pool=solo
 
 #######################################

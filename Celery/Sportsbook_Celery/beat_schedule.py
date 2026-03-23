@@ -1,5 +1,5 @@
 from . import celery_app
-from .tasks import BOOKS
+from .sportsbook_worker import BOOKS
 
 
 beat_schedule = {}
@@ -11,7 +11,6 @@ for book, book_details in BOOKS.items():
             "task": book_details["task"],
             "schedule": book_details["interval"],
             "args": (book, book_details["lock_timeout"]),
-            # "options": {"expires": book_details['lock_timeout']},
             "options": {
                 "expires": book_details['lock_timeout'],
                 "soft_time_limit": book_details['soft_limit'],

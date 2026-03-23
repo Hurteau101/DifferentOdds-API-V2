@@ -42,8 +42,11 @@
 ### Redis DB - `13`
 ##### This is for Celery SGP Broker
 
-### Redis DB - `15`
-##### This is for Celery Broker
-
 ### Redis DB - `14`
+##### This is for Celery SGP Backend
+
+### Redis DB - `15`
 ##### This is for Celery Backend
+
+### Redis DB - `16`
+##### This is for Celery Broker

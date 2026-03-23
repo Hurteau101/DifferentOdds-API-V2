@@ -62,5 +62,5 @@ We will be running this in WSL (Windows Subsystem for Linux) to avoid compatibil
 ##### Threading Issue
 If you are getting a threading issue,
 ```bash
-  python -m celery -A celery_app.celery_app worker -P solo --loglevel=info
+  python -m celery -A Sportsbook_Celery.Sportsbook_Celery worker -P solo --loglevel=info
 ```
