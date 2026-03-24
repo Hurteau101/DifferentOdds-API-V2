@@ -1,3 +1,4 @@
+import asyncio
 import os
 import aiohttp
 from APScheduler.base_scheduler import BaseScheduler
@@ -58,3 +59,18 @@ class FourcxAuth(BaseScheduler):
             data_to_store=auth,
             key_expiration=5270400  # 61 Days
         )
+
+if __name__ == "__main__":
+    import asyncio
+    from Redis.redis_manager import RedisAsyncManager
+    import aiohttp
+
+    async def main():
+        redis_instance = RedisAsyncManager(database=5)
+        async with aiohttp.ClientSession() as session:
+            fourcx = FourcxAuth()
+            await fourcx.run_scheduler(session=session, redis_instance=redis_instance)
+        await redis_instance.close_for_shutdown()
+
+    asyncio.run(main())
+

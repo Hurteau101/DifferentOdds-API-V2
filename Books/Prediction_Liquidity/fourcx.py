@@ -6,7 +6,7 @@ from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Utils.request_caller import SportbookRequestType
-from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats
+from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
 
 class FourCX(PredictionLiquidityBase):
     INVALID_LEAGUES = ["live", "custom", "superbowl", "nfc", "afc"] # Avoid these leagues or anything with these keywords
@@ -128,18 +128,22 @@ class FourCX(PredictionLiquidityBase):
             ),
             odds=[
                 PredictionLiquidityStats(
-                    liquidity=order.get("sumUntaken"),
-                    odds_format=OddsFormat(american_odds=order.get("odds")),
                     market=self._configure_market_name(ordinal=ordinal, event_name=game.get("eventName"), order=order, is_player_prop=True if "props" in league.lower() else False),
                     bet_team=FourCX.remove_ordinal(teams.get(order.get("participantID"))),
                     bet_type=order.get("OU"),
                     line=order.get("line"),
-                    is_best=True if index == 0 else False,
                     bet_player=game.get("eventName").split("(")[0].title().strip() if "props" in league.lower() else None,
                     player_team=teams.get(order.get("participantId")) if "props" in league.lower() else None,
-                    future=False
+                    future=False,
+                    liquidity_data=[
+                        LiquidityData(
+                            odds_format=OddsFormat(american_odds=order.get("odds")),
+                            liquidity=order.get("sumUntaken"),
+                            is_best=True if index == 0 else False,
+                            additional_information={}
+                        )
+                    ]
                 )
-
                 for index, order in enumerate(markets)
             ]
         )
@@ -165,6 +169,7 @@ class FourCX(PredictionLiquidityBase):
 
     async def run_book(self):
         auth_token = await self.load_auth()
+
         if not auth_token:
             create_sentry_message(
                 tag_key="4cx",

@@ -20,13 +20,13 @@ from Utils.helpers import clean_structure
 #     return f"{market}_{line}_{bet_type}_{bet_team}_{bet_player}".lower()
 #
 
-@dataclass(frozen=True)
-class SelectionKey:
-    market: str
-    line: Optional[float]
-    side: Optional[str]
-    team: Optional[str]
-    player: Optional[str]
+# @dataclass(frozen=True)
+# class SelectionKey:
+#     market: str
+#     line: Optional[float]
+#     side: Optional[str]
+#     team: Optional[str]
+#     player: Optional[str]
 
 
 @dataclass
