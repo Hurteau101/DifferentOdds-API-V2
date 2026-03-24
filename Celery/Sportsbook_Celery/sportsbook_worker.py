@@ -242,7 +242,7 @@ BOOKS = {
 
 
 async def _run_books(book_name: str, lock_timeout: int):
-    redis_instance = RedisSyncManager(database=10)
+    redis_instance = RedisSyncManager(database=16)
     lock_key = f"{book_name}_lock"
     lock = redis_instance.redis_client.lock(lock_key, timeout=lock_timeout, blocking_timeout=3)
 
