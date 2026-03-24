@@ -1,3 +1,4 @@
+import asyncio
 import re
 import aiohttp
 from Monitoring.monitoring import create_sentry_message
@@ -199,3 +200,7 @@ class Prizepicks(DFSBookBase):
             )
 
             return mapped_data
+
+if __name__ == "__main__":
+    pp = Prizepicks()
+    asyncio.run(pp.run_book())

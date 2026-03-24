@@ -141,15 +141,9 @@ DFS_PROVIDERS = [
         name="draftkings_6",
         url= {
             "league_list_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/main?showLive=false&appname=psxandroid&version=253542100&format=json",
-            "league_data_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/identifier",
-            "main_market_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/category/pickcards",
-            "individual_market_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/category/pickcards"
-            # "league_ids_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_key}?appname=psxandroid&version=253542100&format=json",
-
-
-
-            # "game_data_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/pickables?appname=psxandroid&version=253542100&format=json",
-            # "markets_url": "https://api.draftkings.com/sites/US-PSX/pick6-pickables/v1/pickablemarkets/active/pickgroup?pickGroupId={league_id}&appname=psxandroid&version=253542100&format=json"
+            "league_data_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/identifier?pillIdentifier={sport_key}&appname=psxandroid&version=260861600&format=json",
+            "main_market_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/category/pickcards?appname=psxandroid&version=260861600&format=json",
+            "individual_market_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/category/pickcards?pickCategoryId={category_id}&appname=psxandroid&version=260861600&format=json"
         },
         headers={
             'accept': 'application/json',
