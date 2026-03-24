@@ -1,3 +1,5 @@
+import asyncio
+
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
@@ -288,7 +290,8 @@ class Betr(DFSBookBase):
         # Import here and in Dataclass as this does require the leagues to be mapped prior dataclass creation.
         static_mapping = get_static_mapping().get("leagues", {}) or {}
 
-        league = static_mapping.get(game.get("league").lower(), game.get("league"))
+        league = static_mapping.get(game.get("league").lower(), {}).get("mapped_name", game.get("league").upper())
+
         game_date = game.get("date")
 
         # Conditional check as Solo and Team games have a different structure.
@@ -365,3 +368,7 @@ class Betr(DFSBookBase):
             )
 
             return mapped_data
+
+if __name__ == "__main__":
+    betr = Betr()
+    asyncio.run(betr.run_book())
