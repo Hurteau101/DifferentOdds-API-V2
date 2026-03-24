@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
         "sgp_mapped_ids": RedisAsyncManager(database=2),
         "sgp_auth": RedisAsyncManager(database=5),
         "auto_sgp": RedisAsyncManager(database=10),
-        "prediction_liquidity": RedisAsyncManager(database=7),
+        "prediction_liquidity": RedisAsyncManager(database=1),
     }
 
     try:

@@ -8,7 +8,7 @@
 - Sets up the celery app.
 - Any celery configuration should be done here.
 
-### `tasks.py`
+### `Celery/Sportsbook_Celery/sportsbook_worker.py`
 - In charge of all the celery tasks. 
 - If you do not want a certain sportsbook to run, you will set `is_active` to `False`
 - We have 2 run book functions (`_run_books` and `run_sportsbooks`) - This is because its an Async task, so we
@@ -16,7 +16,7 @@ utilize the `async_to_sync` to ensure that celery runs the tasks properly.
 - One key thing here is we are using `locks` in redis, to ensure that only one celery task is running at a time.
 We use `blocking=False` to ensure that if a lock can't be aquired, its instantly returns instead of waiting.
 
-### `beat_schedule.py`
+### `Celery/Sportsbook_Celery/beat_schedule.py`
 - In charge of scheduling celery tasks.
 
 ---
@@ -48,7 +48,7 @@ We will be running this in WSL (Windows Subsystem for Linux) to avoid compatibil
 1. To start the Celery Beat scheduler, run the following command:
     - We are using `python -m` to ensure there are no import issues.
 ``` bash
-    python -m celery -A celery_app.beat_schedule beat --loglevel=info
+    PYTHONPATH=./Celery python -m celery -A Sportsbook_Celery.beat_schedule beat --loglevel=info
 ```
 
 ### Starting Celery Worker
@@ -57,10 +57,10 @@ We will be running this in WSL (Windows Subsystem for Linux) to avoid compatibil
     - We are using `python -m` to ensure there are no import issues.
     - This will start the worker to listen to the sportsbook queue.
 ``` bash
-    python -m celery -A celery_app.celery_app worker --loglevel=info
+    PYTHONPATH=./Celery python -m celery -A Sportsbook_Celery worker --include Sportsbook_Celery.sportsbook_worker --loglevel=info
 ```
 ##### Threading Issue
 If you are getting a threading issue,
 ```bash
-  python -m celery -A Sportsbook_Celery.Sportsbook_Celery worker -P solo --loglevel=info
+  python -m celery -A Sportsbook_Celery worker --include Sportsbook_Celery.sportsbook_worker -P solo --loglevel=info
 ```

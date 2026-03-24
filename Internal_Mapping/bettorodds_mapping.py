@@ -256,8 +256,8 @@ class BettoroddsMapping(APICaller):
             for i in range(0, len(league_data), self.async_batch):
                 # print(f"Running Mapping [{league}] {i}")
                 batch = league_data[i: i + self.async_batch]
-                print(f"Processing {league} batch {i} to {i + self.async_batch}")
-                print(batch)
+                # print(f"Processing {league} batch {i} to {i + self.async_batch}")
+
                 tasks = [
                     self.bettorodds_api_caller(
                         session=session,

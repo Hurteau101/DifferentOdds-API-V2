@@ -1,5 +1,10 @@
 # Redis Database Breakdown
 
+### OPEN DATABASES
+- 7
+
+###########################
+
 ### Redis DB - `0`
 ##### This is for DFS Cache
 
@@ -13,7 +18,7 @@
 ##### Team Mapping [Used in FindMapper class]
 
 ### Redis DB - `4`
-##### This is used for BettorOdds Mapping
+##### This is used for BettorOdds Internal Cache Mapping
 
 ### Redis DB - `5`
 ##### This is for Auth Tokens
@@ -21,8 +26,7 @@
 ### Redis DB - `6`
 ##### Sportsbook Cache
 
-### Redis DB - `7`
-##### This is for Prediction-Liquidity Chunked Data
+
 
 ### Redis DB - `8`
 ##### This is for cached BettorOdds Odds

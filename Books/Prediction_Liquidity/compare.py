@@ -176,13 +176,13 @@ class LiquidityCompare:
 
 
     async def run(self, test_mode: bool = False):
-        liquidity_redis_instance = RedisAsyncManager(database=7)
+        liquidity_redis_instance = RedisAsyncManager(database=1)
         bettorodds_redis_instance = RedisAsyncManager(database=8)
 
         # Ensure Novig is already first, as there times are usually off.
         books = {
-            "novig": await liquidity_redis_instance.get_data("novig"),
-            "prophetx": await liquidity_redis_instance.get_data("prophetx"),
+            "novig": await liquidity_redis_instance.get_data("novig_chunked"),
+            "prophetx": await liquidity_redis_instance.get_data("prophetx_chunked"),
         }
 
         merged, unmatched = self.compare_books(books)
@@ -196,13 +196,11 @@ class LiquidityCompare:
 
         finalized_map, finalized_unmapped = self.add_book_feed(formated_bettorodds, merged)
 
-        print(finalized_map)
-
         if finalized_map:
             await liquidity_redis_instance.store_data(
                 key_name=f"liquidity_comparison",
                 data_to_store=finalized_map,
-                key_expiration=120000
+                key_expiration=120
             )
 
         if test_mode:
@@ -235,4 +233,4 @@ class LiquidityCompare:
 
 if __name__ == "__main__":
     compare_instance = LiquidityCompare()
-    asyncio.run(compare_instance.run(test_mode=True))
+    asyncio.run(compare_instance.run(test_mode=False))

@@ -15,7 +15,7 @@ class PredictionLiquidityBase(BookBase):
         if not data_to_store:
             return
 
-        redis_instance = RedisAsyncManager(database=7)
+        redis_instance = RedisAsyncManager(database=self.redis_database)
 
         stored_data = data_to_store
 
@@ -26,7 +26,7 @@ class PredictionLiquidityBase(BookBase):
             }
 
         await redis_instance.store_data(
-            key_name=f"{book_name}",
+            key_name=f"{book_name}_chunked",
             data_to_store=stored_data,
             key_expiration=self.expiration_time
         )
