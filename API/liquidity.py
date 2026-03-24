@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Request, Query, Header
 from API.Helpers.common import BooksListResponse, get_books, validate_format_header, get_book_odds, FormatHeader, \
     get_redis_data
-from API.security import get_api_keys
+from API.security import get_api_key
 
 router = APIRouter(prefix="/liquidity", tags=["Liquidity"])
 
@@ -18,7 +18,7 @@ async def get_book_list():
 @router.get(
     "/odds",
     summary="Get Liquidity Odds",
-    dependencies=[Depends(get_api_keys)]
+    dependencies=[Depends(get_api_key)]
 )
 async def get_odds(
         request: Request,
@@ -35,7 +35,7 @@ async def get_odds(
 @router.get(
     "/compare",
     summary="Compare Liquidity Odds",
-    dependencies=[Depends(get_api_keys)]
+    dependencies=[Depends(get_api_key)]
 )
 async def get_odds(
         request: Request,
