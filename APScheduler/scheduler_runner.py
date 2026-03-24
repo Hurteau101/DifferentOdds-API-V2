@@ -1,4 +1,5 @@
-
+from Auto_SGP.checker import Checker
+from Auto_SGP.runner import AutoSGP
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
@@ -339,6 +340,10 @@ async def run_compare():
     instance = LiquidityCompare()
     await instance.run()
 
+async def run_auto_sgp_checker():
+    autosgp = await AutoSGP.create()
+    checker = Checker(autosgp)
+    await checker.run_checker()
 
 async def run():
     async with CurlAsyncSession(impersonate="safari15_5") as curl_session, aiohttp.ClientSession() as aiohttp_session:
@@ -363,6 +368,19 @@ async def run():
         )
 
         scheduler.start()
+
+        scheduler_checker = AsyncIOScheduler()
+        scheduler_checker.add_job(
+            run_auto_sgp_checker,
+            trigger=IntervalTrigger(seconds=60),
+            name="sgp_checker_job",
+            coalesce=True,
+            max_instances=1,
+            next_run_time=datetime.now(),
+            misfire_grace_time=120,
+        )
+
+        scheduler_checker.start()
 
         await asyncio.Event().wait()
 
