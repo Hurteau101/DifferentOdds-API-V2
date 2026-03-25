@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import itertools
 import os
 from decimal import Decimal
-
+import random
 import aiohttp
 from dotenv import load_dotenv
 import json
@@ -794,6 +794,8 @@ class AutoSGP(APICaller):
                     grouped_fields=filters.get("group_fields", []),
                     validate_players=filters.get("validate_players")
                 )
+
+                random.shuffle(selection_odds)
 
                 if not selection_odds:
                     print("No Selection Odds Found. Skipping..")
