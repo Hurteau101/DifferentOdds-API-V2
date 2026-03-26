@@ -248,6 +248,10 @@ class STG(PPHBookBase):
 
     async def run_book(self):
         cookies = self.get_cookies()
+
+        if not cookies:
+            return
+
         headers = {
             "Content-Type": "application/json; charset=utf-8",
             "Referer": "https://bettheguys.com/Player/main.aspx",
@@ -266,6 +270,8 @@ class STG(PPHBookBase):
                 },
                 method="POST",
             )
+
+            print(raw_league_ids)
 
             league_ids = json.loads(raw_league_ids.get("d"))
 

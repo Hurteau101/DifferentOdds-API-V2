@@ -7,7 +7,7 @@ from Books.Bases.book_base import BookBase
 from Monitoring.monitoring import create_sentry_message
 from Utils.request_caller import SportbookRequestType
 from Books.Bases.sportsbook_base import SportsbooksBookBase
-
+import cloudscraper
 
 class PPHBookBase(SportsbooksBookBase):
     def __init__(self, book_name: str, request_type: SportbookRequestType):
@@ -28,7 +28,13 @@ class PPHBookBase(SportsbooksBookBase):
 
         login_url = self.book_data.url.get("login_url")
         session = requests.Session()
-        request_session = session.get(login_url)
+
+        scraper = cloudscraper.create_scraper(sess=session)
+        request_session = scraper.get(login_url)
+
+        if request_session.status_code != 200:
+            return {}
+
         soup = BeautifulSoup(request_session.text, "html.parser")
 
         def find_values(name):
@@ -40,6 +46,7 @@ class PPHBookBase(SportsbooksBookBase):
             "__VIEWSTATEGENERATOR": find_values("__VIEWSTATEGENERATOR"),
             "__EVENTVALIDATION": find_values("__EVENTVALIDATION"),
         }
+
 
         starter_payload.update(payload)
 
@@ -57,4 +64,5 @@ class PPHBookBase(SportsbooksBookBase):
             )
             return None
 
+        print(session.cookies.get_dict())
         return session.cookies.get_dict()
