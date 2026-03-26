@@ -144,6 +144,7 @@ class Novig(PredictionLiquidityBase):
                     "created_at": order.get("created_at"),
                     "total_win": round(order.get("qty") / 100, 2),
                     "total_risk": round(order.get("price") * (order.get("qty") / 100), 2),
+                    "market_id": order.get("market_id"),
                 }
             )
             for order in open_orders
@@ -307,6 +308,7 @@ class Novig(PredictionLiquidityBase):
             method=self.book_data.method,
             headers=self.book_data.headers
         )
+
 
         if not markets:
             create_sentry_message(
