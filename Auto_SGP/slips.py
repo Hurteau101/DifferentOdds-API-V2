@@ -7,6 +7,8 @@ class SlipMapper:
         Generic grouper function to group by specified fields.
         :param filtered_data: The filtered data to group.
         :param grouped_fields: The list of fields to group by.
+        Include 'team' to restrict combinations to the same team only.
+        Omit 'team' (e.g. ['event', 'date']) to allow combinations across all teams in the same game.
         :return: The grouped data as a dictionary.
         """
         grouped = defaultdict(list)
