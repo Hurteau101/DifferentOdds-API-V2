@@ -7,7 +7,6 @@ from Books.Bases.book_base import BookBase
 from Monitoring.monitoring import create_sentry_message
 from Utils.request_caller import SportbookRequestType
 from Books.Bases.sportsbook_base import SportsbooksBookBase
-import cloudscraper
 
 class PPHBookBase(SportsbooksBookBase):
     def __init__(self, book_name: str, request_type: SportbookRequestType):
