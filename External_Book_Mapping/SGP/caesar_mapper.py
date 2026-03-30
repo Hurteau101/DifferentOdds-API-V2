@@ -1,5 +1,6 @@
 import asyncio
 from itertools import chain
+import random
 import aiohttp
 import os
 from Database.database import Database
@@ -39,6 +40,21 @@ class CaesarMapper(BaseMapper):
 
         return results
 
+    async def _random_delay(self, min_seconds: float = 0.5, max_seconds: float = 2.0):
+        await asyncio.sleep(random.uniform(min_seconds, max_seconds))
+
+    async def _limited_gather(self, tasks, limit: int = 5):
+        semaphore = asyncio.Semaphore(limit)
+
+        async def sem_task(task):
+            async with semaphore:
+                result = await task
+                # await self._random_delay()
+                return result
+
+        return await asyncio.gather(*[sem_task(t) for t in tasks])
+
+
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
         waf_token = await self._get_waf_token()
 
@@ -77,7 +93,7 @@ class CaesarMapper(BaseMapper):
             for sport in CaesarMapper.VALID_SPORTS
         ]
 
-        event_results = await asyncio.gather(*raw_events)
+        event_results = await self._limited_gather(raw_events, limit=5)
 
         event_ids = set(
             event.get("id")
@@ -111,7 +127,8 @@ class CaesarMapper(BaseMapper):
 
         paths = set()
 
-        game_url_results = await asyncio.gather(*game_url_tasks)
+        game_url_results = await self._limited_gather(game_url_tasks, limit=5)
+
         for result in game_url_results:
             if result and result.get("event", {}).get("id"):
                 paths.update(
@@ -158,7 +175,8 @@ class CaesarMapper(BaseMapper):
             for path in paths
         ]
 
-        market_url_results = await asyncio.gather(*market_url_tasks)
+        market_url_results = await self._limited_gather(market_url_tasks, limit=3)
+
 
         if not market_url_results:
             create_sentry_message(
@@ -174,7 +192,6 @@ class CaesarMapper(BaseMapper):
         for result in market_url_results:
             if result:
                 mapping.update(self._create_mapping(result))
-
 
         if mapping:
             await redis_instance.store_data(
