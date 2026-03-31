@@ -22,7 +22,7 @@ class CaesarMapper(BaseMapper):
         redis_instance = RedisAsyncManager(database=5)
         return await redis_instance.get_data("caesars_waf_token")
 
-    async def _get_path_cache(self):
+    async def _get_path_cache(self, redis_instance: RedisAsyncManager):
         """Check Redis for cached paths to avoid redundant API calls."""
         cache = await redis_instance.get_data("caesar_path_cache")
         if not cache:
@@ -30,7 +30,8 @@ class CaesarMapper(BaseMapper):
 
         return True, cache
 
-    async def _extract_cache(self, proxy_manager: ProxyManager, session: aiohttp.ClientSession, waf_token: str):
+    async def _extract_cache(self, proxy_manager: ProxyManager, session: aiohttp.ClientSession, waf_token: str,
+                             redis_instance: RedisAsyncManager):
         raw_events = [
             proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
@@ -140,11 +141,11 @@ class CaesarMapper(BaseMapper):
         proxies = proxy.split(",")
         proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
 
-        had_cache, cache_data = await self._get_path_cache()
+        had_cache, cache_data = await self._get_path_cache(redis_instance)
 
         if not had_cache:
             print("No cache found, extracting paths...")
-            cache_data = await self._extract_cache(proxy_manager, session, waf_token)
+            cache_data = await self._extract_cache(proxy_manager, session, waf_token, redis_instance)
             print(f"Extracted {len(cache_data)} paths and stored in cache.")
         else:
             print("Using cached paths for mapping.")
