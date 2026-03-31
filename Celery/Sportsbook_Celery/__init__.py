@@ -18,5 +18,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
+celery_app.conf.result_expires = 3600
+
 app = celery_app
 celery_app.autodiscover_tasks(["Sportsbook_Celery"])
