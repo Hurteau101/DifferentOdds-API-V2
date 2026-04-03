@@ -6,11 +6,14 @@ from collections.abc import Iterable
 from datetime import datetime, date, timezone
 from zoneinfo import ZoneInfo
 import aiohttp
+import curl_cffi
+from curl_cffi.requests import AsyncSession
 from Books.Bases.pph_base import PPHBookBase
 from Monitoring.monitoring import create_sentry_message
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.request_caller import SportbookRequestType
+from camoufox.async_api import AsyncCamoufox
 
 class STG(PPHBookBase):
     VALID_LEAGUES = ["NFL", "NBA", "MLB", "NHL", "NCAA"]
@@ -18,25 +21,51 @@ class STG(PPHBookBase):
     def __init__(self):
         super().__init__(book_name="stg", request_type=SportbookRequestType.ASYNC)
 
-    def get_cookies(self) -> dict:
-        """Returns the cookies after logging in."""
-        payload = {
-            "txtAccessOfCode": os.getenv("STG_USERNAME"),
-            "txtAccessOfPassword": os.getenv("STG_PASSWORD"),
-            "button": ""
-        }
+    async def get_cookies(self) -> dict:
+        async with AsyncCamoufox(headless=True) as browser:
+            page = await browser.new_page()
+            await page.goto("https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx",
+                            wait_until="networkidle")
+            await page.wait_for_timeout(3000)
 
-        additional_headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Referer": "https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx",
-        }
+            await page.fill("#txtAccessOfCode", os.getenv("STG_USERNAME"))
+            await page.fill("#txtAccessOfPassword", os.getenv("STG_PASSWORD"))
+            await page.click("#cmdSignOn")
+            await page.wait_for_load_state("networkidle")
+            await page.wait_for_timeout(3000)
 
-        return self.pph_login_helper(
-            payload=payload,
-            sportsbook_name="stg",
-            login_key_word_check=".AITQKIAUT",
-            additional_headers=additional_headers
-        )
+            cookies = {c["name"]: c["value"] for c in await page.context.cookies()}
+
+        if ".AITQKIAUT" not in cookies:
+            raise Exception("Login failed")
+
+
+
+        return cookies
+
+    # def get_cookies(self) -> dict:
+    #     """Returns the cookies after logging in."""
+        # payload = {
+        #     "txtAccessOfCode": os.getenv("STG_USERNAME"),
+        #     "txtAccessOfPassword": os.getenv("STG_PASSWORD"),
+        #     "button": ""
+        # }
+        #
+        # additional_headers = {
+        #     "Content-Type": "application/x-www-form-urlencoded",
+        #     "Referer": "https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx",
+        # }
+        #
+        # return self.pph_login_helper(
+        #     payload=payload,
+        #     sportsbook_name="stg",
+        #     login_key_word_check=".AITQKIAUT",
+        #     additional_headers=additional_headers
+        # )
+
+
+
+
 
     def yield_sport_ids(self, results: list | tuple) -> Iterable:
         """Yields sport ID data structure from raw results."""
@@ -247,8 +276,8 @@ class STG(PPHBookBase):
         }
 
     async def run_book(self):
-        cookies = self.get_cookies()
-
+        cookies = await self.get_cookies()
+        print(cookies)
         if not cookies:
             return
 
@@ -259,108 +288,127 @@ class STG(PPHBookBase):
 
         new_headers = {**self.book_data.headers, **headers}
 
-        async with aiohttp.ClientSession(cookies=cookies, headers=new_headers) as session:
-            raw_league_ids = await self.api_caller(
-                book_name=self.book_data.name,
-                session=session,
-                url=self.book_data.url.get("league_list_url"),
-                headers=new_headers,
-                payload={
-                    "wagerTypeValue": "1"
+        async with AsyncSession(impersonate="firefox") as session:
+        # async with aiohttp.ClientSession(cookies=cookies, headers=new_headers) as session:
+        #     raw_league_ids = await self.api_caller(
+        #         c
+        #         book_name=self.book_data.name,
+        #         session=session,
+        #         url=self.book_data.url.get("league_list_url"),
+        #         headers=new_headers,
+        #         payload={
+        #             "idMainHeader": "2",
+        #             "wagerTypeValue": "1"
+        #         },
+        #         method="POST",
+        #     )
+            raw_league_ids = await session.post(
+                "https://bettheguys.com/Player/app/services/sidebarsportAJX.aspx/GetSportMenuLeaguesWithOpenGames",
+                cookies=cookies,
+                headers={
+                    "Content-Type": "application/json; charset=utf-8",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Referer": "https://bettheguys.com/Player/main.aspx",
+                    "Origin": "https://bettheguys.com",
                 },
-                method="POST",
+                json={"idMainHeader": "2", "wagerTypeValue": "1"}
             )
 
-            print(raw_league_ids)
+            raw_league_ids = raw_league_ids.json()
 
             league_ids = json.loads(raw_league_ids.get("d"))
-
-            if not league_ids:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="mapping_failure",
-                    message="No mapped IDs were found.",
-                    level="error"
-                )
-
-                return None
-
+            print(league_ids)
+            # print(league_ids)
+            #
+            # if not league_ids:
+            #     create_sentry_message(
+            #         tag_key=self.book_data.name,
+            #         tag_value="mapping_failure",
+            #         message="No mapped IDs were found.",
+            #         level="error"
+            #     )
+            #
+            #     return None
+            #
             league_ids = set(
                 sportId.get("IdSport")
                 for league in league_ids.values()
                 for sportId in league.get("SportsList", [])
                 if sportId
             )
+            print(league_ids)
 
-            tasks = [
-                self.api_caller(
-                    book_name=self.book_data.name,
-                    session=session,
-                    url=self.book_data.url.get("league_section"),
-                    payload={
-                        "idMainHeader": str(league_id),
-                        "wagerTypeValue": "1"
-                    },
-                    headers = new_headers,
-                    method = "POST",
-                )
 
-                for league_id in league_ids
-            ]
-
-            raw_results = await asyncio.gather(*tasks)
-
-            league_data = [
-                {
-                    "sport_id": child.get("IdSport"),
-                    "sport_value": child.get("Value"),
-                    "league": self.format_league(sport_info.get("Name"))
-                }
-                for sport_info in self.yield_sport_ids(results=raw_results)
-                for child in sport_info.get("Children", [])
-                if child and self.format_league(sport_info.get("Name")) in self.VALID_LEAGUES
-            ]
-
-            tasks = [
-                self.api_caller(
-                    book_name=self.book_data.name,
-                    session=session,
-                    url=self.book_data.url.get("game_markets"),
-                    payload=self._create_special_payload(league.get("sport_value")),
-                    headers=new_headers,
-                    method="POST",
-                )
-
-                for league in league_data
-            ]
-
-            results = await asyncio.gather(*tasks)
-
-            game_results = []
-
-            for league, result in zip(league_data, results):
-                if not result:
-                    continue
-
-                result = json.loads(result.get("d"))
-                league_name = league.get("league")
-
-                for game in result.get("lines", []):
-                    if game:
-                        extracted = self._extract_markets(game, league=league_name)
-
-                        if extracted and hasattr(extracted, "odds") and extracted.odds:
-                            game_results.append(extracted)
-
-            mapped_data = await self.map_runner(session=session, sportsbook_data=game_results)
-
-            await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
-            )
-
-            return mapped_data
+            #
+            # tasks = [
+            #     self.api_caller(
+            #         book_name=self.book_data.name,
+            #         session=session,
+            #         url=self.book_data.url.get("league_section"),
+            #         payload={
+            #             "idMainHeader": str(league_id),
+            #             "wagerTypeValue": "1"
+            #         },
+            #         headers = new_headers,
+            #         method = "POST",
+            #     )
+            #
+            #     for league_id in league_ids
+            # ]
+            #
+            # raw_results = await asyncio.gather(*tasks)
+            #
+            # league_data = [
+            #     {
+            #         "sport_id": child.get("IdSport"),
+            #         "sport_value": child.get("Value"),
+            #         "league": self.format_league(sport_info.get("Name"))
+            #     }
+            #     for sport_info in self.yield_sport_ids(results=raw_results)
+            #     for child in sport_info.get("Children", [])
+            #     if child and self.format_league(sport_info.get("Name")) in self.VALID_LEAGUES
+            # ]
+            #
+            # tasks = [
+            #     self.api_caller(
+            #         book_name=self.book_data.name,
+            #         session=session,
+            #         url=self.book_data.url.get("game_markets"),
+            #         payload=self._create_special_payload(league.get("sport_value")),
+            #         headers=new_headers,
+            #         method="POST",
+            #     )
+            #
+            #     for league in league_data
+            # ]
+            #
+            # results = await asyncio.gather(*tasks)
+            #
+            # game_results = []
+            #
+            # for league, result in zip(league_data, results):
+            #     if not result:
+            #         continue
+            #
+            #     result = json.loads(result.get("d"))
+            #     league_name = league.get("league")
+            #
+            #     for game in result.get("lines", []):
+            #         if game:
+            #             extracted = self._extract_markets(game, league=league_name)
+            #
+            #             if extracted and hasattr(extracted, "odds") and extracted.odds:
+            #                 game_results.append(extracted)
+            #
+            # mapped_data = await self.map_runner(session=session, sportsbook_data=game_results)
+            #
+            # await self.store_data(
+            #     database=self.redis_database,
+            #     data_to_store=mapped_data,
+            #     book_name=self.book_data.name
+            # )
+            #
+            # return mapped_data
 
 if __name__ == "__main__":
     stg = STG()
