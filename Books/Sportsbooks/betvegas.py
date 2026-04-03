@@ -344,8 +344,6 @@ class BetVegas(PPHBookBase):
                 headers=self.book_data.headers
             )
 
-            await self.view_league_markets(raw_leagues=raw_leagues, session=session)
-
             leagues = self.build_league_ids(raw_leagues)
 
             markets = await self.api_caller(
