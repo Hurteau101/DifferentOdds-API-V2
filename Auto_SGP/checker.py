@@ -54,8 +54,6 @@ class Checker:
                 bettorodds_odds = self.autosgp.normalize_book_odds(bettorodds_data, valid_sgp_books)
                 compared_odds = DeepDiff(odds, bettorodds_odds)
                 if compared_odds.get("values_changed", {}):
-                    print("Odds Changed for Key: ", key)
-                    print(compared_odds)
                     previously_sent.add(previously_sent_key)
                     endpoint.add(endpoint_key)
                     continue
