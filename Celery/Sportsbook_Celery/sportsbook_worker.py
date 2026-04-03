@@ -239,7 +239,7 @@ BOOKS = {
         "hard_limit": HARD_LIMIT,
         "is_active": True,
     },
-    "1bv": {
+    "ace": {
         "class": Ace,
         "interval": DEFAULT_INTERVAL,
         "lock_timeout": DEFAULT_TIMEOUT,

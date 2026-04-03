@@ -6,6 +6,8 @@
 `sportsbook-celery-worker`
 `sportsbook-celery-beat`
 
+# Remove Schedule
+`rm /tmp/celerybeat-sportsbook-schedule`
 
 # FastAPI
 `fastapi`
