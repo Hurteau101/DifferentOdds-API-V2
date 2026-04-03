@@ -16,8 +16,8 @@ class BetVegasAuth(BaseScheduler):
         await session.post(
             url=BetVegasAuth.URL,
             data={
-                "account": os.getenv("1BV_ACES_USERNAME"),
-                "password": os.getenv("1BV_ACES_PASSWORD"),
+                "account": os.getenv("1BV_USERNAME"),
+                "password": os.getenv("1BV_PASSWORD"),
             },
             headers={
                 "User-Agent": "Mozilla/5.0",
