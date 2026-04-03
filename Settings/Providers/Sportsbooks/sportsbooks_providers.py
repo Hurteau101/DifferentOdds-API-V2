@@ -24,8 +24,8 @@ SPORTSBOOKS_PROVIDERS = [
         is_active=True
     ),
     BaseProvider(
-        title="STG",
-        name="stg",
+        title="STS",
+        name="sts",
         url={
             # "login_url": "https://bettheguys.com/Login.aspx",
             "login_url": "https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx",
@@ -52,11 +52,11 @@ SPORTSBOOKS_PROVIDERS = [
             'TE': 'trailers'
         },
         method="POST",
-        is_active=True
+        is_active=False
     ),
     BaseProvider(
-        title="1BV",
-        name="1bv",
+        title="Ace",
+        name="ace",
         url={
             "leagues_url": "https://backend.betvegas23.com/wager/ActiveLeaguesHelper.aspx?WT=0",
             "market_url": "https://backend.betvegas23.com/wager/NewScheduleHelper.aspx"

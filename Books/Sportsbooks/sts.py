@@ -15,7 +15,7 @@ from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.request_caller import SportbookRequestType
 from camoufox.async_api import AsyncCamoufox
 
-class STG(PPHBookBase):
+class STS(PPHBookBase):
     VALID_LEAGUES = ["NFL", "NBA", "MLB", "NHL", "NCAA"]
 
     def __init__(self):

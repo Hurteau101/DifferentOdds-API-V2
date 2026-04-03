@@ -12,10 +12,10 @@ from itertools import chain
 
 
 ## GAME LINES - Moneyline, Total, Spreads
-class BetVegas(PPHBookBase):
+class Ace(PPHBookBase):
     VALID_LEAGUES = ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB"]
 
-    # Allowed markets refer to the different sections on 1BV.
+    # Allowed markets refer to the different sections on ace.
     ALLOWED_MARKETS = ["game lines", 'period lines', 'alternative lines', 'team totals', '1h', 'innings', '1st 5', '1st inning',
                        'alternate runlines']
 
@@ -29,7 +29,7 @@ class BetVegas(PPHBookBase):
 
 
     def __init__(self):
-        super().__init__(book_name="1bv", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="ace", request_type=SportbookRequestType.ASYNC)
 
         # Contains the proper team names, as game lines section is the only section
         # that will have the proper team names, so we want to store here, so they can be referenced for the other sections,
@@ -42,7 +42,7 @@ class BetVegas(PPHBookBase):
     async def load_cookies(self) -> dict | None:
         """Extracts the cookies from Redis."""
         redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("1bv_cookies")
+        return await redis_instance.get_data("ace_cookies")
 
     def build_league_ids(self, raw_leagues: dict, exclude_player_props: bool = True, league_filter: bool = True,
                          filter_markets: bool = True, excluded_markets: bool = True) -> dict:
@@ -103,7 +103,7 @@ class BetVegas(PPHBookBase):
             for league in market
         }
 
-        with open("1bv_filtered_market_viewer_NEW.json", "w") as f:
+        with open("ace_filtered_market_viewer_NEW.json", "w") as f:
             json.dump(market_data, f, indent=2)
 
 

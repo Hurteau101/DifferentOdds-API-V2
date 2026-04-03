@@ -1,7 +1,7 @@
 import os
 import pytest
 from Books.Sportsbooks.bet105 import Bet105
-from Books.Sportsbooks.stg import STG
+from Books.Sportsbooks.sts import STS
 from Redis.redis_manager import static_mapping_service
 from Tests.common_test_helper import run_static, create_json_file
 from Utils.helpers import serialize_data
@@ -10,7 +10,7 @@ STATIC_MAPPING = static_mapping_service.get()
 
 SPORTSBOOKS_BOOKS = [
     { "book_name": "bet105", "book_cls": Bet105, "save_json": True, "active": False },
-    { "book_name": "stg", "book_cls": STG, "save_json": True, "active": True },
+    { "book_name": "stg", "book_cls": STS, "save_json": True, "active": True },
 ]
 
 @pytest.mark.asyncio

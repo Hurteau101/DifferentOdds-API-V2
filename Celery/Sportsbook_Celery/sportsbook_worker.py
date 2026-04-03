@@ -22,8 +22,8 @@ from Books.Prediction_Liquidity.novig import Novig
 from Books.Prediction_Liquidity.prophetx import Prophetx
 
 from Books.Sportsbooks.bet105 import Bet105
-from Books.Sportsbooks.betvegas import BetVegas
-from Books.Sportsbooks.stg import STG
+from Books.Sportsbooks.ace import Ace
+from Books.Sportsbooks.sts import STS
 
 from Books.Prediction_Liquidity.fourcx import FourCX
 
@@ -210,7 +210,7 @@ BOOKS = {
         "is_active": True,
     },
     "stg": {
-        "class": STG,
+        "class": STS,
         "interval": DEFAULT_INTERVAL,
         "lock_timeout": DEFAULT_TIMEOUT,
         "type": "sportsbook",
@@ -240,7 +240,7 @@ BOOKS = {
         "is_active": True,
     },
     "1bv": {
-        "class": BetVegas,
+        "class": Ace,
         "interval": DEFAULT_INTERVAL,
         "lock_timeout": DEFAULT_TIMEOUT,
         "type": "sportsbook",

@@ -1,9 +1,10 @@
-from Authentication.BetVegasAuth import BetVegasAuth
-from Auto_SGP.checker import Checker
-from Auto_SGP.runner import AutoSGP
+
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
+from Authentication.AceAuth import AceAuth
+from Auto_SGP.checker import Checker
+from Auto_SGP.runner import AutoSGP
 from Monitoring.Discord_Logging.logger import send_discord_message
 import aiohttp
 from External_Book_Mapping.SGP.betway_mapper import BetwayMapper
@@ -126,14 +127,14 @@ AUTH_JOBS = [
         "redis_key_checker_name": "ownerbox_auth_token",
     },
     {
-        "book_name": "1bv",
-        "class": BetVegasAuth,
+        "book_name": "ace",
+        "class": AceAuth,
         "job_type": "auth",
         "is_active": True,
         "interval": 900,  # 15 minutes
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
-        "redis_key_checker_name": "1bv_cookies",
+        "redis_key_checker_name": "ace_cookies",
     },
 ]
 
