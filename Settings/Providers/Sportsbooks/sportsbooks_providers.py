@@ -27,17 +27,44 @@ SPORTSBOOKS_PROVIDERS = [
         title="STG",
         name="stg",
         url={
-            "login_url": "https://bettheguys.com/Login.aspx",
-            "league_list_url": "https://bettheguys.com/Player/app/services/sidebarsportAJX.aspx/GetSportMenuMainHeaders",
+            # "login_url": "https://bettheguys.com/Login.aspx",
+            "login_url": "https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx",
+            # "league_list_url": "https://bettheguys.com/Player/app/services/sidebarsportAJX.aspx/GetSportMenuMainHeaders",
+            "league_list_url": "https://bettheguys.com/Player/app/services/sidebarsportAJX.aspx/GetSportMenuLeaguesWithOpenGames",
             "league_section": "https://bettheguys.com/Player/app/services/sidebarsportAJX.aspx/GetSportMenuLeaguesWithOpenGames",
             "game_markets": "https://bettheguys.com/Player/app/services/linesAJX.aspx/GetLines"
         },
         headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Origin': 'https://bettheguys.com',
+            'Connection': 'keep-alive',
+            'Referer': 'https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Priority': 'u=0, i',
+            'TE': 'trailers'
+        },
+        method="POST",
+        is_active=True
+    ),
+    BaseProvider(
+        title="1BV",
+        name="1bv",
+        url={
+            "leagues_url": "https://backend.betvegas23.com/wager/ActiveLeaguesHelper.aspx?WT=0",
+            "market_url": "https://backend.betvegas23.com/wager/NewScheduleHelper.aspx"
+        },
+        headers={
             "User-Agent": "Mozilla/5.0",
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "Accept-Language": "en-US,en;q=0.5",
-            "X-Requested-With": "XMLHttpRequest",
-            "Origin": "https://bettheguys.com",
+            "Referer": "https://betvegas23.com/",
+            "Origin": "https://betvegas23.com",
         },
         method="POST",
         is_active=True
