@@ -11,7 +11,7 @@ class AIMapper:
         load_dotenv()
         self.client = AsyncOpenAI(api_key=os.getenv("OPEN_AI_KEY"))
         self.db = Database()
-        self.semaphore = asyncio.Semaphore(20)
+        self.semaphore = asyncio.Semaphore(5)
 
     async def run_open_ai(self):
         existing_map = self.db.get_verification_league_map()
