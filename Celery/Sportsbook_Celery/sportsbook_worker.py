@@ -257,6 +257,8 @@ async def _run_books(book_name: str, lock_timeout: int):
     lock_key = f"{book_name}_lock"
     lock = redis_instance.redis_client.lock(lock_key, timeout=lock_timeout, blocking_timeout=3)
 
+    logger.info(f"TASK RECEIVED book={book_name} lock_timeout={lock_timeout}")
+
     if not lock.acquire(blocking=False):
         logger.info(f"Could not acquire lock for {book_name}. Another instance may be running.")
         return
