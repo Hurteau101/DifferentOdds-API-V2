@@ -55,12 +55,13 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
             raise HTTPException(status_code=400, detail=f"Invalid book name: {book}")
 
     format = format_type.lower()
+
     tasks = [
         get_redis_data(
             request,
             redis_name=book_type.lower(),
             redis_key=f"{book.lower()}:{format}",
-            timeout=timeout
+            timeout=timeout,
         )
         for book in passed_in_books
     ]
@@ -77,7 +78,7 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
                 else {}
             )
         else:
-            cleaned_results[book] = result if isinstance(result, list) else []
+            cleaned_results[book] = result if isinstance(result, (list, dict)) else []
 
     return cleaned_results
 
@@ -85,6 +86,7 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
 async def get_redis_data(request: Request, redis_name: str, redis_key: str, timeout: int = 5):
     """Helper function to get data from Redis with a timeout."""
     redis = request.app.state.redis.get(redis_name)
+
     if redis is None:
         raise RuntimeError(f"Redis instance '{redis_name}' not found in application state.")
 
