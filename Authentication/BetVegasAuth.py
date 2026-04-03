@@ -33,7 +33,7 @@ class BetVegasAuth(BaseScheduler):
         await redis_instance.store_data(
             key_name="1bv_cookies",
             data_to_store=cookie_dict,
-            key_expiration=900 # 15 Minutes
+            key_expiration=1200 # 20 Minutes
         )
 
 

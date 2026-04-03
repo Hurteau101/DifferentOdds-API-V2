@@ -1,3 +1,4 @@
+from Authentication.BetVegasAuth import BetVegasAuth
 from Auto_SGP.checker import Checker
 from Auto_SGP.runner import AutoSGP
 from Monitoring.monitoring import init_sentry
@@ -123,6 +124,16 @@ AUTH_JOBS = [
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
         "redis_key_checker_name": "ownerbox_auth_token",
+    },
+    {
+        "book_name": "1bv",
+        "class": BetVegasAuth,
+        "job_type": "auth",
+        "is_active": False,
+        "interval": 900,  # 15 minutes
+        "redis_db": RedisSelector.AUTH,
+        "session_type": "aiohttp",
+        "redis_key_checker_name": "1bv_cookies",
     },
 ]
 

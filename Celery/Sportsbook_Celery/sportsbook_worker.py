@@ -22,6 +22,7 @@ from Books.Prediction_Liquidity.novig import Novig
 from Books.Prediction_Liquidity.prophetx import Prophetx
 
 from Books.Sportsbooks.bet105 import Bet105
+from Books.Sportsbooks.betvegas import BetVegas
 from Books.Sportsbooks.stg import STG
 
 from Books.Prediction_Liquidity.fourcx import FourCX
@@ -230,6 +231,16 @@ BOOKS = {
     },
     "prophetx": {
         "class": Prophetx,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "type": "sportsbook",
+        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
+        "soft_limit": SOFT_LIMIT,
+        "hard_limit": HARD_LIMIT,
+        "is_active": True,
+    },
+    "1bv": {
+        "class": BetVegas,
         "interval": DEFAULT_INTERVAL,
         "lock_timeout": DEFAULT_TIMEOUT,
         "type": "sportsbook",
