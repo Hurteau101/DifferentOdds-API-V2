@@ -24,9 +24,6 @@ class SportsbookStats(Stats):
     market: str
     bet_team: Optional[str] = None
     bet_player: Optional[str] = None
-    description: Optional[str] = None
-    modified_description: Optional[str] = None
-
 
     def __post_init__(self):
         self.bet_player = clean_structure(self.bet_player)

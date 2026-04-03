@@ -147,7 +147,7 @@ class BetVegas(PPHBookBase):
         return mapper.get(description_name.lower(), {}).get(odds_key, description_name)
 
 
-    def moneyline_type(self, team_data: TeamData, game: dict, description_name: str, modified_description: str) -> list:
+    def moneyline_type(self, team_data: TeamData, game: dict, modified_description: str) -> list:
         """Builds any moneyline type markets, as the description names have the same odds keys, just different description names,
         so we can use the same function for all of them.
         :param team_data: The team data for the game, containing the team names.
@@ -170,13 +170,11 @@ class BetVegas(PPHBookBase):
                 bet_type=None,
                 future=False,
                 odds_format=OddsFormat(american_odds=float(moneyline_odds)),
-                description=description_name,
-                modified_description=modified_description
             ))
 
         return odds
 
-    def yes_no_type(self, game: dict, description_name: str, modified_description: str) -> list:
+    def yes_no_type(self, game: dict, modified_description: str) -> list:
         """
         Builds any yes/no type markets. The home team and away team indicate if its the yes/no side.
         :param game: The game data containing the odds information.
@@ -197,14 +195,12 @@ class BetVegas(PPHBookBase):
                 bet_type=direction,
                 future=False,
                 odds_format=OddsFormat(american_odds=float(odds_value)),
-                description=description_name,
-                modified_description=modified_description
             ))
 
         return odds
 
 
-    def spread_type(self, team_data: TeamData, game: dict, description_name: str, modified_description: str) -> list:
+    def spread_type(self, team_data: TeamData, game: dict, modified_description: str) -> list:
         """Builds any spread type markets, as the description names have the same odds keys, just different description names
         :param team_data: The team data for the game, containing the team names.
         :param game: The game data containing the odds information.
@@ -228,13 +224,11 @@ class BetVegas(PPHBookBase):
                 bet_type=None,
                 future=False,
                 odds_format=OddsFormat(american_odds=float(spread_odds)),
-                description=description_name,
-                modified_description=modified_description
             ))
 
         return odds
 
-    def total_type(self, games: dict, game: dict, description_name: str, modified_description: str) -> list:
+    def total_type(self, games: dict, game: dict, modified_description: str) -> list:
         """Builds any total type markets, as the description names have the same odds keys, just different description names
         :param games: The outer game data container that contains the team names, as the game dict doesn't contain this information.
         :param game: The game data containing the odds information.
@@ -263,8 +257,6 @@ class BetVegas(PPHBookBase):
                 bet_type=bet_type,
                 future=False,
                 odds_format=OddsFormat(american_odds=float(total_odds)),
-                description=description_name,
-                modified_description=modified_description
             ))
 
         return odds
@@ -328,11 +320,11 @@ class BetVegas(PPHBookBase):
 
         for main_lines in games.get("GameLines", []):
             if not any(condition in game_description for condition in special_conditions):
-                game_data.odds.extend(self.moneyline_type(team_data=team_data, game=main_lines, description_name=description_name, modified_description=modified_description))
-                game_data.odds.extend(self.spread_type(team_data=team_data, game=main_lines, description_name=description_name, modified_description=modified_description))
-                game_data.odds.extend(self.total_type(games=games, game=main_lines, description_name=description_name, modified_description=modified_description))
+                game_data.odds.extend(self.moneyline_type(team_data=team_data, game=main_lines, modified_description=modified_description))
+                game_data.odds.extend(self.spread_type(team_data=team_data, game=main_lines, modified_description=modified_description))
+                game_data.odds.extend(self.total_type(games=games, game=main_lines, modified_description=modified_description))
             else:
-                game_data.odds.extend(self.yes_no_type(game=main_lines, description_name=description_name, modified_description=modified_description))
+                game_data.odds.extend(self.yes_no_type(game=main_lines, modified_description=modified_description))
 
 
         return game_data

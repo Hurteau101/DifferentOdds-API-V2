@@ -62,10 +62,12 @@ class AIMapper:
 
                 self.db.delete_ai_rows(processed_pairs)
 
-            except OpenAIError:
+            except OpenAIError as e:
+                print(e)
                 # Sentry will handle logging.
                 continue
-
+            except Exception as e:
+                print(e)
 
     async def fetch_response(self, prompt: str, prompt_data: dict) -> dict | None:
         print(f"Running AI {prompt_data.get('team_name')} | {prompt_data.get('league')}")
@@ -74,7 +76,8 @@ class AIMapper:
             model="gpt-5-nano",
             messages=[
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            timeout=120
         )
 
         content = response.choices[0].message.content
