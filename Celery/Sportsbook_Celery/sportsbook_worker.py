@@ -216,7 +216,7 @@ BOOKS = {
         "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
     "soft_limit": SOFT_LIMIT,
     "hard_limit": HARD_LIMIT,
-        "is_active": True,
+        "is_active": False,
     },
     "novig": {
         "class": Novig,
