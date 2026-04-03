@@ -352,9 +352,10 @@ class Betr(DFSBookBase):
 
             events = {}
             for games in betr_data:
-                for game_data in games:
-                    if game_data:
-                        self.add_to_events(events, game_data, GameData)
+                if games:
+                    for game_data in games:
+                        if game_data:
+                            self.add_to_events(events, game_data, GameData)
 
 
             betr_data = list(events.values())
