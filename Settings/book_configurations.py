@@ -25,7 +25,12 @@ class BookConfiguration:
         if providers is None:
             raise ValueError(f"Category '{category}' not found.")
 
-        return next(provider for provider in providers if provider.name.lower() == book_name.lower())
+        provider = next((provider for provider in providers if provider.name.lower() == book_name.lower()), None)
+        if not provider:
+            raise ValueError(f"Book '{book_name}' not found in category '{category}'. Please ensure you have this set in your provider file.")
+
+        return provider
+
 
     @staticmethod
     def get_book_info(book_type):
