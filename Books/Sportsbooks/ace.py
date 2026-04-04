@@ -37,7 +37,14 @@ class Ace(PPHBookBase):
         self.league_dict = {}
 
         self.stat_mapping = get_static_mapping().get("stats", {})
-
+        self.base_market_mapper = {
+            "hoddst": "Moneyline",
+            "voddst": "Moneyline",
+            "hsprdoddst": "Spread",
+            "vsprdoddst": "Spread",
+            "ovoddst": "Total",
+            "unoddst": "Total",
+        }
 
     async def load_cookies(self) -> dict | None:
         """Extracts the cookies from Redis."""
@@ -121,32 +128,6 @@ class Ace(PPHBookBase):
         eastern_dt = game_date_dt.replace(tzinfo=ZoneInfo("America/New_York"))
         return eastern_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    @staticmethod
-    def name_mapper(market_name: str, odds_key: str) -> str:
-        """Maps the description name and odds key to a market name"""
-        ordinal_suffix_markets = ["1h", "2h", "1p", "2p", "3p", '1q', '2q', '3q', '4q']
-
-        irregular_ordinal_markets = ["3p regulation", '3rd innings', '7th inning', '1st 5 innings', '1st 5 innings (3-way)']
-
-        regular_markets = {
-            "hoddst": "Moneyline",
-            "voddst": "Moneyline",
-            "hsprdoddst": "Spread",
-            "vsprdoddst": "Spread",
-            "ovoddst": "Total",
-            "unoddst": "Total",
-        }
-
-        mapper = {
-            "game lines": regular_markets,
-            "alternates": regular_markets,
-            **{f"{irregular}": {key: f"{irregular} {value}" for key, value in regular_markets.items()} for irregular in irregular_ordinal_markets},
-            **{f"{suffix}": {key: f"{suffix.upper()} {value}" for key, value in regular_markets.items()} for suffix in ordinal_suffix_markets},
-        }
-
-        return mapper.get(market_name.lower(), {}).get(odds_key, market_name)
-
-
 
     def yes_no_type(self, game_data: dict, market_name: str) -> list:
         """
@@ -160,7 +141,7 @@ class Ace(PPHBookBase):
         yes_odds = game_data.get("voddst") if "no" in game_data.get('htm', '').lower() else game_data.get("hoddst")
 
         for direction, odds_value in [("under", yes_odds), ("over", no_odds)]:
-            mapped_market_name = self.name_mapper(market_name=market_name, odds_key="")
+            mapped_market_name = self.name_mapper(market_name=market_name, odds_key="", base_market_mapper=self.base_market_mapper)
 
             if not odds_value:
                 continue
@@ -176,8 +157,8 @@ class Ace(PPHBookBase):
 
         return odds
 
-    @staticmethod
-    def total_type(game_data: dict, market_name: str, **kwargs) -> list:
+
+    def total_type(self, game_data: dict, market_name: str, **kwargs) -> list:
         """
         Builds total type markets.
         :keyword games: The outer game data container that contains the team names, as the game dict doesn't contain this information.
@@ -190,7 +171,7 @@ class Ace(PPHBookBase):
         name_mapper_func = kwargs.get("name_mapper_func")
 
         for bet_type, line_key, odds_key in [("Over", "ovt", "ovoddst"), ("Under", "unt", "unoddst")]:
-            mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key)
+            mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=self.base_market_mapper)
 
 
             total_line = game_data.get(line_key)
@@ -275,12 +256,13 @@ class Ace(PPHBookBase):
         for main_lines in games.get("GameLines", []):
             if not any(condition in game_description for condition in special_conditions):
                 game_data.odds.extend(self.moneyline_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
-                                                          name_mapper_func=self.name_mapper, home_odds_name="hoddst", away_odds_name="voddst"))
+                                                          name_mapper_func=self.name_mapper, home_odds_name="hoddst", away_odds_name="voddst",
+                                                          base_market_mapper=self.base_market_mapper))
 
                 game_data.odds.extend(self.spread_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
                                                           name_mapper_func=self.name_mapper, home_spread_odds_name="hsprdoddst",
                                                        away_spread_odds_name="vsprdoddst", home_spread_value_name="hsprdt",
-                                                       away_spread_value_name="vsprdt"))
+                                                       away_spread_value_name="vsprdt", base_market_mapper=self.base_market_mapper))
 
                 game_data.odds.extend(self.total_type(games=games, game_data=main_lines, market_name=modified_description,
                                                       name_mapper_func=self.name_mapper))
