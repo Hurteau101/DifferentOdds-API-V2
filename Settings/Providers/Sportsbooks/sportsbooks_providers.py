@@ -68,5 +68,28 @@ SPORTSBOOKS_PROVIDERS = [
         },
         method="POST",
         is_active=True
+    ),
+    BaseProvider(
+        title="1BV",
+        name="1bv",
+        url={
+            "app_token_url": "https://everygame247.com/BetSlip/configurations/systemPreferences/systemKeys.json?version=1775274578684",
+            "player_token_url": "https://everygame247.com/Actions/api/Login/PlayerLogin?player={username}&password={password}&domain=https://everygame247.com",
+            "leagues_url": "https://everygame247.com/Actions/api/Menu/GetMenu",
+            "event_url": "https://everygame247.com/Actions/api/Event/GetEvent"
+        },
+        headers={
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Origin': 'https://everygame247.com',
+            'Referer': 'https://everygame247.com/',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+        },
+        method="GET",
+        is_active=True
     )
 ]
