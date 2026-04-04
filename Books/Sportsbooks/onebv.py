@@ -8,6 +8,7 @@ from Books.Bases.pph_base import PPHBookBase
 from External_Book_Mapping.SGP.betway_mapper import get_static_mapping
 from Settings.Models.base_models import TeamData, GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
+from Utils.proxy_manger import ProxyManager
 
 from Utils.request_caller import SportbookRequestType
 import asyncio
@@ -31,6 +32,8 @@ class OneBv(PPHBookBase):
 
     def __init__(self):
         super().__init__(book_name="1bv", request_type=SportbookRequestType.ASYNC)
+        self.proxy_manger = ProxyManager(self.api_caller)
+
         self.stat_mapping = get_static_mapping()
         # Contains the proper team names, as game lines section is the only section
         # that will have the proper team names, so we want to store here, so they can be referenced for the other sections,
@@ -48,7 +51,7 @@ class OneBv(PPHBookBase):
 
 
     async def get_app_token(self, session: aiohttp.ClientSession):
-        token_data = await self.api_caller(
+        token_data = await self.proxy_manger.proxy_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("app_token_url"),
@@ -70,7 +73,7 @@ class OneBv(PPHBookBase):
             'appToken': app_token,
         }
 
-        token_data = await self.api_caller(
+        token_data = await self.proxy_manger.proxy_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("player_token_url").format(username=username, password=password),
@@ -222,7 +225,7 @@ class OneBv(PPHBookBase):
         game_data.odds.extend(self.moneyline_type(team_data=team_data, game_data=event_data,
                                                   market_name=market_name,
                                                   name_mapper_func=self.name_mapper,
-                                                  home_odds_name="HOME_ODDS", away_odds_name="VISITOR_ODDS", optional=found_league, base_market_mapper=self.base_market_mapper))
+                                                  home_odds_name="HOME_ODDS", away_odds_name="VISITOR_ODDS", base_market_mapper=self.base_market_mapper))
 
         game_data.odds.extend(self.spread_type(team_data=team_data, game_data=event_data, market_name=market_name,
                                                name_mapper_func=self.name_mapper, home_spread_value_name="HOME_SPECIAL", away_spread_value_name="VISITOR_SPECIAL",
@@ -244,7 +247,7 @@ class OneBv(PPHBookBase):
             if not player_token:
                 return
 
-            raw_league_data = await self.api_caller(
+            raw_league_data = await self.proxy_manger.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("leagues_url"),
@@ -260,7 +263,7 @@ class OneBv(PPHBookBase):
 
             tasks = await asyncio.gather(
                 *[
-                    self.api_caller(
+                    self.proxy_manger.proxy_caller(
                         book_name=self.book_data.name,
                         session=session,
                         url=self.book_data.url.get("event_url"),
