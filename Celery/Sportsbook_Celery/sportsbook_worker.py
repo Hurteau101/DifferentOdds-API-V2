@@ -23,6 +23,7 @@ from Books.Prediction_Liquidity.prophetx import Prophetx
 
 from Books.Sportsbooks.bet105 import Bet105
 from Books.Sportsbooks.ace import Ace
+from Books.Sportsbooks.onebv import OneBv
 from Books.Sportsbooks.sts import STS
 
 from Books.Prediction_Liquidity.fourcx import FourCX
@@ -241,6 +242,16 @@ BOOKS = {
     },
     "ace": {
         "class": Ace,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "type": "sportsbook",
+        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
+        "soft_limit": SOFT_LIMIT,
+        "hard_limit": HARD_LIMIT,
+        "is_active": True,
+    },
+    "1bv": {
+        "class": OneBv,
         "interval": DEFAULT_INTERVAL,
         "lock_timeout": DEFAULT_TIMEOUT,
         "type": "sportsbook",
