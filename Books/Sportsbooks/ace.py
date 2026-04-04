@@ -151,8 +151,8 @@ class Ace(PPHBookBase):
     def yes_no_type(self, game_data: dict, market_name: str) -> list:
         """
         Builds any yes/no type markets. The home team and away team indicate if its the yes/no side.
-        :param game: The game data containing the odds information.
-        :param description_name: The original description name of the market.
+        :param game_data: The game data containing the odds information.
+        :param market_name: The market name.
         """
         odds = []
 
@@ -178,10 +178,12 @@ class Ace(PPHBookBase):
 
     @staticmethod
     def total_type(game_data: dict, market_name: str, **kwargs) -> list:
-        """Builds any total type markets, as the description names have the same odds keys, just different description names
-        :param games: The outer game data container that contains the team names, as the game dict doesn't contain this information.
-        :param game: The game data containing the odds information.
-        :param modified_description: The modified description name.
+        """
+        Builds total type markets.
+        :keyword games: The outer game data container that contains the team names, as the game dict doesn't contain this information.
+        :keyword name_mapper_func: Function to help map market names.
+        :param game_data: The game data containing the odds information.
+        :param market_name: The modified description name.
         """
         odds = []
 
