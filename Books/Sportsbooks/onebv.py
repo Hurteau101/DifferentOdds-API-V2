@@ -3,6 +3,7 @@ import re
 from itertools import chain
 
 import aiohttp
+from rapidfuzz import process, fuzz
 
 from Books.Bases.pph_base import PPHBookBase
 from External_Book_Mapping.SGP.betway_mapper import get_static_mapping
@@ -39,15 +40,6 @@ class OneBv(PPHBookBase):
         # that will have the proper team names, so we want to store here, so they can be referenced for the other sections,
         # that don't have the proper team names.
         self.league_dict = {}
-
-        self.base_market_mapper = {
-            "HOME_ODDS": "Moneyline",
-            "VISITOR_ODDS": "Moneyline",
-            "HOME_SPECIAL_ODDS": "Spread",
-            "VISITOR_SPECIAL_ODDS": "Spread",
-            "OVER_ODDS": "Total",
-            "UNDER_ODDS": "Total",
-        }
 
 
     async def get_app_token(self, session: aiohttp.ClientSession):
@@ -118,18 +110,20 @@ class OneBv(PPHBookBase):
                 if league_filter and league.get("SportId", '').upper() not in self.VALID_LEAGUES:
                     continue
 
+                # Special condition as they list both of these as CBB for sport id.
+                if "ncaa" in league_description and "women" in league_description:
+                    sport_id = "ncaaw"
+                elif "ncaa" in league_description:
+                    sport_id = "ncaab"
+
+
                 if filter_markets and not any(market in league_description for market in self.ALLOWED_MARKETS):
                     continue
-
-                # Special condition as they list both of these as CBB for sport id.
-                if "ncaab" in league_description:
-                    sport_id = "ncaab"
-                elif "ncaa" in league_description:
-                    sport_id = "ncaaw"
 
                 league_ids[league.get("LeagueId")] = {
                     "league_id": league.get("LeagueId"),
                     "sport_id": sport_id,
+                    "api_sport_id": league.get("SportId"),
                     "raw_league_description": league_description,
                     "market_type": self.market_helper(league_description, league.get("SportId", '')),
                 }
@@ -152,9 +146,10 @@ class OneBv(PPHBookBase):
         team_a = team_data.team_a if team_data.team_a else ""
         team_b = team_data.team_b if team_data.team_b else ""
 
+        base_mapper = kwargs.get("base_market_mapper")
 
         for bet_type, line_key, odds_key in [("Over", "TOTAL_OVER", "OVER_ODDS"), ("Under", "TOTAL_UNDER", "UNDER_ODDS")]:
-            mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=self.base_market_mapper)
+            mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_mapper)
 
             total_line = game_data.get(line_key)
             total_odds = game_data.get(odds_key)
@@ -190,7 +185,7 @@ class OneBv(PPHBookBase):
         # Store these ideas for future markets, as we can get the proper team names.
         if all([
             found_league.get("market_type", '').lower() == "game lines",
-            event_data.get("GAME_TYPE_ID", -1) == 1,
+            # event_data.get("GAME_TYPE_ID", -1) in [1, 59],
             game_stat_id != "B",
         ]):
             self.league_dict[family_id] = {
@@ -202,6 +197,36 @@ class OneBv(PPHBookBase):
             team_a=self.league_dict.get(family_id, {}).get("home") if family_id else event_data.get("HOME_TEAM", ''),
             team_b=self.league_dict.get(family_id, {}).get("away") if family_id else event_data.get("VISITOR_TEAM", '')
         )
+
+        # Perform fuzzy matching, if no team data can be found.
+        if not team_data.team_a or not team_data.team_b:
+            game_description = event_data.get("GAME_DESCRIPTION", '')
+            split_game = game_description.split("-")[0]
+            versus_split = split_game.split(" vs ")
+
+            all_teams = {
+                full_name: teams
+                for teams in self.league_dict.values()
+                for full_name in [teams["home"], teams["away"]]
+            }
+
+            matched = []
+            for versus in versus_split:
+                result = process.extractOne(versus, all_teams.keys(), scorer=fuzz.partial_ratio, score_cutoff=70)
+
+                if result:
+                    matched.append(all_teams[result[0]])
+
+            if matched:
+                teams = matched[0]
+                team_data = TeamData(
+                    team_a=teams["home"],
+                    team_b=teams["away"]
+                )
+
+        if not team_data.team_a or not team_data.team_b:
+            return None
+
 
         game_key = self.generate_key([team_data.team_a, team_data.team_b, start_date])
 
@@ -222,16 +247,42 @@ class OneBv(PPHBookBase):
             market_name = period if period else market_name
 
 
+        home_odds_name = "HOME_ODDS" if event_data.get("HOME_ODDS", None) is not None else "HOME_SPECIAL_ODDS"
+        away_odds_name = "VISITOR_ODDS" if event_data.get("VISITOR_ODDS", None) is not None else "VISITOR_SPECIAL_ODDS"
+
+
+        home_spread_value_name = "HOME_SPECIAL" if event_data.get("HOME_SPECIAL", None) is not None else "HOME_SPREAD"
+        home_spread_odds_name = "HOME_SPECIAL_ODDS" if event_data.get("HOME_SPECIAL_ODDS", None) is not None else "HOME_SPREAD_ODDS"
+
+        away_spread_value_name = "VISITOR_SPECIAL" if event_data.get("VISITOR_SPECIAL", None) is not None else "VISITOR_SPREAD"
+        away_spread_odds_name = "VISITOR_SPECIAL_ODDS" if event_data.get("VISITOR_SPECIAL_ODDS", None) is not None else "VISITOR_SPREAD_ODDS"
+
+        base_market_mapper = {
+            home_odds_name: "Moneyline",
+            away_odds_name: "Moneyline",
+            home_spread_odds_name: "Spread",
+            away_spread_odds_name: "Spread",
+            "OVER_ODDS": "Total",
+            "UNDER_ODDS": "Total",
+        }
+
+
+
         game_data.odds.extend(self.moneyline_type(team_data=team_data, game_data=event_data,
                                                   market_name=market_name,
                                                   name_mapper_func=self.name_mapper,
-                                                  home_odds_name="HOME_ODDS", away_odds_name="VISITOR_ODDS", base_market_mapper=self.base_market_mapper))
+                                                  home_odds_name=home_odds_name, away_odds_name=away_odds_name, base_market_mapper=base_market_mapper))
 
-        game_data.odds.extend(self.spread_type(team_data=team_data, game_data=event_data, market_name=market_name,
-                                               name_mapper_func=self.name_mapper, home_spread_value_name="HOME_SPECIAL", away_spread_value_name="VISITOR_SPECIAL",
-                                               home_spread_odds_name="HOME_SPECIAL_ODDS", away_spread_odds_name="VISITOR_SPECIAL_ODDS", base_market_mapper=self.base_market_mapper))
+        odds = self.spread_type(team_data=team_data, game_data=event_data, market_name=market_name,
+                                               name_mapper_func=self.name_mapper, home_spread_value_name=home_spread_value_name, away_spread_value_name=away_spread_value_name,
+                                               home_spread_odds_name=home_spread_odds_name, away_spread_odds_name=away_spread_odds_name, base_market_mapper=base_market_mapper)
+
+        game_data.odds.extend(self.convert_spread_name(odds_list=odds, league=game_data.league))
+
+
         game_data.odds.extend(self.total_type(game_data=event_data, market_name=market_name, name_mapper_func=self.name_mapper,
-                                              team_data=team_data))
+                                              team_data=team_data, base_market_mapper=base_market_mapper))
+
         return game_data if game_data.odds else None
 
 
@@ -277,7 +328,7 @@ class OneBv(PPHBookBase):
                             "leagueId": league_details.get("league_id"),
                             "loadAgentLines": "false",
                             "loadDefaultOdds": "false",
-                            "sportId": league_details.get("sport_id"),
+                            "sportId": league_details.get("api_sport_id"),
                             "loadMlbLines": "false",
                             "loadPropsEvents": "false",
                             "loadWagerTypeOnline": "false"
@@ -302,7 +353,11 @@ class OneBv(PPHBookBase):
             for event in events:
                 game_data = await self.build_market(event_data=event, league_data=league_ids)
                 if game_data:
-                    self.add_to_events(event_data, game_data, GameData)
+                    if game_data.event_name in event_data:
+                        event_data[game_data.event_name].odds.extend(game_data.odds)
+                    else:
+                        event_data[game_data.event_name] = game_data
+
 
             onebv_data = list(event_data.values())
 
@@ -313,6 +368,7 @@ class OneBv(PPHBookBase):
                 data_to_store=mapped_data,
                 book_name=self.book_data.name
             )
+
 
             return mapped_data
 

@@ -259,10 +259,11 @@ class Ace(PPHBookBase):
                                                           name_mapper_func=self.name_mapper, home_odds_name="hoddst", away_odds_name="voddst",
                                                           base_market_mapper=self.base_market_mapper))
 
-                game_data.odds.extend(self.spread_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
+                odds = self.spread_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
                                                           name_mapper_func=self.name_mapper, home_spread_odds_name="hsprdoddst",
                                                        away_spread_odds_name="vsprdoddst", home_spread_value_name="hsprdt",
-                                                       away_spread_value_name="vsprdt", base_market_mapper=self.base_market_mapper))
+                                                       away_spread_value_name="vsprdt", base_market_mapper=self.base_market_mapper)
+                game_data.odds.extend(self.convert_spread_name(odds_list=odds, league=game_data.league))
 
                 game_data.odds.extend(self.total_type(games=games, game_data=main_lines, market_name=modified_description,
                                                       name_mapper_func=self.name_mapper))

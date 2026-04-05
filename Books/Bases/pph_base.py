@@ -121,10 +121,15 @@ class PPHBookBase(SportsbooksBookBase):
 
 
 
+    def convert_spread_name(self, odds_list: list[SportsbookStats], league: str):
+        """Converts spread market names to the appropriate names based on the league."""
+        for odds in odds_list:
+            if "Spread" in odds.market and league == "MLB":
+                odds.market = odds.market.replace("Spread", "Run Line")
+            elif "Spread" in odds.market and league == "NHL":
+                odds.market = odds.market.replace("Spread", "Puck Line")
 
-
-
-
+        return odds_list
 
 
     def pph_login_helper(self, payload: dict, sportsbook_name: str, additional_headers: dict = None,
