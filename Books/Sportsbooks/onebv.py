@@ -51,7 +51,7 @@ class OneBv(PPHBookBase):
             headers=self.book_data.headers
         )
 
-        return token_data.get("AppToken", None)
+        return token_data.get("AppToken", None) if isinstance(token_data, dict) else None
 
     async def get_player_token(self, session: aiohttp.ClientSession, app_token: str):
         username = os.getenv("1BV_USERNAME")
@@ -73,7 +73,7 @@ class OneBv(PPHBookBase):
             headers=headers,
         )
 
-        return token_data.get("PlayerToken", None)
+        return token_data.get("PlayerToken", None) if isinstance(token_data, dict) else None
 
     def market_helper(self, league_description: str, sport_id: str) -> str:
         """Used to help determine the market type"""
@@ -298,7 +298,7 @@ class OneBv(PPHBookBase):
             if not player_token:
                 return
 
-            raw_league_data = await self.api_caller(
+            raw_league_data = await self.proxy_manger.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("leagues_url"),
@@ -314,7 +314,7 @@ class OneBv(PPHBookBase):
 
             tasks = await asyncio.gather(
                 *[
-                    self.api_caller(
+                    self.proxy_manger.proxy_caller(
                         book_name=self.book_data.name,
                         session=session,
                         url=self.book_data.url.get("event_url"),
@@ -360,7 +360,6 @@ class OneBv(PPHBookBase):
 
 
             onebv_data = list(event_data.values())
-
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=onebv_data)
 
