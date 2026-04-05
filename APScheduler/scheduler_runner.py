@@ -1,4 +1,4 @@
-
+from Authentication.metallic_auth import MetallicAuth
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
@@ -135,6 +135,16 @@ AUTH_JOBS = [
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
         "redis_key_checker_name": "ace_cookies",
+    },
+    {
+        "book_name": "metallic",
+        "class": MetallicAuth,
+        "job_type": "auth",
+        "is_active": True,
+        "interval": 4800,  # 80 minutes
+        "redis_db": RedisSelector.AUTH,
+        "session_type": "aiohttp",
+        "redis_key_checker_name": "metallic_token",
     },
 ]
 
