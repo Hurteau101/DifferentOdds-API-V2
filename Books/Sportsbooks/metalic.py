@@ -38,61 +38,6 @@ class Metallic(PPHBookBase):
     def __init__(self):
         super().__init__(book_name="metallic", request_type=SportbookRequestType.ASYNC)
 
-
-
-    # # This handles the login redirect, where it will point to the location, that has the temp token we need.
-    # async def login_redirect(self, session: aiohttp.ClientSession):
-    #     username = os.getenv("METALLIC_USERNAME")
-    #     password = os.getenv("METALLIC_PASSWORD")
-    #
-    #     if not username or not password:
-    #         raise ValueError("Missing required environment variables: METALLIC_USERNAME, METALLIC_PASSWORD")
-    #
-    #     url = "https://black34.com/player-api/identity/CustomerLoginRedir?RedirToHome=1"
-    #     headers = {
-    #         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-    #         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    #         'Accept-Language': 'en-US,en;q=0.9',
-    #         'Accept-Encoding': 'gzip, deflate, br, zstd',
-    #         'Content-Type': 'application/x-www-form-urlencoded',
-    #         'Origin': 'https://black34.com',
-    #         'Connection': 'keep-alive',
-    #         'Referer': 'https://black34.com/',
-    #         'Upgrade-Insecure-Requests': '1',
-    #     }
-    #
-    #     async with session.post(url=url, headers=headers, allow_redirects=False, data={
-    #         "customerid": username,
-    #         "password": password,
-    #         "submit": "Sign In"
-    #     }) as response:
-    #         headers = response.headers
-    #         if response.status != 302 or not isinstance(headers, CIMultiDictProxy):
-    #             return None
-    #
-    #         location = headers.get('Location', '')
-    #
-    #         return location.split('t=')[-1] if "t=" in location else None
-    #
-    #
-    # async def get_auth(self, session: aiohttp.ClientSession, temp_token: str):
-    #     token_data = await self.api_caller(
-    #         book_name=self.book_data.name,
-    #         session=session,
-    #         url=self.book_data.url.get("auth_url"),
-    #         method=self.book_data.method,
-    #         headers=self.book_data.headers,
-    #         payload={
-    #             "token": temp_token,
-    #             "version": "1.3.47"
-    #         }
-    #     )
-    #
-    #     if not isinstance(token_data, dict) or "AccessToken" not in token_data:
-    #         return None
-    #
-    #     return token_data["AccessToken"]
-
     async def load_auth(self) -> str | None:
         """Extracts the cookies from Redis."""
         redis_instance = RedisAsyncManager(database=5)
