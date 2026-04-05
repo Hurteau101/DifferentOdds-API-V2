@@ -2,7 +2,7 @@
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
-from Authentication.AceAuth import AceAuth
+from Authentication.ace_auth import AceAuth
 from Auto_SGP.checker import Checker
 from Auto_SGP.runner import AutoSGP
 from Monitoring.Discord_Logging.logger import send_discord_message
