@@ -47,29 +47,34 @@ class ProxyManager:
             params: dict | None = None
     ):
         """Attempt to call the API using available proxies. Will try each proxy in the list until one works."""
-        for i in range(self.proxy_amount):
-            proxy = self._cycle_proxies()
+        proxies_to_try = list(self.proxies)
 
-            if proxy:
-                try:
-                    api_data = await self.api_caller(
-                        book_name=book_name,
-                        session=session,
-                        url=url,
-                        method=method,
-                        proxy=proxy,
-                        headers=headers,
-                        params=params,
-                        payload=payload,
-                        parse_json=parse_json
-                    )
+        for proxy_raw in proxies_to_try:
+            proxy_parts = proxy_raw.split(":")
+            ip, port, username, password = proxy_parts
+            proxy = f"http://{username}:{password}@{ip}:{port}"
 
-                    if not api_data:
-                        continue
+            try:
+                api_data = await self.api_caller(
+                    book_name=book_name,
+                    session=session,
+                    url=url,
+                    method=method,
+                    proxy=proxy,
+                    headers=headers,
+                    params=params,
+                    payload=payload,
+                    parse_json=parse_json
+                )
 
+                if api_data:
                     return api_data
-                except Exception as e:
-                    continue
+
+                # print(f"Failed with proxy {ip}, trying next...")
+
+            except Exception as e:
+                # print(f"Proxy {ip} raised: {e}, trying next...")
+                continue
 
         create_sentry_message(
             tag_key="proxy",
@@ -78,4 +83,5 @@ class ProxyManager:
             level="error"
         )
 
+        print(f"All proxies failed for {book_name}")
         return None
