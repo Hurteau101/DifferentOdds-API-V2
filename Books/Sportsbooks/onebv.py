@@ -298,7 +298,7 @@ class OneBv(PPHBookBase):
             if not player_token:
                 return
 
-            raw_league_data = await self.proxy_manger.proxy_caller(
+            raw_league_data = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("leagues_url"),
@@ -314,7 +314,7 @@ class OneBv(PPHBookBase):
 
             tasks = await asyncio.gather(
                 *[
-                    self.proxy_manger.proxy_caller(
+                    self.api_caller(
                         book_name=self.book_data.name,
                         session=session,
                         url=self.book_data.url.get("event_url"),
@@ -360,6 +360,7 @@ class OneBv(PPHBookBase):
 
 
             onebv_data = list(event_data.values())
+
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=onebv_data)
 
