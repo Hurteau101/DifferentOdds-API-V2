@@ -61,7 +61,7 @@ class APICaller:
                     method: str,
                     headers: dict | None = None,
                     proxy: dict | None = None,
-                    payload: dict | str | None = None,
+                    payload: dict | str | list | None = None,
                     parse_json: bool = False,
                     params: dict | None =None
                     ) -> dict | list | None:
@@ -75,14 +75,16 @@ class APICaller:
             # Use the method type [POST or GET]
             async with getattr(session, method)(
                     url, headers=headers, proxy=proxy, params=params if method == "get" else None,
-                    json=payload if method == "post" else None
+                    data=payload if isinstance(payload, str) else None,
+                    json=payload if isinstance(payload, dict) or isinstance(payload, list) else None
             ) as response:
                 return await self.handle_async_response(response, parse_json, book_name)
 
         # Use the method type [POST or GET]
         response = await getattr(session, method)(
             url, headers=headers, proxy=proxy, params=params if method == "get" else None,
-            json=payload if method == "post" else None
+            data=payload if isinstance(payload, str) else None,
+            json=payload if isinstance(payload, dict) or isinstance(payload, list) else None
         )
 
         return self.handle_sync_response(response, parse_json, book_name)
@@ -104,10 +106,12 @@ class APICaller:
         """Handle aiohttp async response."""
         # if response.status not in self.valid_status_codes:
         #     print(f"\n******* Failed {book_name} | Text: {await response.text()} *************\n", response.status)
+
         if response.status in self.valid_status_codes:
             try:
                 if parse_json:
                     text = await response.text()
+                    print(text)
                     return json.loads(text)
 
                 return await response.json()
