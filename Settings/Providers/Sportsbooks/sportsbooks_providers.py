@@ -91,5 +91,29 @@ SPORTSBOOKS_PROVIDERS = [
         },
         method="GET",
         is_active=True
+    ),
+    BaseProvider(
+        title="Metallic",
+        name="metallic",
+        url={
+            "league_url": "https://black34.com/player-api/api/wager/sportsavailablebyplayeronleague/false",
+            "market_url": "https://black34.com/player-api/api/wager/schedules/S/0"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Content-Type': 'application/json',
+            'Origin': 'https://black34.com',
+            'Connection': 'keep-alive',
+            'Referer': 'https://black34.com/v2/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'Priority': 'u=0',
+        },
+        method="POST",
+        is_active=True
     )
 ]
