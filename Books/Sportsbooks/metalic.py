@@ -235,8 +235,6 @@ class Metallic(PPHBookBase):
             if not auth_token:
                 return
 
-            print(auth_token)
-
             raw_leagues = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
