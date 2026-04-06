@@ -1,8 +1,8 @@
-from Authentication.metallic_auth import MetallicAuth
-from Books.Sportsbooks.buckeye_2 import Buckeye2
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
+from Authentication.buckeye2_auth import Buckeye2Auth
+from Authentication.metallic_auth import MetallicAuth
 from Authentication.ace_auth import AceAuth
 from Auto_SGP.checker import Checker
 from Auto_SGP.runner import AutoSGP
@@ -149,7 +149,7 @@ AUTH_JOBS = [
     },
     {
         "book_name": "buckeye2",
-        "class": Buckeye2,
+        "class": Buckeye2Auth,
         "job_type": "auth",
         "is_active": True,
         "interval": 900,  # 15 minutes
