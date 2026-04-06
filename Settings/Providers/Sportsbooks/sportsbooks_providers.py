@@ -115,5 +115,31 @@ SPORTSBOOKS_PROVIDERS = [
         },
         method="POST",
         is_active=True
+    ),
+    BaseProvider(
+        title="Buckeye 2",
+        name="buckeye2",
+        url={
+            "league_url": "https://wwcd.me/cloud/api/League/Get_SportsLeagues",
+            "market_url": "https://wwcd.me/cloud/api/Lines/Get_LeagueLines2",
+            "point_group_url": "https://wwcd.me/cloud/api/Lines/getBuyPointsGroup"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Origin': 'https://wwcd.me',
+            'Connection': 'keep-alive',
+            'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'TE': 'trailers'
+        },
+        method="POST",
+        is_active=True
     )
 ]
