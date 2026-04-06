@@ -164,12 +164,15 @@ class Metallic(PPHBookBase):
             if schedule.get("l", '').lower() in ["player props"]:
                 continue
 
+            date_portion = schedule.get("d", '').split("T")[0]
+
             for game in schedule.get("g", []):
                 # Filter out any live games, unplayable markets, etc.
                 if any([game.get("ob", False), game.get("il", False), game.get("ip", False), "disclaimer" in game.get('l', '').lower()]):
                     continue
 
-                game_date = game.get("to", "")
+                time_portion = game.get("t", "")
+                game_date = f"{date_portion}T{time_portion}Z"
 
                 team_list = game.get("ts", [])
                 team_data = self.extract_teams(team_list=team_list)
