@@ -19,7 +19,7 @@ class PPHBookBase(SportsbooksBookBase):
     def spread_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
                        home_spread_odds_name:str, away_spread_odds_name: str,
                     home_spread_value_name: str, away_spread_value_name: str,
-                    base_market_mapper: dict) -> list:
+                    base_market_mapper: dict, **kwargs) -> list:
         """
         Builds spread type markets for a given game and team data.
         :param team_data: The team data for the game, containing the team names.
@@ -38,7 +38,8 @@ class PPHBookBase(SportsbooksBookBase):
             (team_data.team_a, home_spread_value_name, home_spread_odds_name),
             (team_data.team_b, away_spread_value_name, away_spread_odds_name)
         ]:
-            mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper)
+
+            mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper, **kwargs)
 
             spread_odds = game_data.get(odds_key)
             spread_line = game_data.get(line_key)
@@ -60,7 +61,7 @@ class PPHBookBase(SportsbooksBookBase):
 
 
     def moneyline_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
-                       home_odds_name:str, away_odds_name: str, base_market_mapper: dict) -> list:
+                       home_odds_name:str, away_odds_name: str, base_market_mapper: dict, **kwargs) -> list:
         """
         Builds moneyline type markets for a given game and team data.
         :param team_data: The team data for the game, containing the team names.
@@ -74,7 +75,7 @@ class PPHBookBase(SportsbooksBookBase):
         odds = []
 
         for team, odds_key in [(team_data.team_a, home_odds_name), (team_data.team_b, away_odds_name)]:
-            mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper)
+            mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper, **kwargs)
 
             moneyline_odds = game_data.get(odds_key)
             if not moneyline_odds:
@@ -98,7 +99,7 @@ class PPHBookBase(SportsbooksBookBase):
         return []
 
     @staticmethod
-    def name_mapper(market_name: str, odds_key: str, base_market_mapper: dict) -> str:
+    def name_mapper(market_name: str, odds_key: str, base_market_mapper: dict, **kwargs) -> str:
         """
         Maps the description name and odds key to a market name
         :param market_name: The market name.
