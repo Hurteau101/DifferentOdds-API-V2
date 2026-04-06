@@ -1,11 +1,8 @@
 import asyncio
-import os
 import re
 from itertools import chain
-
 import aiohttp
 from dotenv import load_dotenv
-from multidict import CIMultiDictProxy
 from trio import Semaphore
 
 from Books.Bases.pph_base import PPHBookBase
@@ -92,6 +89,12 @@ class Metallic(PPHBookBase):
         )
 
     def _spread_type(self, market_name: str, market_data: dict, **kwargs) -> SportsbookStats:
+        league = kwargs.get("league", '').lower()
+        if "spread" in market_name.lower() and league == "mlb":
+            market_name = market_name.lower().replace("spread", "run line")
+        elif "spread" in market_name.lower() and league == "nhl":
+            market_name = market_name.lower().replace("spread", "puck line")
+
         return SportsbookStats(
             market=market_name,
             bet_team=kwargs.get("team", None),
@@ -204,7 +207,7 @@ class Metallic(PPHBookBase):
 
                         for market in market_data:
                             odds = self.market_controller(market_name=market_name, market_data=market,
-                                                          mapped_market_name=mapped_market_name, team=team, index=index)
+                                                          mapped_market_name=mapped_market_name, team=team, index=index, league=game.league)
                             if odds:
                                 game.odds.append(odds)
 
