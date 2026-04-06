@@ -1,4 +1,5 @@
 from Authentication.metallic_auth import MetallicAuth
+from Books.Sportsbooks.buckeye_2 import Buckeye2
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
@@ -145,6 +146,16 @@ AUTH_JOBS = [
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
         "redis_key_checker_name": "metallic_token",
+    },
+    {
+        "book_name": "buckeye2",
+        "class": Buckeye2,
+        "job_type": "auth",
+        "is_active": True,
+        "interval": 900,  # 15 minutes
+        "redis_db": RedisSelector.AUTH,
+        "session_type": "aiohttp",
+        "redis_key_checker_name": "buckeye_2_auth_token",
     },
 ]
 
