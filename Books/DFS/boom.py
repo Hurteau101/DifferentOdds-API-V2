@@ -151,6 +151,7 @@ class Boom(DFSBookBase):
                 self.add_to_events(events, game_data, GameData)
 
             boom_data = list(events.values())
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=boom_data)
 
             await self.store_data(
@@ -160,3 +161,8 @@ class Boom(DFSBookBase):
             )
 
             return mapped_data
+
+if __name__ == "__main__":
+    boom = Boom()
+    import asyncio
+    asyncio.run(boom.run_book())
