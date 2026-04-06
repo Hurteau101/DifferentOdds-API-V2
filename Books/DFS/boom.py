@@ -5,11 +5,11 @@ from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Boom(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="boom", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="boom", request_type=SportbookRequestType.SPOOF)
 
     # Extract the multiplier from the stat list. 1st float found is the multiplier.
     def _get_multiplier(self, stat_list: list) -> float | None:
@@ -122,13 +122,14 @@ class Boom(DFSBookBase):
         return player_list
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
             api_data = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
                 headers=self.book_data.headers,
+                parse_json=True
             )
 
             if not api_data:
@@ -151,7 +152,7 @@ class Boom(DFSBookBase):
                 self.add_to_events(events, game_data, GameData)
 
             boom_data = list(events.values())
-
+            print(boom_data)
             mapped_data = await self.map_runner(session=session, sportsbook_data=boom_data)
 
             await self.store_data(
