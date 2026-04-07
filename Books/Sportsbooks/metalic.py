@@ -252,6 +252,9 @@ class Metallic(PPHBookBase):
                 }
             )
 
+            if not raw_leagues:
+                return
+
             league_ids = self.build_league_ids(raw_leagues)
 
             # Use semapmore, as there is rate limits.
