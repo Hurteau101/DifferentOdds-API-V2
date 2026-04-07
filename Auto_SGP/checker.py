@@ -46,7 +46,7 @@ class Checker:
 
                 bettorodds_data = sportsbook_data.get(key)
                 if not bettorodds_data:
-                    print("No BettorOdds Data for Key: ", key)
+                    # print("No BettorOdds Data for Key: ", key)
                     previously_sent.add(previously_sent_key)
                     endpoint.add(endpoint_key)
                     continue
@@ -58,8 +58,8 @@ class Checker:
                     endpoint.add(endpoint_key)
                     continue
 
-        print(f"Previously Sent Keys to Remove: {previously_sent}")
-        print(f"Endpoint Keys to Remove: {endpoint}")
+        # print(f"Previously Sent Keys to Remove: {previously_sent}")
+        # print(f"Endpoint Keys to Remove: {endpoint}")
         await self.remover(previously_sent, endpoint)
 
 
