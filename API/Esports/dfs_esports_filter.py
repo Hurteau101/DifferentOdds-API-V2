@@ -37,6 +37,7 @@ def extract_esport_lines(lines):
                                 "odds_type": odds.get("odds_type"),
                                 "multiplier": odds.get("multiplier", 1.0),
                                 "odds": odds.get("odds", {}) if odds and odds.get("odds_format") else None,
+                                "betlink": odds.get("betlink", {}),
                             }
                         })
 
