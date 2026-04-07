@@ -18,6 +18,7 @@ class OptionalStatInformation(TypedDict, total=False):
     internal_id: str # Books Using this: (Fanduel_Picks)
     boosted_payout: bool # Books Using this: (ParlayPlay) ## CHECK THESE
     boosted_expiry: str # Books Using this: (ParlayPlay) ## CHECK THESE
+    player_id: str | int
 
 # Use kw_only - As inheritance restriction.
 @dataclass(kw_only=True)
