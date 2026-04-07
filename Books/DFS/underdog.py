@@ -253,7 +253,8 @@ class Underdog(DFSBookBase):
                 team_a_abbreviation=game_details.get("team_a_abbreviation"),
                 team_b_abbreviation=game_details.get("team_b_abbreviation"),
             ),
-            odds=stat_details
+            odds=stat_details,
+            misc_data={"player_id": player_id}
         )
 
     def regroup_stats(self, api_data: dict) -> dict:

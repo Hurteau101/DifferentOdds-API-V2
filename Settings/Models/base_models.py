@@ -48,6 +48,7 @@ class GameData:
     team_data: TeamData
     odds: list[Stats]
     solo_game: Optional[bool] = None
+    misc_data: Optional[Dict] = field(default_factory=dict)
 
     def __post_init__(self):
         self.league = get_static_mapping().get("leagues", {}).get(self.league.lower(), {}).get("mapped_name", self.league.upper())
