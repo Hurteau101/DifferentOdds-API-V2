@@ -71,7 +71,7 @@ AUTH_JOBS = [
         "book_name": "fanduel_picks",
         "class": FanduelPicksAuth,
         "job_type": "auth",
-        "is_active": True,
+        "is_active": False,
         "interval": 39600, # 11 hours
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
