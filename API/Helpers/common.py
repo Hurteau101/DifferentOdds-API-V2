@@ -56,6 +56,7 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
 
     format = format_type.lower()
 
+
     tasks = [
         get_redis_data(
             request,
@@ -68,17 +69,56 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
 
     # Use return_exceptions=True to handle individual task failures
     results = await asyncio.gather(*tasks, return_exceptions=True)
+
     cleaned_results = {}
 
     for book, result in zip(passed_in_books, results):
         if dict_format:
+            if format.startswith("base") and isinstance(result, dict):
+                items = result.get("data", [])
+            else:
+                items = result if isinstance(result, list) else []
+
             cleaned_results[book] = (
-                {data.get("game_key"): data for data in result}
-                if isinstance(result, list)
-                else {}
+                {
+                    data.get("game_key"): {
+                        "league": data.get("league"),
+                        "start_date": data.get("start_date"),
+                        "teams": [{
+                            "team_a": data.get("team_data", {}).get("team_a"),
+                            "team_a_abbreviation": data.get("team_data", {}).get("team_a_abbreviation"),
+                            "team_b": data.get("team_data", {}).get("team_b"),
+                            "team_b_abbreviation": data.get("team_data", {}).get("team_b_abbreviation"),
+                        }],
+                        "solo_game": data.get("odds", [])[0].get("solo_game", False),
+                        "combo": data.get("odds", [])[0].get("combo", False),
+                        "future": data.get("odds", [])[0].get("future", False),
+                        "odds": [
+                            {
+                                "player_name": odds.get("player_name"),
+                                "player_team": odds.get("player_team"),
+                                "stat_type": odds.get("stat_type"),
+                                "line": odds.get("line"),
+                                "bet_type": odds.get("bet_type"),
+                                "regular_line": odds.get("regular_line"),
+                                "market_type": odds.get("optional_stats", {}).get("market_type"),
+                                "odds_type": odds.get("optional_stats", {}).get("odds_type"),
+                                "multiplier": odds.get("optional_stats", {}).get("multiplier", 1.0),
+                                "betlink": odds.get("optional_stats", {}).get("betlink"),
+                                "odds": odds.get("odds_format", {}) if odds and odds.get("odds_format") else None,
+                            }
+
+                            for odds in data.get("odds", [])
+                        ]
+
+                    }
+                    for data in items
+                    if data and data.get("odds", [])
+                }
             )
         else:
             cleaned_results[book] = result if isinstance(result, (list, dict)) else []
+
 
     return cleaned_results
 
