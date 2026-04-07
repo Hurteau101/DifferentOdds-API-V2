@@ -154,7 +154,7 @@ class Underdog(DFSBookBase):
 
         return full_details
 
-    def _extract_stats(self, league: str, line_section: list, player_name: str, player_team: str, player_id: str|int) -> list:
+    def _extract_stats(self, league: str, line_section: list, player_name: str, player_team: str) -> list:
         """Extract Stats Details"""
         def check_half_market(stat) -> str:
             match = re.search(r"\b(\d)([HQ])\b", stat)
@@ -201,7 +201,7 @@ class Underdog(DFSBookBase):
                     market_type=check_half_market(line.get("display_stat")),
                     odds_type=set_payout_label(float(option.get("payout_multiplier", 0))),
                     multiplier=float(option.get("payout_multiplier")),
-                    player_id=player_id
+                    player_id=option.get("id")
                 ),
                 odds_format=OddsFormat(
                     american_odds=float(option.get("american_price")),
@@ -241,7 +241,8 @@ class Underdog(DFSBookBase):
 
         grouped_stats = stats.get(line_id)
 
-        stat_details = self._extract_stats(league, grouped_stats, player_details.get("player_name"), game_details.get("player_team"), appearance_data.get("player_id"))
+
+        stat_details = self._extract_stats(league, grouped_stats, player_details.get("player_name"), game_details.get("player_team"))
 
         return GameData(
             league=player_details.get("league"),
