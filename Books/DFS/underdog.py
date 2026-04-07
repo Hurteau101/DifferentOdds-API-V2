@@ -241,7 +241,7 @@ class Underdog(DFSBookBase):
 
         grouped_stats = stats.get(line_id)
 
-        stat_details = self._extract_stats(league, grouped_stats, player_details.get("player_name"), game_details.get("player_team"), player_id)
+        stat_details = self._extract_stats(league, grouped_stats, player_details.get("player_name"), game_details.get("player_team"), appearance_data.get("player_id"))
 
         return GameData(
             league=player_details.get("league"),
