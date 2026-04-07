@@ -31,6 +31,7 @@ def extract_esport_lines(lines):
                             "line": odds.get("line"),
                             "bet_direction": odds.get("bet_type"),
                             "regular_line": odds.get("regular_line"),
+                            "player_id": odds.get("player_id"),
                             "optional_stats": {
                                 "market_type": odds.get("market_type"),
                                 "odds_type": odds.get("odds_type"),
