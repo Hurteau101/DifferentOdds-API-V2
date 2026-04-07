@@ -304,7 +304,7 @@ class Ace(PPHBookBase):
                 session=session,
                 url=self.book_data.url.get("leagues_url"),
                 method="GET",
-                headers=self.book_data.headers
+                headers=self.book_data.headers,
             )
 
             leagues = self.build_league_ids(raw_leagues)
