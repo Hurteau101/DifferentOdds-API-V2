@@ -17,7 +17,7 @@ async def run_sgp():
 def run_autosgp():
 
     # Try to acquire lock
-    if not r.set(LOCK_KEY, "1", nx=True, ex=3600):
+    if not r.set(LOCK_KEY, "1", nx=True, ex=120):
         print("Auto SGP already running — skipping.")
         return
 
