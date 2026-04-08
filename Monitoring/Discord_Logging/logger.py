@@ -20,6 +20,8 @@ def send_discord_message(
     description: str,
     multiple_fields: bool = False,
     fields: list = None,
+    should_tag: bool = False,
+    tag_id: int = None
 ) -> None:
     """
     Send a formatted embed message to a Discord channel via a discord_cls instance.
@@ -59,6 +61,10 @@ def send_discord_message(
             ],
         )
     """
+    if should_tag and not tag_id:
+        raise ValueError("tag_id must be provided if should_tag is True")
+
+
     config = SEVERITY_CONFIG.get(severity, SEVERITY_CONFIG[3])
     now = datetime.now(tz=ZoneInfo("America/Denver"))
 
@@ -91,4 +97,5 @@ def send_discord_message(
         "timestamp": now.isoformat(),
     }
 
-    discord_cls.post(embeds=[embed])
+    content = f"<@{tag_id}>" if should_tag else None
+    discord_cls.post(content=content, embeds=[embed])

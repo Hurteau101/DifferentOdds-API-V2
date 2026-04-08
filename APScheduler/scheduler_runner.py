@@ -6,12 +6,10 @@ from Authentication.metallic_auth import MetallicAuth
 from Authentication.ace_auth import AceAuth
 from Auto_SGP.checker import Checker
 from Auto_SGP.runner import AutoSGP
-from Monitoring.Discord_Logging.logger import send_discord_message
 import aiohttp
 from External_Book_Mapping.SGP.betway_mapper import BetwayMapper
 from External_Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
 from Monitoring.monitoring import init_sentry
-from discordwebhook import Discord
 from External_Book_Mapping.SGP.caesar_mapper import CaesarMapper
 from External_Book_Mapping.SGP.fanduel_mapper import FanduelMapper
 from External_Book_Mapping.SGP.onyx_mapper import OnyxMapper
@@ -33,9 +31,6 @@ from Authentication.caesars_auth import CaesarAuth
 from Authentication.fourcx_auth import FourcxAuth
 from Authentication.fanduel_picks_auth import FanduelPicksAuth
 from Books.Prediction_Liquidity.compare import LiquidityCompare
-
-logging.basicConfig(level=logging.INFO)
-logging.info("Scheduler starting...")
 
 
 class RedisSelector(Enum):
@@ -239,14 +234,6 @@ class BaseSchedulerRunner:
             RedisSelector.MAPPER: RedisAsyncManager(database=RedisSelector.MAPPER.value),
         }
 
-        webhook = os.getenv("DISCORD_LOGGING_WEBHOOK_URL")
-
-        if not webhook:
-            logging.warning("DISCORD_LOGGING_WEBHOOK_URL not set. Discord notifications will not send.")
-
-        self.discord = Discord(url=webhook) if webhook else None
-
-
     async def pre_job_check(self, job: dict) -> bool:
         return True
 
@@ -286,24 +273,6 @@ class BaseSchedulerRunner:
         logging.info(f"-> FINISHED: {cls.__name__}")
         logging.info("=" * 10 + "\n")
 
-        if not await self.post_job_check(job):
-            if not self.discord:
-                return
-
-            book_name = job.get("book_name", "Unknown Book").title()
-            job_type = job.get("job_type", "Unknown Type").title()
-
-            send_discord_message(
-                self.discord,
-                severity=1,
-                title=f"{book_name} Failed",
-                description="Post run validation failed. Couldn't find redis key. Please investigate.",
-                multiple_fields=True,
-                fields=[
-                    {"name": "Job Type", "value": job_type, "inline": False},
-                    {"name": "Class", "value": cls.__name__, "inline": False},
-                ]
-            )
 
     async def start(self, session_dict: dict):
         scheduler = AsyncIOScheduler()
@@ -379,6 +348,9 @@ async def run_auto_sgp_checker():
     await checker.run_checker()
 
 async def run():
+    logging.basicConfig(level=logging.INFO)
+    logging.info("Scheduler starting...")
+
     async with CurlAsyncSession(impersonate="safari15_5") as curl_session, aiohttp.ClientSession() as aiohttp_session:
         session_dict = {"curl": curl_session, "aiohttp": aiohttp_session}
         auth_runner = AuthRunner(job_list=AUTH_JOBS)
