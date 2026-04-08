@@ -49,4 +49,6 @@
   - Remove Beat: `rm /tmp/celerybeat-sportsbook-schedule`
 
 # Cron
-- Logs: `/home/administrator/DifferentOdds-API-V2/logs/`
+- All Logs: `sudo tail -f /home/administrator/DifferentOdds-API-V2/logs/*.log`
+- Example Single Log: `sudo tail -f /home/administrator/DifferentOdds-API-V2/logs/heartbeat.log`
+- Confirm Running: `sudo grep CRON /var/log/syslog | tail -20`

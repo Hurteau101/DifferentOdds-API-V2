@@ -1,3 +1,4 @@
+import logging
 import time
 
 from Monitoring.monitoring import init_sentry
@@ -12,6 +13,7 @@ from Redis.redis_manager import RedisSyncManager
 def load_bettorodds(limit: str="all", retry_amount: int = 3):
     api_key = os.getenv("INTERNAL_BETTORODDS_API_KEY")
     if not api_key:
+        logging.error("No API Key found for BettorOdds. Please set the INTERNAL_BETTORODDS_API_KEY environment variable.")
         create_sentry_message(
             tag_key="bettorodds",
             tag_value="api_key_failure",
@@ -36,12 +38,13 @@ def load_bettorodds(limit: str="all", retry_amount: int = 3):
                 return
 
         except requests.RequestException as e:
-            print("Failure in BettorOdds: ", e)
-
+            # print("Failure in BettorOdds: ", e)
+            logging.error(f"Attempt {retry_count + 1} - Failure in BettorOdds API request: {e}")
 
         time.sleep(2)
 
         if retry_count == retry_amount - 1:
+            logging.error(f"Failed to retrieve data from BettorOdds after {retry_amount} attempts.")
             create_sentry_message(
                 tag_key="bettorodds",
                 tag_value="api_request_failure",
