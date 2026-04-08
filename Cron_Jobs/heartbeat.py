@@ -50,7 +50,7 @@ class HeartBeat:
             book_list = BookConfiguration.get_book_info(book_type=category)
             filtered_books = [
                 book.get("book_key")
-                for book in book_list[0:1] # remove index after
+                for book in book_list
                 if book.get("status") is True
             ]
 
@@ -145,6 +145,7 @@ class HeartBeat:
 
         for main_key, book_info in self.books.items():
             for book_data in book_info:
+
                 book_name_display = book_data.get("book_name") # Name of the book for display purposes.
                 actual_redis_key_name = book_data.get("book_key") # The name of the key to check. Used to determine if a book isn't storing data properly.
                 sent_already_key_name = f"{book_name_display.lower()}-{main_key.lower()}"
