@@ -22,11 +22,8 @@ class RedisDatabaseMapper(Enum):
 
 
 class HeartBeat:
-    # CATEGORIES = [
-    #     "DFS", "SPORTSBOOKS"
-    # ]
     CATEGORIES = [
-        "DFS"
+        "DFS", "SPORTSBOOKS"
     ]
 
     WEBHOOK_URL = os.getenv("DISCORD_HEARTBEAT_URL")
