@@ -137,7 +137,7 @@ AUTH_JOBS = [
         "class": MetallicAuth,
         "job_type": "auth",
         "is_active": True,
-        "interval": 4800,  # 80 minutes
+        "interval": 900,  # 15 minutes
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
         "redis_key_checker_name": "metallic_token",
