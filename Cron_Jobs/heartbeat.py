@@ -181,7 +181,7 @@ class HeartBeat:
                     if all([
                         in_redis_sent_cache,
                         retry_amount < 4,
-                        current_date - last_sent_dt > timedelta(minutes=1)
+                        current_date - last_sent_dt > timedelta(minutes=30)
                     ]):
 
                         self.store_key(
