@@ -51,6 +51,15 @@ class RedisSelector(Enum):
 # 'redis_auth_checker_name' - If 'requires_auth' is True, this is the name of the Redis key that contains the auth token that should be checked before scheduling the job. This allows the pre-job check to verify that the required auth token is present in Redis before allowing the job to be scheduled.
 ######################
 
+
+
+
+
+
+
+
+###### MOVE AUTH AND MAPP JOB INTO ANOTHER FILE, SINCE ANOTHER FILE IMPORTS THESE  ---- COULD MAKE 1 BIG CONFIG FILE THAT HOLDS ALL STUFF ########
+
 AUTH_JOBS = [
     {
         "book_name": "fourcx",
@@ -374,18 +383,18 @@ async def run():
 
         scheduler.start()
 
-        scheduler_checker = AsyncIOScheduler()
-        scheduler_checker.add_job(
-            run_auto_sgp_checker,
-            trigger=IntervalTrigger(seconds=60),
-            name="sgp_checker_job",
-            coalesce=True,
-            max_instances=1,
-            next_run_time=datetime.now(),
-            misfire_grace_time=120,
-        )
-
-        scheduler_checker.start()
+        # scheduler_checker = AsyncIOScheduler()
+        # scheduler_checker.add_job(
+        #     run_auto_sgp_checker,
+        #     trigger=IntervalTrigger(seconds=60),
+        #     name="sgp_checker_job",
+        #     coalesce=True,
+        #     max_instances=1,
+        #     next_run_time=datetime.now(),
+        #     misfire_grace_time=120,
+        # )
+        #
+        # scheduler_checker.start()
 
         await asyncio.Event().wait()
 
