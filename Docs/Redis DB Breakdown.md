@@ -54,3 +54,7 @@
 
 ### Redis DB - `16`
 ##### This is for Celery Broker
+
+
+### Redis DB - `17`
+##### This is for Heartbeat Cache
