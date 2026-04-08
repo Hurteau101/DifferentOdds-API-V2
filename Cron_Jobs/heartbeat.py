@@ -43,7 +43,6 @@ class HeartBeat:
         self.books = {}
         self.discord_bot = Discord(url=self.WEBHOOK_URL)
         self.run_setup()
-        print(self.books)
 
     def run_setup(self):
         for category in self.CATEGORIES:
