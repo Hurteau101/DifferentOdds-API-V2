@@ -125,9 +125,9 @@ class Boom(DFSBookBase):
     async def run_book(self):
         # async with aiohttp.ClientSession() as session:
         async with CurlAsyncSession(impersonate="safari15_5") as session:
-            proxy_manger = ProxyManager(self.api_caller)
+            # proxy_manger = ProxyManager(self.api_caller)
 
-            api_data = await proxy_manger.proxy_caller(
+            api_data = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
