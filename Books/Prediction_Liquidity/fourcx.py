@@ -82,7 +82,7 @@ class FourCX(PredictionLiquidityBase):
         """
         if is_player_prop:
             name = re.findall(r"\((.*?)\)", event_name)
-            return name[0].lower() if name else None
+            return name[0].lower() if name else "Unknown" ## Work on fixing.
 
         market_name = order.get("type", "")
 
@@ -117,6 +117,7 @@ class FourCX(PredictionLiquidityBase):
 
         team_keys = "_".join(team_list).replace(" ", "_")
         key = f"{league}_{team_keys}_{game_date}".lower()
+
 
         return GameData(
             game_key=key,
