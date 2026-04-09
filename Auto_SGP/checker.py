@@ -78,10 +78,13 @@ class Checker:
                 compared_odds = DeepDiff(odds, bettorodds_odds)
 
                 if compared_odds.get("values_changed", {}):
-                    logging.error(f"Odds Change Detected for Key {key}: {compared_odds}")
+
                     for value_key_name, change in compared_odds["values_changed"].items():
                         old_value = change.get("old_value")
                         new_value = change.get("new_value")
+
+                        if not isinstance(old_value, (int, float)) or not isinstance(new_value, (int, float)):
+                            continue
 
                         if self.calculate_cent_movement(old_value, new_value):
                             print(f"Cent Movement Detected for Key {key}: Old Value: {old_value}, New Value: {new_value}")
