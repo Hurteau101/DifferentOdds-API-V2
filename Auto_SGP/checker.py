@@ -77,6 +77,7 @@ class Checker:
                 compared_odds = DeepDiff(odds, bettorodds_odds)
 
                 if compared_odds.get("values_changed", {}):
+                    print(compared_odds)
                     for value_key_name, change in compared_odds["values_changed"].items():
                         old_value = change.get("old_value")
                         new_value = change.get("new_value")
