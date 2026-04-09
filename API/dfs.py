@@ -24,7 +24,7 @@ async def get_odds(
         request: Request,
         books: List[str] = Query(..., description="List of DFS book names to fetch data for"),
         fmt: FormatHeader = Depends(validate_format_header),
-        dict_format: bool = Header(False, description="Return data in dictionary format", alias="X-Dict-Format"),
+        dict_format: bool = Header(True, description="Return data in dictionary format", alias="X-Dict-Format"),
 ):
     return await get_book_odds(
         request=request,
