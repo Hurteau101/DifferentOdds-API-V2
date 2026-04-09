@@ -383,18 +383,18 @@ async def run():
 
         scheduler.start()
 
-        # scheduler_checker = AsyncIOScheduler()
-        # scheduler_checker.add_job(
-        #     run_auto_sgp_checker,
-        #     trigger=IntervalTrigger(seconds=60),
-        #     name="sgp_checker_job",
-        #     coalesce=True,
-        #     max_instances=1,
-        #     next_run_time=datetime.now(),
-        #     misfire_grace_time=120,
-        # )
-        #
-        # scheduler_checker.start()
+        scheduler_checker = AsyncIOScheduler()
+        scheduler_checker.add_job(
+            run_auto_sgp_checker,
+            trigger=IntervalTrigger(seconds=60),
+            name="sgp_checker_job",
+            coalesce=True,
+            max_instances=1,
+            next_run_time=datetime.now(),
+            misfire_grace_time=120,
+        )
+
+        scheduler_checker.start()
 
         await asyncio.Event().wait()
 
