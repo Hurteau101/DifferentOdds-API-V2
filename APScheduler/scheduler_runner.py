@@ -9,7 +9,6 @@ from Auto_SGP.runner import AutoSGP
 import aiohttp
 from External_Book_Mapping.SGP.betway_mapper import BetwayMapper
 from External_Book_Mapping.Sportsbooks.kibl_mapper import KiblMapper
-from Monitoring.monitoring import init_sentry
 from External_Book_Mapping.SGP.caesar_mapper import CaesarMapper
 from External_Book_Mapping.SGP.fanduel_mapper import FanduelMapper
 from External_Book_Mapping.SGP.onyx_mapper import OnyxMapper
@@ -51,14 +50,6 @@ class RedisSelector(Enum):
 # 'redis_auth_checker_name' - If 'requires_auth' is True, this is the name of the Redis key that contains the auth token that should be checked before scheduling the job. This allows the pre-job check to verify that the required auth token is present in Redis before allowing the job to be scheduled.
 ######################
 
-
-
-
-
-
-
-
-###### MOVE AUTH AND MAPP JOB INTO ANOTHER FILE, SINCE ANOTHER FILE IMPORTS THESE  ---- COULD MAKE 1 BIG CONFIG FILE THAT HOLDS ALL STUFF ########
 
 AUTH_JOBS = [
     {
