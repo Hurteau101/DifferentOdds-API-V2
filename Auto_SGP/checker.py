@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from Auto_SGP.runner import AutoSGP
 from Redis.redis_manager import RedisAsyncManager
@@ -77,7 +78,8 @@ class Checker:
                 compared_odds = DeepDiff(odds, bettorodds_odds)
 
                 if compared_odds.get("values_changed", {}):
-                    print(compared_odds)
+                    print(compared_odds, flush=True)
+                    logging.error(f"Odds Change Detected for Key {key}: {compared_odds}")
                     for value_key_name, change in compared_odds["values_changed"].items():
                         old_value = change.get("old_value")
                         new_value = change.get("new_value")
