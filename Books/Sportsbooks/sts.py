@@ -1,415 +1,309 @@
 import asyncio
-import json
-import os
 import re
-from collections.abc import Iterable
-from datetime import datetime, date, timezone
+from functools import reduce
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
-import aiohttp
-import curl_cffi
-from curl_cffi.requests import AsyncSession
+
 from Books.Bases.pph_base import PPHBookBase
-from Monitoring.monitoring import create_sentry_message
+from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.request_caller import SportbookRequestType
-from camoufox.async_api import AsyncCamoufox
+from curl_cffi import AsyncSession as CurlAsyncSession
+import json
+from datetime import datetime, timezone
 
 class STS(PPHBookBase):
-    VALID_LEAGUES = ["NFL", "NBA", "MLB", "NHL", "NCAA"]
+    VALID_CATEGORIES = ["football", "baseball", "hockey", "basketball", "college football", "college basketball"]
+    VALID_LEAGUES = ["NBA", "MLB", "NHL", "NHL-OTINCLUDED", "NHL", "CBB", "CFB", "NCAA/USA/INT-OTINCLUDED"]
+    LEAGUE_NAME_REPLACER = ["-", "otincluded", "/usa/int"]
+
 
     def __init__(self):
-        super().__init__(book_name="stg", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="sts", request_type=SportbookRequestType.SPOOF)
 
-    async def get_cookies(self) -> dict:
-        async with AsyncCamoufox(headless=True) as browser:
-            page = await browser.new_page()
-            await page.goto("https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx",
-                            wait_until="networkidle")
-            await page.wait_for_timeout(3000)
-
-            await page.fill("#txtAccessOfCode", os.getenv("STG_USERNAME"))
-            await page.fill("#txtAccessOfPassword", os.getenv("STG_PASSWORD"))
-            await page.click("#cmdSignOn")
-            await page.wait_for_load_state("networkidle")
-            await page.wait_for_timeout(3000)
-
-            cookies = {c["name"]: c["value"] for c in await page.context.cookies()}
-
-        if ".AITQKIAUT" not in cookies:
-            raise Exception("Login failed")
-
-
-
-        return cookies
-
-    # def get_cookies(self) -> dict:
-    #     """Returns the cookies after logging in."""
-        # payload = {
-        #     "txtAccessOfCode": os.getenv("STG_USERNAME"),
-        #     "txtAccessOfPassword": os.getenv("STG_PASSWORD"),
-        #     "button": ""
-        # }
-        #
-        # additional_headers = {
-        #     "Content-Type": "application/x-www-form-urlencoded",
-        #     "Referer": "https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx",
-        # }
-        #
-        # return self.pph_login_helper(
-        #     payload=payload,
-        #     sportsbook_name="stg",
-        #     login_key_word_check=".AITQKIAUT",
-        #     additional_headers=additional_headers
-        # )
-
-
-
-
-
-    def yield_sport_ids(self, results: list | tuple) -> Iterable:
-        """Yields sport ID data structure from raw results."""
-        for result_list in results:
-            raw = result_list.get("d")
-            if not raw:
-                continue
-
-            for data in json.loads(raw):
-                yield data
-
-    def format_league(self, league_name) -> str:
-        """Format the league if there is a spaces, we only want the first item between spaces"""
-        if " " in league_name:
-            return league_name.split(" ")[0]
-
-        return league_name
-
-    def ordinal(self, name) -> str:
-        num = int(name)
-        if 10 <= num % 100 <= 20:
-            suffix = 'th'
-        else:
-            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(num % 10, 'th')
-        return f"{num}{suffix}"
-
-    def ordinal_map(self, period_name: str, market_name: str) -> str:
-        if not period_name:
-            return market_name
-
-        first_digit = re.search(r'\d', period_name).group()
-        first_letter = re.search(r'[A-Za-z]', period_name).group()
-
-        suffix = self.ordinal(first_digit)
-
-        mapper = {
-            "Q": "Quarter",
-            "H": "Half",
-        }
-
-        return f"{suffix} {mapper.get(first_letter.upper(), market_name)} {market_name}"
+    async def load_cookies(self) -> dict | None:
+        """Extracts the cookies from Redis."""
+        redis_instance = RedisAsyncManager(database=5)
+        return await redis_instance.get_data("sts_cookies")
 
     @staticmethod
-    def get_line(line_str: str, include_direction: bool = True) -> tuple:
-        raw_line = line_str.split(" ")[0]
+    def clean_return(api_data: dict, contains_d: bool = True) -> dict:
+        """Cleans the returned API response, due to it being a string and having extra spaces"""
+        data = api_data.get("d", '') if contains_d else api_data
+        if isinstance(data, dict):
+            return data
 
-        if not raw_line:
-            return None, None
+        if isinstance(data, str):
+            cleaned = data.replace("\n", "").replace(" ", "").strip()
+            return json.loads(cleaned)
 
-        if include_direction:
-            direction = "over" if raw_line[0] == "o" else "under"
-        else:
-            direction = None
+        raise ValueError("API response is not in the expected format. Expected a dictionary or a string that can be converted to a dictionary.")
 
-        if "½" in raw_line:
-            line = raw_line[1:].replace("½", ".5")
-        else:
-            line = raw_line[1:]
+    def build_markets(self, market: dict, league_map: dict, date_month: datetime) -> list:
+        game_list = []
 
-        return line, direction
+        for line in market.get("lines", []):
+            if line.get("offline") or not line.get("sides"):
+                continue
 
-    def _get_team_total(self, team_total_data: dict, team_name:str) -> dict:
-        if not team_total_data:
-            return {}
+            teams = self._extract_teams(line.get("sides", []))
+            if not teams:
+                continue
 
-        line, direction = STG.get_line(team_total_data.get("line"))
-        return {
-            "bet_team": team_name,
-            "market": "Team Total",
-            "bet_type": direction,
-            "line": line,
-            "american_odds": team_total_data.get("odds", {}).get("OddsValue"),
-        }
+            game_time = line.get("dateandtime", "")
+            formatted_time = datetime.strptime(game_time, "%I:%M%p").time()
+            combined_date = datetime.combine(date_month.date(), formatted_time, tzinfo=ZoneInfo("America/Chicago"))
+            utc_time = combined_date.astimezone(timezone.utc).replace(tzinfo=None)  # Remove timezone info after conversion
+            start_date = utc_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def _extract_markets(self, game_data: dict, league: str) -> GameData | dict:
-        # If / not in date and time = Today else format 11/16
-        if game_data.get("offline") or not game_data.get("sides"):
-            return {}
+            game_key = self.generate_key([teams.team_a, teams.team_b, start_date]) if teams else None
+            league = league_map.get(line.get("idsport"), "unknown league")
 
-        raw_game_date = game_data.get("dateandtime")
-        if "AM" in raw_game_date or "PM" in raw_game_date:
-            formatted_time = datetime.strptime(raw_game_date, "%I:%M %p").time()
-            formatted_date = datetime.combine(date.today(), formatted_time, tzinfo=ZoneInfo("America/Chicago"))
-            utc_date = formatted_date.astimezone(timezone.utc)
-            game_date = utc_date.strftime("%Y-%m-%dT%H:%M:%SZ")
-        else:
-            formatted_date = datetime.strptime(raw_game_date, "%m/%d").replace(year=datetime.now().year).date()
-            game_date = formatted_date.strftime("%Y-%m-%dT00:00:00Z")
+            game_data = GameData(
+                start_date=start_date,
+                league=league,
+                team_data=teams,
+                odds=[],
+                game_key=game_key
+            )
 
-        raw_teams = game_data.get("teams").split(" - ")
-        if len(raw_teams) == 2:
-            team_a = raw_teams[1].strip()
-            team_b = raw_teams[0].strip()
-        else:
-            team_a = game_data.get("teams").strip()
-            team_b = ""
+            for side in line.get("sides", []):
+                # Find key name, ensure its a dict and has a line value in that dict, or it wouldn't be considered a market.
+                market_names = set((key for key, value in side.items() if isinstance(value, dict) and "line" in value))
+                if not market_names:
+                    continue
 
-        key = STG.generate_key([team_a, team_b, game_date])
+                for market_name in market_names:
+                    odds = self.market_controller(market_name=market_name, market_data=side.get(market_name, {}), team=side.get("name", ""), league=league)
+                    if odds:
+                        game_data.odds.append(odds)
 
-        odds_data = GameData(
-            start_date=game_date,
-            game_key=key,
-            league=league,
-            team_data=TeamData(
-                team_a=team_a,
-                team_b=team_b,
-            ),
-            odds=[]
+
+            if game_data.odds:
+                game_list.append(game_data)
+
+        return game_list
+
+    def _extract_teams(self, sides: list) -> TeamData | None:
+        if len(sides) != 2:
+            return None
+
+        return TeamData(
+            team_a=sides[0].get("name", ""),
+            team_b=sides[1].get("name", "")
         )
 
-        for side in game_data.get("sides", []):
-            team = side.get("name")
-            if side.get("moneyline"):
-                moneyline_dict = side.get("moneyline")
-                american_odds = moneyline_dict.get("odds",{}).get("OddsValue")
+    def _moneyline_type(self, market_data: dict, market_name: str, **kwargs) -> SportsbookStats:
+        return SportsbookStats(
+            market=market_name,
+            bet_team=market_data.get("teams", ""),
+            line=None,
+            bet_type=None,
+            future=False,
+            odds_format=OddsFormat(american_odds=market_data.get("odds", {}).get("OddsValue", 0))
+        )
 
-                if not american_odds:
-                    continue
+    def _total_type(self, market_data: dict, market_name: str, **kwargs) -> SportsbookStats | None:
+        raw_line = self.line_formatter(market_data.get("line", ''))
 
-                odds_data.odds.append(SportsbookStats(
-                    bet_team=team,
-                    future=False, # Will need to look into this.
-                    market=self.ordinal_map(game_data.get("periodname"), "Moneyline"),
-                    bet_type=None,
-                    line=None,
-                    odds_format=OddsFormat(american_odds=american_odds)
-                ))
+        if not raw_line:
+            return None
 
-            if side.get("spread"):
-                spread_dict = side.get("spread")
-                line, _ = STG.get_line(spread_dict.get("line"), include_direction=False)
+        match = re.match(
+            r"^([ou])(\d+(?:\.(?:0|00|5|50|25|75))?)(?:[+-]?\d{3,4})?$",
+            raw_line
+        )
 
-                american_odds = spread_dict.get("odds", {}).get("OddsValue")
-                if not american_odds:
-                    continue
+        if match:
+            bet_type = "over" if match.group(1) == "o" else "under"
+            line = float(match.group(2))
 
-                odds_data.odds.append(SportsbookStats(
-                    bet_team=team,
-                    future=False,  # Will need to look into this.
-                    market=self.ordinal_map(game_data.get("periodname"), "Spread"),
-                    bet_type=None,
-                    line=line,
-                    odds_format=OddsFormat(american_odds=american_odds)
-                ))
+            team = kwargs.get("team", None)
 
-            if side.get("total"):
-                total_dict = side.get("total")
-                line, direction = STG.get_line(total_dict.get("line"))
+            return SportsbookStats(
+                market=market_name,
+                bet_team=team,
+                line=line,
+                bet_type=bet_type,
+                future=False,
+                odds_format=OddsFormat(american_odds=market_data.get("odds", {}).get("OddsValue", 0))
+            )
 
-                american_odds = total_dict.get("odds", {}).get("OddsValue")
-                if not american_odds:
-                    continue
+        return None
 
-                odds_data.odds.append(SportsbookStats(
-                    bet_team=None,
-                    future=False,  # Will need to look into this.
-                    market=self.ordinal_map(game_data.get("periodname"), "Total"),
-                    bet_type=direction,
-                    line=line,
-                    odds_format=OddsFormat(american_odds=american_odds)
-                ))
+    def line_formatter(self, line: str) -> str:
+        return line.replace("½", ".5").replace("¼", ".25").replace("¾", ".75")
+
+    def _spread_type(self, market_data: dict, market_name: str, **kwargs) -> SportsbookStats | None:
+        raw_line = self.line_formatter(market_data.get("line", ''))
+
+        if not raw_line:
+            return None
+
+        line = re.match(r"([+-]?\d*\.?\d+)", raw_line).group()
+
+        league = kwargs.get("league", "")
+
+        if league == "mlb":
+            market_name = "run line"
+        elif league == "nhl":
+            market_name = "puck line"
 
 
-            if side.get("ttunder"):
-                data = self._get_team_total(side.get("ttunder"), team)
+        return SportsbookStats(
+            market=market_name,
+            bet_team=kwargs.get("team"),
+            line=float(line) if line else None,
+            bet_type=None,
+            future=False,
+            odds_format=OddsFormat(american_odds=market_data.get("odds", {}).get("OddsValue", 0))
+        )
 
-                if not data.get("american_odds"):
-                    continue
 
-                odds_data.odds.append(SportsbookStats(
-                    bet_team=team,
-                    future=False,  # Will need to look into this.
-                    market=self.ordinal_map(game_data.get("periodname"), "Team Total"),
-                    bet_type=data.get("bet_type"),
-                    line=data.get("line"),
-                    odds_format=OddsFormat(american_odds=data.get("american_odds"))
-                ))
-
-                # odds_data.get("odds").append(data)
-
-            if side.get("ttover"):
-                data = self._get_team_total(side.get("ttover"), team)
-
-                if not data.get("american_odds"):
-                    continue
-
-                odds_data.odds.append(SportsbookStats(
-                    bet_team=team,
-                    future=False,  # Will need to look into this.
-                    market=self.ordinal_map(game_data.get("periodname"), "Team Total"),
-                    bet_type=data.get("bet_type"),
-                    line=data.get("line"),
-                    odds_format=OddsFormat(american_odds=data.get("american_odds"))
-                ))
-
-        return odds_data
-
-    def _create_special_payload(self, sport_value: str) -> dict:
-        return {
-            "value": sport_value,
-            "iscontest": False,
-            "wagerTypeInfo": "1",
-            "isRefresh": False,
-            "contestOrderBy": 0,
-            "isContestRelated": False,
-            "specialEventId": 0,
-            "getOnlyPeriods": False,
+    def market_controller(self, market_name: str, market_data: dict, **kwargs) -> SportsbookStats | None:
+        """
+        Controller function to determine which market builder to use based on the mapped market name.
+        These functions use the _ convention as we don't want to inherit/override the base functions (money_type, spread_type, etc), that are similar on other PPHs.
+        """
+        mapper = {
+            "moneyline": self._moneyline_type,
+            "spread": self._spread_type,
+            "total": self._total_type,
+            "team total": self._total_type,
         }
 
+        market_mapper = {
+            "ttover": "team total",
+            "ttunder": "team total"
+        }
+
+        market_name = market_mapper.get(market_name.lower(), market_name.lower())
+
+        handler = mapper.get(market_name.lower())
+
+        if not handler:
+            return None
+
+        return handler(market_data=market_data, market_name=market_name, **kwargs)
+
+
     async def run_book(self):
-        cookies = await self.get_cookies()
-        print(cookies)
+        cookies = await self.load_cookies()
+
         if not cookies:
             return
 
-        headers = {
-            "Content-Type": "application/json; charset=utf-8",
-            "Referer": "https://bettheguys.com/Player/main.aspx",
-        }
-
-        new_headers = {**self.book_data.headers, **headers}
-
-        async with AsyncSession(impersonate="firefox") as session:
-        # async with aiohttp.ClientSession(cookies=cookies, headers=new_headers) as session:
-        #     raw_league_ids = await self.api_caller(
-        #         c
-        #         book_name=self.book_data.name,
-        #         session=session,
-        #         url=self.book_data.url.get("league_list_url"),
-        #         headers=new_headers,
-        #         payload={
-        #             "idMainHeader": "2",
-        #             "wagerTypeValue": "1"
-        #         },
-        #         method="POST",
-        #     )
-            raw_league_ids = await session.post(
-                "https://bettheguys.com/Player/app/services/sidebarsportAJX.aspx/GetSportMenuLeaguesWithOpenGames",
-                cookies=cookies,
-                headers={
-                    "Content-Type": "application/json; charset=utf-8",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Referer": "https://bettheguys.com/Player/main.aspx",
-                    "Origin": "https://bettheguys.com",
-                },
-                json={"idMainHeader": "2", "wagerTypeValue": "1"}
+        async with CurlAsyncSession(impersonate="safari15_5", cookies=cookies) as session:
+            raw_league_data = await self.api_caller(
+                url=self.book_data.url.get("category_url"),
+                headers=self.book_data.headers,
+                payload={"wagerTypeValue": "1"},
+                method="POST",
+                session=session,
+                book_name=self.book_data.name,
+                parse_json=True
             )
 
-            raw_league_ids = raw_league_ids.json()
+            if not raw_league_data:
+                return
 
-            league_ids = json.loads(raw_league_ids.get("d"))
-            print(league_ids)
-            # print(league_ids)
-            #
-            # if not league_ids:
-            #     create_sentry_message(
-            #         tag_key=self.book_data.name,
-            #         tag_value="mapping_failure",
-            #         message="No mapped IDs were found.",
-            #         level="error"
-            #     )
-            #
-            #     return None
-            #
-            league_ids = set(
-                sportId.get("IdSport")
-                for league in league_ids.values()
-                for sportId in league.get("SportsList", [])
-                if sportId
+            sports_ids = set(
+                category.get("IdSport")
+                for category in self.clean_return(raw_league_data).get("Sports").get("SportsList", [])
+                if category.get("Name", '').lower() in self.VALID_CATEGORIES
             )
-            print(league_ids)
 
+            league_name_tasks = [
+                self.api_caller(
+                    url=self.book_data.url.get("league_url"),
+                    headers=self.book_data.headers,
+                    payload={"idMainHeader":str(sport_id), "wagerTypeValue": "1"},
+                    method="POST",
+                    session=session,
+                    book_name=self.book_data.name,
+                    parse_json=True
+                )
 
-            #
-            # tasks = [
-            #     self.api_caller(
-            #         book_name=self.book_data.name,
-            #         session=session,
-            #         url=self.book_data.url.get("league_section"),
-            #         payload={
-            #             "idMainHeader": str(league_id),
-            #             "wagerTypeValue": "1"
-            #         },
-            #         headers = new_headers,
-            #         method = "POST",
-            #     )
-            #
-            #     for league_id in league_ids
-            # ]
-            #
-            # raw_results = await asyncio.gather(*tasks)
-            #
-            # league_data = [
-            #     {
-            #         "sport_id": child.get("IdSport"),
-            #         "sport_value": child.get("Value"),
-            #         "league": self.format_league(sport_info.get("Name"))
-            #     }
-            #     for sport_info in self.yield_sport_ids(results=raw_results)
-            #     for child in sport_info.get("Children", [])
-            #     if child and self.format_league(sport_info.get("Name")) in self.VALID_LEAGUES
-            # ]
-            #
-            # tasks = [
-            #     self.api_caller(
-            #         book_name=self.book_data.name,
-            #         session=session,
-            #         url=self.book_data.url.get("game_markets"),
-            #         payload=self._create_special_payload(league.get("sport_value")),
-            #         headers=new_headers,
-            #         method="POST",
-            #     )
-            #
-            #     for league in league_data
-            # ]
-            #
-            # results = await asyncio.gather(*tasks)
-            #
-            # game_results = []
-            #
-            # for league, result in zip(league_data, results):
-            #     if not result:
-            #         continue
-            #
-            #     result = json.loads(result.get("d"))
-            #     league_name = league.get("league")
-            #
-            #     for game in result.get("lines", []):
-            #         if game:
-            #             extracted = self._extract_markets(game, league=league_name)
-            #
-            #             if extracted and hasattr(extracted, "odds") and extracted.odds:
-            #                 game_results.append(extracted)
-            #
-            # mapped_data = await self.map_runner(session=session, sportsbook_data=game_results)
-            #
-            # await self.store_data(
-            #     database=self.redis_database,
-            #     data_to_store=mapped_data,
-            #     book_name=self.book_data.name
-            # )
-            #
-            # return mapped_data
+                for sport_id in sports_ids
+            ]
+
+            league_results = await asyncio.gather(*league_name_tasks)
+            cleaned_leagues = [self.clean_return(result) for result in league_results]
+
+            league_map = {
+                league.get("IdSport"): reduce(lambda name, remove: name.replace(remove, ""), self.LEAGUE_NAME_REPLACER, league.get("Name", "").lower())
+                for result in cleaned_leagues
+                if result
+                for league in result
+            }
+
+            league_ids = [
+                children.get("Value")
+                for result in cleaned_leagues
+                if result
+                for league in result
+                for children in league.get("Children", [])
+                if league.get("Name", "").upper() in self.VALID_LEAGUES
+            ]
+
+            market_tasks = [
+                self.api_caller(
+                    url=self.book_data.url.get("market_url"),
+                    headers=self.book_data.headers,
+                    payload={
+                        "value":str(market),
+                        "iscontest":False,
+                        "wagerTypeInfo":"1",
+                        "isRefresh":False,
+                        "contestOrderBy":0,
+                        "isContestRelated":False,
+                        "specialEventId":0,
+                        "getOnlyPeriods":False
+                    },
+                    method="POST",
+                    session=session,
+                    book_name=self.book_data.name,
+                    parse_json=True
+                )
+
+                for market in league_ids
+            ]
+
+            market_results = await asyncio.gather(*market_tasks)
+            cleaned_markets = [self.clean_return(result) for result in market_results]
+
+            event_data = {}
+
+            for cleaned in cleaned_markets:
+                first_index_line = cleaned.get("lines", [])[0] if cleaned.get("lines") else None
+                if not first_index_line:
+                    continue
+
+                date_month = first_index_line.get("dateandtime", "")
+                current_year = datetime.now().year # There is no year in there API data, so use this year.
+                date_month_dt = datetime.strptime(f"{date_month}-{current_year}", "%m/%d-%Y")
+
+                game_data = self.build_markets(market=cleaned, league_map=league_map, date_month=date_month_dt)
+                if not game_data:
+                    continue
+
+                for game in game_data:
+                    self.add_to_events(event_data, game, GameData)
+
+            sts_data = list(event_data.values())
+
+            mapped_data = await self.map_runner(session=session, sportsbook_data=sts_data)
+
+            await self.store_data(
+                database=self.redis_database,
+                data_to_store=mapped_data,
+                book_name=self.book_data.name
+            )
+
+            return mapped_data
+
 
 if __name__ == "__main__":
-    stg = STG()
-    asyncio.run(stg.run_book())
+    ace = STS()
+    asyncio.run(ace.run_book())

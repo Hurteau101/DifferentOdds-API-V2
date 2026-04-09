@@ -16,6 +16,7 @@ from Authentication.chalkboard_auth import ChalkboardAuth
 from Authentication.kibl_auth import KiblAuth
 from Authentication.onyx_auth import OnyxAuth
 from Authentication.ownerbox_auth import OwnerboxAuth
+from Authentication.sts_auth import STSAuth
 from External_Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
 import asyncio
 import logging
@@ -151,6 +152,16 @@ AUTH_JOBS = [
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
         "redis_key_checker_name": "buckeye_2_auth_token",
+    },
+    {
+        "book_name": "sts",
+        "class": STSAuth,
+        "job_type": "auth",
+        "is_active": True,
+        "interval": 900,  # 15 minutes
+        "redis_db": RedisSelector.AUTH,
+        "session_type": "curl",
+        "redis_key_checker_name": "sts_cookies",
     },
 ]
 

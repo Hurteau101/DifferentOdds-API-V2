@@ -212,7 +212,7 @@ BOOKS = {
     "hard_limit": HARD_LIMIT,
         "is_active": True,
     },
-    "stg": {
+    "sts": {
         "class": STS,
         "interval": DEFAULT_INTERVAL,
         "lock_timeout": DEFAULT_TIMEOUT,
