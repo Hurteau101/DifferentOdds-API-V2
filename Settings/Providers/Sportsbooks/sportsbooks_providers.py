@@ -67,7 +67,7 @@ SPORTSBOOKS_PROVIDERS = [
             "Origin": "https://betvegas23.com",
         },
         method="POST",
-        is_active=True
+        is_active=False
     ),
     BaseProvider(
         title="1BV",
