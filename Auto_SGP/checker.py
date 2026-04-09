@@ -61,7 +61,7 @@ class Checker:
         previously_sent = set()
         endpoint = set()
 
-        for market in previous_data[0:1]:
+        for market in previous_data:
             for key, odds in market.get("raw_odds", {}).items():
                 previously_sent_key = market.get("key_mapper", {}).get(key)
                 endpoint_key = market.get("redis_key")
@@ -78,8 +78,6 @@ class Checker:
                 compared_odds = DeepDiff(odds, bettorodds_odds)
 
                 if compared_odds.get("values_changed", {}):
-                    print(compared_odds, flush=True)
-                    logging.error(f"Odds Change Detected for Key {key}: {compared_odds}")
                     for value_key_name, change in compared_odds["values_changed"].items():
                         old_value = change.get("old_value")
                         new_value = change.get("new_value")
