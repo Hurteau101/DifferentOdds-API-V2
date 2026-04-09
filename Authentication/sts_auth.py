@@ -48,8 +48,8 @@ class STSAuth(BaseScheduler):
         }
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance):
-        username = os.getenv("STG_USERNAME")
-        password = os.getenv("STG_PASSWORD")
+        username = os.getenv("STS_USERNAME")
+        password = os.getenv("STS_PASSWORD")
 
         if not username or not password:
             raise ValueError("STS_USERNAME and STS_PASSWORD must be set in the environment variables.")
