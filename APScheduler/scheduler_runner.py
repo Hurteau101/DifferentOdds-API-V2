@@ -127,7 +127,7 @@ AUTH_JOBS = [
         "book_name": "ace",
         "class": AceAuth,
         "job_type": "auth",
-        "is_active": False,
+        "is_active": True,
         "interval": 900,  # 15 minutes
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",

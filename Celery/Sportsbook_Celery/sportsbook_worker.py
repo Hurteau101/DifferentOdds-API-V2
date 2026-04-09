@@ -244,8 +244,8 @@ BOOKS = {
     },
     "ace": {
         "class": Ace,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
+        "interval": 120,
+        "lock_timeout": 240,
         "type": "sportsbook",
         "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
         "soft_limit": SOFT_LIMIT,
