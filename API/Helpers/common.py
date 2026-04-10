@@ -95,7 +95,7 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
                         "future": data.get("odds", [])[0].get("future", False),
                         "odds": [
                             {
-                                "player_name": f'{odds.get("player_name")}' if odds.get("player_name") and 'player' not in odds.get('player_name', '').lower() else None,
+                                "player_name": f'Player {odds.get("player_name")}' if odds.get("player_name") and 'player' not in odds.get('player_name', '').lower() else None,
                                 "player_team": odds.get("player_team"),
                                 "stat_type": odds.get("stat_type"),
                                 "line": odds.get("line"),
