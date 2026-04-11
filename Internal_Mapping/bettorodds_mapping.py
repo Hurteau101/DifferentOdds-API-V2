@@ -6,16 +6,16 @@ import aiohttp
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager, RedisSyncManager, static_mapping_service
 from Utils.request_caller import APICaller, SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class BettoroddsMapping(APICaller):
-    def __init__(self, payload_batch: int, async_batch: int, book_name: str):
+    def __init__(self, payload_batch: int, async_batch: int, book_name: str, request_type: SportbookRequestType = SportbookRequestType.ASYNC):
         self.payload_batch = payload_batch # Used for batching the payload.
         self.async_batch = async_batch # Used for BettorOdds API batching
         self.book_name = book_name
         self.redis_instance = RedisAsyncManager(database=4)
         self.league_mapping = static_mapping_service.get().get("leagues", {})
-        super().__init__(request_type=SportbookRequestType.ASYNC)
+        super().__init__(request_type=request_type)
 
 
 
@@ -111,6 +111,7 @@ class BettoroddsMapping(APICaller):
         teams = bettorodds_data.get("team", {})
         market = bettorodds_data.get("market", {})
 
+
         return {
             "teams": self._map_teams_players(data=teams, collection_key="teams", league=league),
             "players": self._map_teams_players(data=players, collection_key="players", league=league),
@@ -179,7 +180,7 @@ class BettoroddsMapping(APICaller):
             for league, league_data in batched_data.items()
         }
 
-    async def bettorodds_api_caller(self, session: aiohttp.ClientSession, payload: dict, league: str):
+    async def bettorodds_api_caller(self, session: aiohttp.ClientSession | CurlAsyncSession, payload: dict, league: str):
         if not payload:
             return None
 
@@ -208,7 +209,7 @@ class BettoroddsMapping(APICaller):
 
         return self.map_bettorodds(bettorodds_data=api_data, league=league)
 
-    async def run_mapping(self, sportsbook_data: list, session: aiohttp.ClientSession) -> dict:
+    async def run_mapping(self, sportsbook_data: list, session: aiohttp.ClientSession | CurlAsyncSession) -> dict:
         if not sportsbook_data:
             return {}
 
