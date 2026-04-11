@@ -23,6 +23,7 @@ from Books.Prediction_Liquidity.prophetx import Prophetx
 
 from Books.Sportsbooks.bet105 import Bet105
 from Books.Sportsbooks.ace import Ace
+from Books.Sportsbooks.buckeye_1 import Buckeye1
 from Books.Sportsbooks.buckeye_2 import Buckeye2
 from Books.Sportsbooks.metalic import Metallic
 from Books.Sportsbooks.onebv import OneBv
@@ -274,6 +275,16 @@ BOOKS = {
     },
     "buckeye2": {
         "class": Buckeye2,
+        "interval": DEFAULT_INTERVAL,
+        "lock_timeout": DEFAULT_TIMEOUT,
+        "type": "sportsbook",
+        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
+        "soft_limit": SOFT_LIMIT,
+        "hard_limit": HARD_LIMIT,
+        "is_active": True,
+    },
+    "buckeye1": {
+        "class": Buckeye1,
         "interval": DEFAULT_INTERVAL,
         "lock_timeout": DEFAULT_TIMEOUT,
         "type": "sportsbook",

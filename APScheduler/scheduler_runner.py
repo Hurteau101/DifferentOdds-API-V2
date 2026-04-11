@@ -1,3 +1,4 @@
+from Authentication.buckeye1_auth import Buckeye1Auth
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
@@ -162,6 +163,16 @@ AUTH_JOBS = [
         "redis_db": RedisSelector.AUTH,
         "session_type": "curl",
         "redis_key_checker_name": "sts_cookies",
+    },
+    {
+        "book_name": "buckeye1",
+        "class": Buckeye1Auth,
+        "job_type": "auth",
+        "is_active": True,
+        "interval": 900,  # 15 minutes
+        "redis_db": RedisSelector.AUTH,
+        "session_type": "curl",
+        "redis_key_checker_name": "buckeye1_cookies",
     },
 ]
 

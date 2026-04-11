@@ -136,5 +136,26 @@ SPORTSBOOKS_PROVIDERS = [
         },
         method="POST",
         is_active=True
+    ),
+BaseProvider(
+        title="Buckeye 1",
+        name="buckeye1",
+        url={
+            "market_url": "https://playnow365.com/Qubic/PlayerGameSelection.php"
+        },
+        headers={
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Host': 'playnow365.com',
+            'Origin': 'https://playnow365.com',
+            'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0'
+        },
+        method="POST",
+        is_active=True
     )
 ]
