@@ -38,7 +38,11 @@ class Buckeye1Auth(BaseScheduler):
             impersonate="firefox"
         )
 
-        cookies = dict(session.cookies)
+        cookies = {
+            cookie.name: cookie.value
+            for cookie in session.cookies.jar
+            if cookie.domain in ('.playnow365.com', 'playnow365.com')
+        }
 
         if cookies:
             await redis_instance.store_data(

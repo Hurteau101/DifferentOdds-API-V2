@@ -73,7 +73,11 @@ class STSAuth(BaseScheduler):
             'Referer': 'https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx',
         }, url="https://bettheguys.com/Login.aspx", data=login_payload)
 
-        cookies = dict(session.cookies)
+        cookies = {
+            cookie.name: cookie.value
+            for cookie in session.cookies.jar
+            if cookie.domain in ('.bettheguys.com', 'bettheguys.com')
+        }
 
         if cookies:
             await redis_instance.store_data(
