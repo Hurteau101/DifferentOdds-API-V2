@@ -4,6 +4,7 @@ from functools import reduce
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
+from Authentication.sts_auth import STSAuth
 from Books.Bases.pph_base import PPHBookBase
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
@@ -18,9 +19,9 @@ class STS(PPHBookBase):
     VALID_LEAGUES = ["NBA", "MLB", "NHL", "NHL-OTINCLUDED", "NHL", "CBB", "CFB", "NCAA/USA/INT-OTINCLUDED"]
     LEAGUE_NAME_REPLACER = ["-", "otincluded", "/usa/int"]
 
-
     def __init__(self):
         super().__init__(book_name="sts", request_type=SportbookRequestType.SPOOF)
+        self.retry = 0
 
     async def load_cookies(self) -> dict | None:
         """Extracts the cookies from Redis."""
@@ -187,6 +188,15 @@ class STS(PPHBookBase):
 
         return handler(market_data=market_data, market_name=market_name, **kwargs)
 
+    # Backup Auth since the site has bugs, where the cookie will no longer be valid, even if it was issued.
+    # Happens randomly. So if we get no data back, we will try to refresh the cookie and try again once.
+    async def back_up_auth_runner(self):
+        redis_instance = RedisAsyncManager(database=5)
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
+            sts = STSAuth()
+            await sts.run_scheduler(session=session, redis_instance=redis_instance)
+            self.retry += 1
+
 
     async def run_book(self):
         cookies = await self.load_cookies()
@@ -206,6 +216,10 @@ class STS(PPHBookBase):
             )
 
             if not raw_league_data:
+                if self.retry < 1:
+                    await self.back_up_auth_runner()
+                    await self.run_book()
+
                 return
 
             sports_ids = set(
@@ -292,7 +306,6 @@ class STS(PPHBookBase):
                     self.add_to_events(event_data, game, GameData)
 
             sts_data = list(event_data.values())
-
             mapped_data = await self.map_runner(session=session, sportsbook_data=sts_data)
 
             await self.store_data(
