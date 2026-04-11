@@ -77,7 +77,7 @@ class Link:
         :param links: List of Novig links.
         :return: Returns the combined Novig betslip link for mobile and desktop.
         """
-        web_base_url = "https://app.novig.com/events/"
+        web_base_url = "https://novig.com/events/"
         mobile_base_url = "https://novig.onelink.me/JHQQ/events/"
 
         bet_ids = ",".join(
