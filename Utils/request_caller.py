@@ -61,7 +61,13 @@ class APICaller:
         """Handle a curl_cffi (non-async) response."""
         if response.status_code in self.valid_status_codes:
             try:
-                return response.json() if parse_json else response.text
+                response_data = response.json()
+
+                if isinstance(response_data, dict) or isinstance(response_data, list):
+                    return response_data
+                else:
+                    return response.text
+
             except json.JSONDecodeError:
                 self._capture_error(book_name, "Failed to parse JSON")
 
