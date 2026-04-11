@@ -16,7 +16,7 @@ class BookBase(APICaller, ABC):
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self.expiration_time = expiration_time # Used for Redis data expiration
         self.redis_database = redis_database # Used for Redis database selection
-        self.bettorodds_mapping = BettoroddsMapping(payload_batch=payload_batch, async_batch=async_batch, book_name=book_name)
+        self.bettorodds_mapping = BettoroddsMapping(payload_batch=payload_batch, async_batch=async_batch, book_name=book_name, request_type=request_type)
         super().__init__(request_type=request_type)
 
     @staticmethod
