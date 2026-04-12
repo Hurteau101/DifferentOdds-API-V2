@@ -8,32 +8,14 @@ celerybeat-schedule.db
 celerybeat-schedule.bak
 celerybeat-schedule.dat
 celerybeat-schedule.dir
-*.json
-Auto_SGP/new_runner.py
-
-Things To Do.md
-
-old/API/API Logs/dfs
-old/API/API Logs/sgp
-old/DFS/DFS Logs
-old/SGP/SGP Logs
-*.log
-old/DFS/chalkboard_old.py
-old/DFS/chalkboard_all_lines_testing.py
-old/Internal_Docs_OLD/
-old/Settings/Auth_Automation/Logs/
-old/SGP/Test/SGP Logs/
-old/Redis/certs/ca.crt
-Prediction/old_kalashi.py
-.idea/
-old/Future_Implementation/
-Refactor Notes
-Books/Sportsbooks/1bv_explain.md
-
-pph
-test_server_doc.md
-Books/Sportsbooks/metalic_explained.md
 celerybeat-schedule
-Combo
-proxy_list
-todo
+*.json
+*.log
+.idea/
+
+
+Books/Sportsbooks/1bv_explain.md
+Books/Sportsbooks/metalic_explained.md
+
+
+
