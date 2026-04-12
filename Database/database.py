@@ -48,10 +48,13 @@ class Database:
 
 
     def get_api_keys(self) -> list:
-        self.cursor.execute("SELECT api_key FROM api_keys")
+        self.cursor.execute("SELECT api_key, client FROM api_keys")
         api_keys = self.cursor.fetchall()
         return [
-            self._decoder(api['api_key'])
+            {
+                "client": api["client"],
+                "api_key": self._decoder(api["api_key"])
+            }
             for api in api_keys
         ]
 
@@ -301,11 +304,11 @@ class Database:
 if __name__ == "__main__":
     from table_creation import create_autosgp_table
     db = Database()
-    data = db.get_auto_sgp_configs()
+    # data = db.get_auto_sgp_configs()
 
     # db.create_api_key(client_str="DifferentOdds-Internal")
-    # api = db.get_api_keys()
-
+    api = db.get_api_keys()
+    print(api)
 
 
 
