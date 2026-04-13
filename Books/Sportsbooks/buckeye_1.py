@@ -215,6 +215,10 @@ class Buckeye1(PPHBookBase):
         games = []
 
         header_table = soup.find('tr', class_='type_title_header')
+
+        if not header_table:
+            return
+
         headers = [th.get_text(strip=True) for th in header_table.find_all('th')]
 
         for i in range(0, len(teams), 2):
