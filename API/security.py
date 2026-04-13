@@ -1,3 +1,5 @@
+import json
+
 from cachetools import TTLCache
 from fastapi import Depends, Security, HTTPException
 from fastapi.security import APIKeyHeader
@@ -12,9 +14,12 @@ async def get_api_keys():
     if "api_keys" not in _api_cache:
         redis_instance = RedisAsyncManager(database=11)
         api_data = await redis_instance.get_data(key_name="api_keys")
-        api_keys = api_data.get("api_key", "")
+        if not api_data:
+            return set()
 
-        _api_cache["api_keys"] = set(api_keys) if api_keys else set()
+        api_keys = json.loads(api_data) if isinstance(api_data, str) else {}
+
+        _api_cache["api_keys"] = set(api_keys.get('api_key')) if api_keys else set()
 
     return _api_cache["api_keys"]
 
