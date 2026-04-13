@@ -17,9 +17,12 @@ async def get_api_keys():
         if not api_data:
             return set()
 
-        api_keys = json.loads(api_data) if isinstance(api_data, str) else {}
+        api_keys = set(
+            key.get("api_key")
+            for key in api_data
+        )
 
-        _api_cache["api_keys"] = set(api_keys.get('api_key')) if api_keys else set()
+        _api_cache["api_keys"] = api_keys if api_keys else set()
 
     return _api_cache["api_keys"]
 
