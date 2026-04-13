@@ -11,7 +11,9 @@ async def get_api_keys():
     # Cache the API keys to reduce redis calls.
     if "api_keys" not in _api_cache:
         redis_instance = RedisAsyncManager(database=11)
-        api_keys = await redis_instance.get_data(key_name="api_keys")
+        api_data = await redis_instance.get_data(key_name="api_keys")
+        api_keys = api_data.get("api_key", "")
+
         _api_cache["api_keys"] = set(api_keys) if api_keys else set()
 
     return _api_cache["api_keys"]
