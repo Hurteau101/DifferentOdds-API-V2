@@ -190,6 +190,9 @@ class HeartBeat:
                             sent_already_key_name=sent_already_key_name,
                             redis_actual_key_db=actual_redis_db
                         )
+                else:
+                    sent_already_instance.delete_data(sent_already_key_name)
+
 
 
 if __name__ == "__main__":
