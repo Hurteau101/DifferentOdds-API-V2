@@ -267,6 +267,10 @@ class RedisSyncManager:
             ex=key_expiration,
         )
 
+    def delete_data(self, key_name: str):
+        self.redis_client.delete(key_name)
+
+
 class RedisStaticMappingService:
     """Service to fetch and cache static mappings from Redis."""
     _cache = None
