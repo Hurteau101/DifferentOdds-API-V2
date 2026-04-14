@@ -52,8 +52,8 @@ class SGPBookBase(APICaller, ABC):
     def return_odds(american_odds: str | float | int | None, decimal_odds: str | float | int | None) -> dict:
         try:
             return {
-                "american_odds": float(american_odds) if american_odds else None,
-                "decimal_odds": float(decimal_odds) if decimal_odds else None
+                "american": float(american_odds) if american_odds else None,
+                "decimal": float(decimal_odds) if decimal_odds else None
             }
         except:
             print(f"*************** THIS FAILED TO CONVERT ODDS ({american_odds} {decimal_odds}) ***************")

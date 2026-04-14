@@ -616,10 +616,10 @@ class AutoSGP(APICaller):
             results = await asyncio.gather(*tasks)
 
             valid_odds = {
-                book_name: odds_value.get("american_odds")
+                book_name: odds_value.get("american")
                 for book_name, odds_value in results
                 if isinstance(odds_value, dict)
-                   and odds_value.get("american_odds") is not None
+                   and odds_value.get("american") is not None
             }
 
             if len(valid_odds) <= 1:
