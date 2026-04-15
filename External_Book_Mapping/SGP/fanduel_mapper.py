@@ -31,8 +31,7 @@ class FanduelMapper(BaseMapper):
             f'{market_values.get("associatedMarkets")[0].get("externalMarketId")}_{runner.get("selectionId")}': {
                 "market_id": main_id,
                 "selection_id": runner.get("selectionId"),
-                "external_id": market_values.get("associatedMarkets")[0].get("externalMarketId"),
-                "line": runner.get("handicap")
+                "external_id": market_values.get("associatedMarkets")[0].get("externalMarketId")
             }
 
             for main_id, market_values in fanduel_data.items()
