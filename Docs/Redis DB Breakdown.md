@@ -26,7 +26,8 @@
 ### Redis DB - `6`
 ##### Sportsbook Cache
 
-
+### Redis DB - `7`
+##### Unmapped Bettorodds Cache
 
 ### Redis DB - `8`
 ##### This is for cached BettorOdds Odds
