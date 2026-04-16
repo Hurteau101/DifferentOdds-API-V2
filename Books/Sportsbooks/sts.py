@@ -102,7 +102,7 @@ class STS(PPHBookBase):
             line=None,
             bet_type=None,
             future=False,
-            odds_format=OddsFormat(american_odds=market_data.get("odds", {}).get("OddsValue", 0))
+            odds_format=OddsFormat(american_odds=float(market_data.get("odds", {}).get("OddsValue", 0)))
         )
 
     def _total_type(self, market_data: dict, market_name: str, **kwargs) -> SportsbookStats | None:
@@ -128,7 +128,7 @@ class STS(PPHBookBase):
                 line=line,
                 bet_type=bet_type,
                 future=False,
-                odds_format=OddsFormat(american_odds=market_data.get("odds", {}).get("OddsValue", 0))
+                odds_format=OddsFormat(american_odds=float(market_data.get("odds", {}).get("OddsValue", 0)))
             )
 
         return None
@@ -158,7 +158,7 @@ class STS(PPHBookBase):
             line=float(line) if line else None,
             bet_type=None,
             future=False,
-            odds_format=OddsFormat(american_odds=market_data.get("odds", {}).get("OddsValue", 0))
+            odds_format=OddsFormat(american_odds=float(market_data.get("odds", {}).get("OddsValue", 0)))
         )
 
 

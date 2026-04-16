@@ -85,7 +85,7 @@ class Metallic(PPHBookBase):
             line=None,
             bet_type=None,
             future=False,
-            odds_format=OddsFormat(american_odds=market_data.get("o"))
+            odds_format=OddsFormat(american_odds=float(market_data.get("o")))
         )
 
     def _spread_type(self, market_name: str, market_data: dict, **kwargs) -> SportsbookStats:
@@ -101,7 +101,7 @@ class Metallic(PPHBookBase):
             line=market_data.get("p", None),
             bet_type=None,
             future=False,
-            odds_format=OddsFormat(american_odds=market_data.get("o"))
+            odds_format=OddsFormat(american_odds=float(market_data.get("o")))
         )
 
     def _total_type(self, market_name: str, market_data: dict, **kwargs) -> SportsbookStats:
@@ -118,7 +118,7 @@ class Metallic(PPHBookBase):
             line=market_data.get("p", None),
             bet_type=bet_type,
             future=False,
-            odds_format=OddsFormat(american_odds=market_data.get("o"))
+            odds_format=OddsFormat(american_odds=float(market_data.get("o")))
         )
 
     def market_controller(self, mapped_market_name: str, market_name: str, market_data: dict, team: str, **kwargs) -> SportsbookStats | None:
