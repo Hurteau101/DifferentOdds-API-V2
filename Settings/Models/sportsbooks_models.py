@@ -28,4 +28,4 @@ class SportsbookStats(Stats):
     def __post_init__(self):
         self.bet_player = clean_structure(self.bet_player)
         self.bet_team = clean_structure(self.bet_team)
-        self.market = get_static_mapping().get("stats").get(self.market.lower(), ordinal_formatter(self.market.lower()) if self.market else self.market.title())
+        self.market = get_static_mapping().get("stats").get(self.market.lower(), ordinal_formatter(self.market.lower()) if self.market else self.market)
