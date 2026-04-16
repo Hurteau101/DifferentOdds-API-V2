@@ -1,7 +1,10 @@
 import asyncio
 import re
+from datetime import datetime, timezone
+
 from itertools import chain
 import aiohttp
+import pytz
 from dotenv import load_dotenv
 from trio import Semaphore
 
@@ -175,7 +178,14 @@ class Metallic(PPHBookBase):
                     continue
 
                 time_portion = game.get("t", "")
-                game_date = f"{date_portion}T{time_portion}Z"
+                raw_game_date = f"{date_portion}T{time_portion}Z"
+
+                eastern = pytz.timezone("US/Eastern")
+
+                dt = datetime.fromisoformat(raw_game_date.replace("Z", ""))
+                dt = eastern.localize(dt)
+                new_dt = dt.astimezone(timezone.utc)
+                game_date = new_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
                 team_list = game.get("ts", [])
                 team_data = self.extract_teams(team_list=team_list)
