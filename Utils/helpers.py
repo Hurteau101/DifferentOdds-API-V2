@@ -33,7 +33,7 @@ def clean_and_normalize(string_name: str):
 
     string_name = re.sub(r'^[\d-]+\s+', '', string_name).strip()
 
-    return unidecode(string_name).strip()
+    return unidecode(string_name).strip().title()
 
 
 
