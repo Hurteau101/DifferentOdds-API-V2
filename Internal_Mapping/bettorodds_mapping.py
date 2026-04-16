@@ -8,6 +8,7 @@ from Redis.redis_manager import RedisAsyncManager, RedisSyncManager, static_mapp
 from Utils.request_caller import APICaller, SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
+
 class BettoroddsMapping(APICaller):
     def __init__(self, payload_batch: int, async_batch: int, book_name: str, request_type: SportbookRequestType = SportbookRequestType.ASYNC):
         self.payload_batch = payload_batch # Used for batching the payload.
@@ -15,6 +16,7 @@ class BettoroddsMapping(APICaller):
         self.book_name = book_name
         self.redis_instance = RedisAsyncManager(database=4)
         self.league_mapping = static_mapping_service.get().get("leagues", {})
+        self.redis_unmapped = RedisSyncManager(database=7)
         super().__init__(request_type=request_type)
 
 
@@ -59,6 +61,10 @@ class BettoroddsMapping(APICaller):
             else:
                 mapped["unmapped"][original] = league
 
+
+        for key, value in mapped["unmapped"].items():
+            self.redis_unmapped.store_data(key, value)
+
         return mapped
 
     def _map_markets(self, data: dict, league: str) -> dict:
@@ -68,6 +74,8 @@ class BettoroddsMapping(APICaller):
             "mapped": {},
             "unmapped": {}
         }
+
+
 
         league_upper = league.upper()
         league_lower = league.lower()
@@ -99,6 +107,9 @@ class BettoroddsMapping(APICaller):
                 mapped["mapped"][f"{original.lower()}-{league_lower}"] = normalized.title() if normalized else None
             elif original:
                 mapped["unmapped"][original] = league
+
+        for key, value in mapped["unmapped"].items():
+            self.redis_unmapped.store_data(key, value)
 
         return mapped
 
