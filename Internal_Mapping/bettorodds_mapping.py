@@ -96,7 +96,7 @@ class BettoroddsMapping(APICaller):
                 print("Normalized Found", normalized)
 
             if original and normalized:
-                mapped["mapped"][f"{original.lower()}-{league_lower}"] = normalized
+                mapped["mapped"][f"{original.lower()}-{league_lower}"] = normalized.title() if normalized else None
             elif original:
                 mapped["unmapped"][original] = league
 
