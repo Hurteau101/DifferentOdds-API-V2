@@ -206,7 +206,7 @@ DFS_PROVIDERS = [
             'Accept-Language': 'en-US,en;q=0.9',
         },
         method="GET",
-        is_active=True
+        is_active=False
     ),
     BaseProvider(
         title="Epick Fantasy",
