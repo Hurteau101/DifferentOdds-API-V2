@@ -104,6 +104,30 @@ DFS_PROVIDERS = [
         is_active=False
     ),
     BaseProvider(
+        title="Ownerbox",
+        name="ownerbox",
+        url={
+            "stat_url": "https://app.ownersbox.com/fsp/marketType/active?sport={league}",
+            "game_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}&marketTypeId={market_id}"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.5',
+            # 'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'OwnersBox-Client-Type': 'web',
+            'OwnersBox-Client-Version': '1.11.4',
+            'Connection': 'keep-alive',
+            'Referer': 'https://app.ownersbox.com/wfs/player-picks/lobby/MLB',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'TE': 'trailers',
+        },
+        method="GET",
+        is_active=False
+    ),
+    BaseProvider(
         title="Parlaye",
         name="parlaye",
         url={
@@ -160,6 +184,28 @@ DFS_PROVIDERS = [
             "main_url": os.getenv("CHALKBOARD_URL")
         },
         method="POST",
+        is_active=True
+    ),
+    BaseProvider(
+        title="FanDuel Picks",
+        name="fanduel_picks",
+        url={
+            "main_url": "https://picks.fanduel.com/lobby.data?sport={league}&_routes=routes%2Flobby%2B%2F_route",
+            "stat_url": "https://picks.fanduel.com/api/game-group-props?gameGroupId={game_id}&marketIds=&_data=routes%2Fapi%2B%2Fgame-group-props%2B%2F_resource",
+            "multi": "https://picks.fanduel.com/api/bonus-multiplier"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Galaxy S9 Build/TQ2B.230505.005.A1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/101.0.4951.61 Mobile Safari/537.36 CoreWebView-Android/3.0.3 AppInfo (appDomain/picks; region/nj; version/0.0.1; platform/android)',
+            'Accept': '*/*',
+            'X-Requested-With': 'com.fanduel.flywheelnativecontainer.picks',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Dest': 'empty',
+            'Referer': 'https://picks.fanduel.com/lobby?sport=NFL&gameGroup=019bd787-377b-7622-a5aa-0dbd7d67454c&stat=Rush+%2B+Rec+TDs',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'en-US,en;q=0.9',
+        },
+        method="GET",
         is_active=True
     ),
     BaseProvider(
