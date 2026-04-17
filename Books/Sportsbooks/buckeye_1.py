@@ -301,17 +301,6 @@ class Buckeye1(PPHBookBase):
 
         return games
 
-    @staticmethod
-    async def _post_with_semaphore(semaphore: asyncio.Semaphore, task, retries: int = 3, delay: float = 1.0):
-        async with semaphore:
-            for attempt in range(retries):
-                try:
-                    await asyncio.sleep(0.5)
-                    return await task
-                except Exception as e:
-                    if attempt == retries - 1:
-                        return None
-                    await asyncio.sleep(delay * (attempt + 1))
 
     async def run_book(self):
         cookies = await self.load_cookies()
@@ -345,7 +334,7 @@ class Buckeye1(PPHBookBase):
             semaphore = asyncio.Semaphore(2)
 
             results = await asyncio.gather(*[
-                self._post_with_semaphore(semaphore, task) for task in tasks
+                self.post_with_semaphore(semaphore, task) for task in tasks
             ])
 
             if not results:
