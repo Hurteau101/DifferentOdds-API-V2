@@ -119,7 +119,8 @@ class Ace(PPHBookBase):
         raw_date_string = f"{year}-{month}-{day} {raw_time}"
         game_date_dt = datetime.strptime(raw_date_string, "%Y-%m-%d %H:%M:%S")
         eastern_dt = game_date_dt.replace(tzinfo=ZoneInfo("America/New_York"))
-        return eastern_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        utc = eastern_dt.astimezone(timezone.utc)
+        return utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
     def yes_no_type(self, game_data: dict, market_name: str, **kwargs) -> list:
@@ -220,7 +221,7 @@ class Ace(PPHBookBase):
         )
 
         game_key = self.generate_key([team_data.team_a, team_data.team_b, start_date])
-
+        print(game_key)
         game_data = GameData(
             start_date=start_date,
             league=league,
