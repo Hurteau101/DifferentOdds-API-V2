@@ -31,6 +31,9 @@ class STS(PPHBookBase):
     @staticmethod
     def clean_return(api_data: dict, contains_d: bool = True) -> dict:
         """Cleans the returned API response, due to it being a string and having extra spaces"""
+        if not api_data:
+            return {}
+
         data = api_data.get("d", '') if contains_d else api_data
         if isinstance(data, dict):
             return data
@@ -203,7 +206,6 @@ class STS(PPHBookBase):
             await sts.run_scheduler(session=session, redis_instance=redis_instance)
             self.retry += 1
 
-
     async def run_book(self):
         cookies = await self.load_cookies()
 
@@ -248,7 +250,13 @@ class STS(PPHBookBase):
                 for sport_id in sports_ids
             ]
 
-            league_results = await asyncio.gather(*league_name_tasks)
+            semaphore = asyncio.Semaphore(2)
+
+            league_results = await asyncio.gather(*[
+                self.post_with_semaphore(semaphore, task) for task in league_name_tasks
+            ])
+
+            # league_results = await asyncio.gather(*league_name_tasks)
             cleaned_leagues = [self.clean_return(result) for result in league_results]
 
             league_map = {
@@ -290,7 +298,11 @@ class STS(PPHBookBase):
                 for market in league_ids
             ]
 
-            market_results = await asyncio.gather(*market_tasks)
+            market_results = await asyncio.gather(*[
+                self.post_with_semaphore(semaphore, task) for task in market_tasks
+            ])
+
+            # market_results = await asyncio.gather(*market_tasks)
             cleaned_markets = [self.clean_return(result) for result in market_results]
 
             event_data = {}
