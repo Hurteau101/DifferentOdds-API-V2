@@ -221,7 +221,7 @@ class Ace(PPHBookBase):
         )
 
         game_key = self.generate_key([team_data.team_a, team_data.team_b, start_date])
-        print(game_key)
+
         game_data = GameData(
             start_date=start_date,
             league=league,
@@ -338,10 +338,6 @@ class Ace(PPHBookBase):
                         self.add_to_events(events, markets, GameData)
 
             betvegas_data = list(events.values())
-
-            from dataclasses import asdict
-            with open("ace_mapped_data.json", "w") as f:
-                json.dump([asdict(game) for game in betvegas_data], f, indent=2)
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=betvegas_data)
 
