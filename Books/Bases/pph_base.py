@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Callable
 
@@ -180,3 +181,15 @@ class PPHBookBase(SportsbooksBookBase):
                 return None
             print(session.cookies.get_dict())
             return session.cookies.get_dict()
+
+    @staticmethod
+    async def post_with_semaphore(semaphore: asyncio.Semaphore, task, retries: int = 3, delay: float = 1.0):
+        async with semaphore:
+            for attempt in range(retries):
+                try:
+                    await asyncio.sleep(0.5)
+                    return await task
+                except Exception as e:
+                    if attempt == retries - 1:
+                        return None
+                    await asyncio.sleep(delay * (attempt + 1))
