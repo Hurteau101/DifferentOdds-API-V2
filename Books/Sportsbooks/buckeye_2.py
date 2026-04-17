@@ -2,6 +2,8 @@ import asyncio
 import os
 from datetime import datetime, timezone
 from typing import Callable
+from zoneinfo import ZoneInfo
+
 import aiohttp
 from urllib.parse import urlencode
 from Books.Bases.pph_base import PPHBookBase
@@ -202,8 +204,11 @@ class Buckeye2(PPHBookBase):
 
     def build_markets(self, event_data: dict, buy_points: dict | None):
         start_date = event_data.get("GameDateTime")
-        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f")
-        modified_date = start_date_dt.replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").astimezone()
+        eastern = ZoneInfo("America/New_York")
+        start_date_dt = start_date_dt.replace(tzinfo=eastern)
+
+        modified_date = start_date_dt.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         team_data = TeamData(
             team_a=event_data.get("Team1ID"),
@@ -445,7 +450,6 @@ class Buckeye2(PPHBookBase):
                         self.add_to_events(event_data, game_data, GameData)
 
             buckeye_2_data = list(event_data.values())
-
             mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_2_data)
 
             await self.store_data(
