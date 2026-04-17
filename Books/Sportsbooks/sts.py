@@ -41,7 +41,7 @@ class STS(PPHBookBase):
 
         raise ValueError("API response is not in the expected format. Expected a dictionary or a string that can be converted to a dictionary.")
 
-    def build_markets(self, market: dict, league_map: dict, date_month: datetime) -> list:
+    def build_markets(self, market: dict, league_map: dict, date_month: datetime, period: str) -> list:
         game_list = []
 
         for line in market.get("lines", []):
@@ -70,13 +70,15 @@ class STS(PPHBookBase):
             )
 
             for side in line.get("sides", []):
+
                 # Find key name, ensure its a dict and has a line value in that dict, or it wouldn't be considered a market.
                 market_names = set((key for key, value in side.items() if isinstance(value, dict) and "line" in value))
                 if not market_names:
                     continue
 
                 for market_name in market_names:
-                    odds = self.market_controller(market_name=market_name, market_data=side.get(market_name, {}), team=side.get("name", ""), league=league)
+                    odds = self.market_controller(market_name=market_name, market_data=side.get(market_name, {}), team=side.get("name", ""),
+                                                  league=league, period=period)
                     if odds:
                         game_data.odds.append(odds)
 
@@ -186,6 +188,10 @@ class STS(PPHBookBase):
         if not handler:
             return None
 
+        period = kwargs.get("period", "").lower()
+        if period != "game":
+            market_name = f"{period} {market_name}"
+
         return handler(market_data=market_data, market_name=market_name, **kwargs)
 
     # Backup Auth since the site has bugs, where the cookie will no longer be valid, even if it was issued.
@@ -290,15 +296,18 @@ class STS(PPHBookBase):
             event_data = {}
 
             for cleaned in cleaned_markets:
+                # First index contains some game information, where the rest of the indexes don't.
                 first_index_line = cleaned.get("lines", [])[0] if cleaned.get("lines") else None
+
                 if not first_index_line:
                     continue
 
                 date_month = first_index_line.get("dateandtime", "")
                 current_year = datetime.now().year # There is no year in there API data, so use this year.
                 date_month_dt = datetime.strptime(f"{date_month}-{current_year}", "%m/%d-%Y")
+                period = first_index_line.get("periodname", 'N/A')
 
-                game_data = self.build_markets(market=cleaned, league_map=league_map, date_month=date_month_dt)
+                game_data = self.build_markets(market=cleaned, league_map=league_map, date_month=date_month_dt, period=period)
                 if not game_data:
                     continue
 
@@ -306,6 +315,7 @@ class STS(PPHBookBase):
                     self.add_to_events(event_data, game, GameData)
 
             sts_data = list(event_data.values())
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=sts_data)
 
             await self.store_data(
