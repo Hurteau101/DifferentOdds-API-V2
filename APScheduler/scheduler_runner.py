@@ -16,9 +16,9 @@ from External_Book_Mapping.SGP.onyx_mapper import OnyxMapper
 from Authentication.chalkboard_auth import ChalkboardAuth
 from Authentication.kibl_auth import KiblAuth
 from Authentication.onyx_auth import OnyxAuth
-from Authentication.ownerbox_auth import OwnerboxAuth
 from Authentication.sts_auth import STSAuth
 from External_Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
+
 import asyncio
 import logging
 from datetime import datetime
@@ -30,7 +30,6 @@ from apscheduler.triggers.interval import IntervalTrigger
 from Redis.redis_manager import RedisAsyncManager
 from Authentication.caesars_auth import CaesarAuth
 from Authentication.fourcx_auth import FourcxAuth
-from Authentication.fanduel_picks_auth import FanduelPicksAuth
 from Books.Prediction_Liquidity.compare import LiquidityCompare
 
 
@@ -63,16 +62,6 @@ AUTH_JOBS = [
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
         "redis_key_checker_name": "4cx_auth_token",
-    },
-    {
-        "book_name": "fanduel_picks",
-        "class": FanduelPicksAuth,
-        "job_type": "auth",
-        "is_active": False,
-        "interval": 39600, # 11 hours
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "fanduel_picks_auth_token",
     },
     {
         "book_name": "caesars",
@@ -113,16 +102,6 @@ AUTH_JOBS = [
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
         "redis_key_checker_name": "onyx_auth_token",
-    },
-    {
-        "book_name": "ownerbox",
-        "class": OwnerboxAuth,
-        "job_type": "auth",
-        "is_active": False,
-        "interval": 600,  # 10 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "ownerbox_auth_token",
     },
     {
         "book_name": "ace",

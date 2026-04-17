@@ -13,8 +13,6 @@ from Books.DFS.dabble import Dabble
 from Books.DFS.drafters import Drafters
 from Books.DFS.draftkings_6 import DraftKingsPickSix
 from Books.DFS.epicks import Epicks
-from Books.DFS.fanduel_picks import FanDuelPicks
-from Books.DFS.ownerbox import Ownerbox
 from Books.DFS.parlaye import Parlaye
 from Books.DFS.parlayplay import Parlayplay
 from Books.DFS.prizepicks import Prizepicks
@@ -122,26 +120,6 @@ BOOKS = {
         "soft_limit": SOFT_LIMIT,
         "hard_limit": HARD_LIMIT,
         "is_active": True,
-    },
-    "fanduel_picks": {
-        "class": FanDuelPicks,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": False,
-    },
-    "ownerbox": {
-        "class": Ownerbox,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": False,
     },
     "parlaye": {
         "class": Parlaye,
