@@ -3,8 +3,9 @@ import re
 from itertools import chain
 
 import aiohttp
+import pytz
 from rapidfuzz import process, fuzz
-
+from datetime import datetime, timezone
 from Books.Bases.pph_base import PPHBookBase
 from External_Book_Mapping.SGP.betway_mapper import get_static_mapping
 from Settings.Models.base_models import TeamData, GameData, OddsFormat
@@ -50,6 +51,8 @@ class OneBv(PPHBookBase):
             method=self.book_data.method,
             headers=self.book_data.headers
         )
+
+
 
         return token_data.get("AppToken", None) if isinstance(token_data, dict) else None
 
@@ -180,7 +183,13 @@ class OneBv(PPHBookBase):
         league_id = event_data.get("LEAGUE_ID", '')
         found_league = league_data.get(league_id, {})
 
-        start_date = event_data.get("DATE_TIME_GAME", '')
+        eastern = pytz.timezone("US/Eastern")
+
+        raw_start_date = event_data.get("DATE_TIME_GAME", '')
+        dt = datetime.fromisoformat(raw_start_date.replace("Z", ""))
+        dt = eastern.localize(dt)
+        new_dt = dt.astimezone(timezone.utc)
+        start_date = new_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Store these ideas for future markets, as we can get the proper team names.
         if all([
