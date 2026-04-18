@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from APScheduler.base_scheduler import BaseScheduler
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 from bs4 import BeautifulSoup
@@ -26,6 +27,7 @@ class STSAuth(BaseScheduler):
             'TE': 'trailers'
         }
 
+
     async def _get_view_states(self, session: CurlAsyncSession) -> dict:
         """Extracts the necessary view state values from the login page to prepare for authentication."""
         def find_values(name: str, soup: BeautifulSoup):
@@ -33,19 +35,37 @@ class STSAuth(BaseScheduler):
             return hidden_tag["value"] if hidden_tag else ""
 
         url = "https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx"
+        proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
 
+        for proxy in proxies:
+            parts = proxy.split(":")
+            ip, port, user, password = parts[0], parts[1], parts[2], parts[3]
+            formatted = f"http://{user}:{password}@{ip}:{port}"
 
-        response = await session.get(url=url, headers={
-            **self.common_headers,
-            'Referer': 'https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx',
-        })
-        soup = BeautifulSoup(response.text, "html.parser")
+            prox = {
+                "http": formatted,
+                "https": formatted
+            }
 
-        return {
-            "__VIEWSTATE": find_values("__VIEWSTATE", soup),
-            "__VIEWSTATEGENERATOR": find_values("__VIEWSTATEGENERATOR", soup),
-            "__EVENTVALIDATION": find_values("__EVENTVALIDATION", soup),
-        }
+            response = await session.get(url=url, proxies=prox, headers={
+                **self.common_headers,
+                'Referer': 'https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx',
+            })
+
+            if response.status_code != 200:
+                continue
+
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            return {
+                "__VIEWSTATE": find_values("__VIEWSTATE", soup),
+                "__VIEWSTATEGENERATOR": find_values("__VIEWSTATEGENERATOR", soup),
+                "__EVENTVALIDATION": find_values("__EVENTVALIDATION", soup),
+                "formatted_proxies": prox,
+                "proxy": proxy
+            }
+
+        return {}
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance):
         username = os.getenv("STS_USERNAME")
@@ -59,6 +79,9 @@ class STSAuth(BaseScheduler):
         if not view_state_payload:
             return
 
+        formatted_proxies = view_state_payload.pop("formatted_proxies", None)
+        proxy = view_state_payload.pop("proxy", None)
+
         login_payload = {
             **view_state_payload,
             "txtAccessOfCode": username,
@@ -71,7 +94,7 @@ class STSAuth(BaseScheduler):
             'Content-Type': 'application/x-www-form-urlencoded',
             'Origin': 'https://bettheguys.com',
             'Referer': 'https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx',
-        }, url="https://bettheguys.com/Login.aspx", data=login_payload)
+        }, url="https://bettheguys.com/Login.aspx", proxies=formatted_proxies, data=login_payload)
 
         cookies = {
             cookie.name: cookie.value
@@ -83,6 +106,12 @@ class STSAuth(BaseScheduler):
             await redis_instance.store_data(
                 key_name="sts_cookies",
                 data_to_store=cookies,
+                key_expiration=1200  # 20 Minutes
+            )
+
+            await redis_instance.store_data(
+                key_name="sts_proxy",
+                data_to_store=proxy,
                 key_expiration=1200  # 20 Minutes
             )
 

@@ -1,4 +1,5 @@
 import asyncio
+import os
 import re
 from functools import reduce
 from urllib.parse import urlencode
@@ -29,6 +30,11 @@ class STS(PPHBookBase):
         """Extracts the cookies from Redis."""
         redis_instance = RedisAsyncManager(database=5)
         return await redis_instance.get_data("sts_cookies")
+
+    async def load_proxy(self) -> dict | None:
+        """Extracts the proxy from Redis."""
+        redis_instance = RedisAsyncManager(database=5)
+        return await redis_instance.get_data("sts_proxy")
 
     @staticmethod
     def clean_return(api_data: dict, contains_d: bool = True) -> dict:
@@ -212,12 +218,14 @@ class STS(PPHBookBase):
 
     async def run_book(self):
         cookies = await self.load_cookies()
+        proxy = await self.load_proxy()
 
-        if not cookies:
+        if not cookies or not proxy:
             return
 
         async with CurlAsyncSession(impersonate="safari15_5", cookies=cookies) as session:
             proxy_manager = ProxyManager(self.api_caller)
+            proxy_manager.proxies = [proxy]
 
             raw_league_data = await proxy_manager.api_caller(
                 url=self.book_data.url.get("category_url"),
@@ -230,11 +238,10 @@ class STS(PPHBookBase):
             )
 
             if not raw_league_data:
-                if self.retry < 3:
-                    print("Failed to fetch data, retry #", self.retry + 1)
-                    await self.back_up_auth_runner()
-                    await self.run_book()
-
+                # if self.retry < 3:
+                #     print("Failed to fetch data, retry #", self.retry + 1)
+                #     await self.back_up_auth_runner()
+                #     await self.run_book()
                 return
 
             sports_ids = set(
