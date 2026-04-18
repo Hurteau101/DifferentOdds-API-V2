@@ -14,8 +14,8 @@ from Utils.request_caller import SportbookRequestType
 
 
 class Buckeye2(PPHBookBase):
-    # VALID_LEAGUES = ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL"]
-    VALID_LEAGUES = ["MLB"]
+    VALID_LEAGUES = ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL"]
+
     def __init__(self):
         super().__init__(book_name="buckeye2", request_type=SportbookRequestType.ASYNC)
 
