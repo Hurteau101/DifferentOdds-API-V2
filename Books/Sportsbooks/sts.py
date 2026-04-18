@@ -9,6 +9,7 @@ from Books.Bases.pph_base import PPHBookBase
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 import json
@@ -16,7 +17,8 @@ from datetime import datetime, timezone
 
 class STS(PPHBookBase):
     VALID_CATEGORIES = ["football", "baseball", "hockey", "basketball", "college football", "college basketball"]
-    VALID_LEAGUES = ["NBA", "MLB", "NHL", "NHL-OTINCLUDED", "NHL", "CBB", "CFB", "NCAA/USA/INT-OTINCLUDED"]
+    # VALID_LEAGUES = ["NBA", "MLB", "NHL", "NHL-OTINCLUDED", "NHL", "CBB", "CFB", "NCAA/USA/INT-OTINCLUDED"]
+    VALID_LEAGUES = ["NBA"]
     LEAGUE_NAME_REPLACER = ["-", "otincluded", "/usa/int"]
 
     def __init__(self):
@@ -44,10 +46,12 @@ class STS(PPHBookBase):
 
         raise ValueError("API response is not in the expected format. Expected a dictionary or a string that can be converted to a dictionary.")
 
-    def build_markets(self, market: dict, league_map: dict, date_month: datetime, period: str) -> list:
+    def build_markets(self, market: dict, league_map: dict, date_month: datetime, backup_period: str) -> list:
         game_list = []
 
         for line in market.get("lines", []):
+            period = line.get("periodname", "N/A") or backup_period
+
             if line.get("offline") or not line.get("sides"):
                 continue
 
@@ -213,7 +217,9 @@ class STS(PPHBookBase):
             return
 
         async with CurlAsyncSession(impersonate="safari15_5", cookies=cookies) as session:
-            raw_league_data = await self.api_caller(
+            proxy_manager = ProxyManager(self.api_caller)
+
+            raw_league_data = await proxy_manager.api_caller(
                 url=self.book_data.url.get("category_url"),
                 headers=self.book_data.headers,
                 payload={"wagerTypeValue": "1"},
@@ -238,7 +244,7 @@ class STS(PPHBookBase):
             )
 
             league_name_tasks = [
-                self.api_caller(
+                proxy_manager.api_caller(
                     url=self.book_data.url.get("league_url"),
                     headers=self.book_data.headers,
                     payload={"idMainHeader":str(sport_id), "wagerTypeValue": "1"},
@@ -260,12 +266,6 @@ class STS(PPHBookBase):
             # league_results = await asyncio.gather(*league_name_tasks)
             cleaned_leagues = [self.clean_return(result) for result in league_results]
 
-            if not cleaned_leagues:
-                if self.retry < 3:
-                    print("Failed to fetch data, retry #", self.retry + 1)
-                    await self.back_up_auth_runner()
-                    await self.run_book()
-
             league_map = {
                 league.get("IdSport"): reduce(lambda name, remove: name.replace(remove, ""), self.LEAGUE_NAME_REPLACER, league.get("Name", "").lower())
                 for result in cleaned_leagues
@@ -283,7 +283,7 @@ class STS(PPHBookBase):
             ]
 
             market_tasks = [
-                self.api_caller(
+                proxy_manager.api_caller(
                     url=self.book_data.url.get("market_url"),
                     headers=self.book_data.headers,
                     payload={
@@ -312,13 +312,6 @@ class STS(PPHBookBase):
             # market_results = await asyncio.gather(*market_tasks)
             cleaned_markets = [self.clean_return(result) for result in market_results]
 
-            if not cleaned_markets:
-                if self.retry < 3:
-                    print("Failed to fetch data, retry #", self.retry + 1)
-                    await self.back_up_auth_runner()
-                    await self.run_book()
-
-
             event_data = {}
 
             for cleaned in cleaned_markets:
@@ -331,9 +324,9 @@ class STS(PPHBookBase):
                 date_month = first_index_line.get("dateandtime", "")
                 current_year = datetime.now().year # There is no year in there API data, so use this year.
                 date_month_dt = datetime.strptime(f"{date_month}-{current_year}", "%m/%d-%Y")
-                period = first_index_line.get("periodname", 'N/A')
+                backup_period = first_index_line.get("periodname", 'N/A')
 
-                game_data = self.build_markets(market=cleaned, league_map=league_map, date_month=date_month_dt, period=period)
+                game_data = self.build_markets(market=cleaned, league_map=league_map, date_month=date_month_dt, backup_period=backup_period)
                 if not game_data:
                     continue
 
