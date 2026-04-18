@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from curl_cffi.requests import Session
 from Books.Bases.book_base import BookBase
 from Monitoring.monitoring import create_sentry_message
-from Settings.Models.base_models import TeamData, OddsFormat
+from Settings.Models.base_models import TeamData, OddsFormat, GameData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.request_caller import SportbookRequestType
 from Books.Bases.sportsbook_base import SportsbooksBookBase
@@ -193,3 +193,10 @@ class PPHBookBase(SportsbooksBookBase):
                     if attempt == retries - 1:
                         return None
                     await asyncio.sleep(delay * (attempt + 1))
+
+    def extract_market_names(self, book_data: list[GameData]):
+        return set(
+            odds.market.lower()
+            for data in book_data
+            for odds in data.odds
+        )
