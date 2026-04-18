@@ -362,10 +362,10 @@ class OneBv(PPHBookBase):
             for event in events:
                 game_data = await self.build_market(event_data=event, league_data=league_ids)
                 if game_data:
-                    if game_data.event_name in event_data:
-                        event_data[game_data.event_name].odds.extend(game_data.odds)
+                    if game_data.game_key in event_data:
+                        event_data[game_data.game_key].odds.extend(game_data.odds)
                     else:
-                        event_data[game_data.event_name] = game_data
+                        event_data[game_data.game_key] = game_data
 
 
             onebv_data = list(event_data.values())
