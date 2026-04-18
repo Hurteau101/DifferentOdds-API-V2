@@ -16,10 +16,13 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 import json
 from datetime import datetime, timezone
 
+# Date warning - Supress.
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 class STS(PPHBookBase):
     VALID_CATEGORIES = ["football", "baseball", "hockey", "basketball", "college football", "college basketball"]
-    # VALID_LEAGUES = ["NBA", "MLB", "NHL", "NHL-OTINCLUDED", "NHL", "CBB", "CFB", "NCAA/USA/INT-OTINCLUDED"]
-    VALID_LEAGUES = ["NBA"]
+    VALID_LEAGUES = ["NBA", "MLB", "NHL", "NHL-OTINCLUDED", "NHL", "CBB", "CFB", "NCAA/USA/INT-OTINCLUDED"]
     LEAGUE_NAME_REPLACER = ["-", "otincluded", "/usa/int"]
 
     def __init__(self):
@@ -329,6 +332,13 @@ class STS(PPHBookBase):
                     continue
 
                 date_month = first_index_line.get("dateandtime", "")
+
+                # 2nd half markets, will only have a time. So we need to handle that case. All other markets are in mm/dd format.
+                try:
+                    datetime.strptime(date_month, "%m/%d")
+                except ValueError:
+                    date_month = datetime.today().date().strftime("%m/%d")
+
                 current_year = datetime.now().year # There is no year in there API data, so use this year.
                 date_month_dt = datetime.strptime(f"{date_month}-{current_year}", "%m/%d-%Y")
                 backup_period = first_index_line.get("periodname", 'N/A')
@@ -341,6 +351,7 @@ class STS(PPHBookBase):
                     self.add_to_events(event_data, game, GameData)
 
             sts_data = list(event_data.values())
+            print(sts_data)
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=sts_data)
 
