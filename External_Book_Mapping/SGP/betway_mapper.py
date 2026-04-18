@@ -6,7 +6,7 @@ from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 #### WILL NEED TO MAP MLB ####
 #### WILL NEED TO MAP NFL/NCAAF ###
@@ -48,13 +48,12 @@ TEAM_REGEX = re.compile(r"\s*\([A-Za-z]{3,4}\)")
 
 
 class BetwayMapper(BaseMapper):
-    # ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball", "soccer", "ufc---martial-arts", "tennis"]
-    ALLOWED_LEAGUES = ["soccer"]
+    ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball", "soccer", "ufc---martial-arts", "tennis"]
 
     def __init__(self):
-        super().__init__(book_name="betway", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="betway", category="sgp", request_type=SportbookRequestType.SPOOF)
 
-    async def _get_categories(self, category_names: set, session: aiohttp.ClientSession) -> list:
+    async def _get_categories(self, category_names: set, session: CurlAsyncSession) -> list:
         raw_categories = await asyncio.gather(
             *[
                 self.api_caller(
@@ -91,7 +90,7 @@ class BetwayMapper(BaseMapper):
             for group in sub.get("Groups", [])
         ]
 
-    async def _get_event_ids(self, session: aiohttp.ClientSession, categories: list):
+    async def _get_event_ids(self, session: CurlAsyncSession, categories: list):
         raw_ids = await asyncio.gather(
             *[
                 self.api_caller(
@@ -177,7 +176,7 @@ class BetwayMapper(BaseMapper):
             "selection_name": selection_name,
         }
 
-    async def _get_mappings(self, session: aiohttp.ClientSession, event_ids: set):
+    async def _get_mappings(self, session: CurlAsyncSession, event_ids: set):
         async def process_mapping(event_id, semaphore: asyncio.Semaphore):
             async with semaphore:
                 results = await self.api_caller(
@@ -275,7 +274,7 @@ class BetwayMapper(BaseMapper):
         return mapping_data
 
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
         raw_categories = await self.api_caller(
             book_name=self.book_data.name,
             session=session,
@@ -301,6 +300,7 @@ class BetwayMapper(BaseMapper):
             for menu in raw_categories.get("MenuData", {}).get("MenuItems", [])
             if menu.get("ClientLink", {}).get("ClientLinkValue") in self.ALLOWED_LEAGUES
         )
+
 
         if not category_names:
             create_sentry_message(
@@ -330,6 +330,7 @@ class BetwayMapper(BaseMapper):
             )
 
         mapping = await self._get_mappings(session, event_ids)
+
         if not mapping:
             create_sentry_message(
                 tag_key="betway",
@@ -352,6 +353,6 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = BetwayMapper()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
     asyncio.run(main())
