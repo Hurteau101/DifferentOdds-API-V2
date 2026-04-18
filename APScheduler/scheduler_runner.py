@@ -199,7 +199,8 @@ MAPPER_JOBS = [
         "redis_db": RedisSelector.MAPPER,
         "session_type": "aiohttp",
         "requires_auth": True,
-        "redis_key_checker_name": ""
+        "redis_key_checker_name": "onyx_ids",
+        "redis_auth_checker_name": "onyx_auth_token"
     },
     {
         "book_name": "kibl",
