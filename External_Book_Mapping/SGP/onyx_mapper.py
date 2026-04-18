@@ -1,29 +1,33 @@
 import asyncio
+import os
 
 import aiohttp
+from dotenv import load_dotenv
 
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 from Redis.redis_manager import RedisAsyncManager
 
 class OnyxMapper(BaseMapper):
+    load_dotenv()
     def __init__(self):
         super().__init__(book_name="onyxodds", category="sgp", request_type=SportbookRequestType.ASYNC)
 
     async def _get_auth(self) -> str | None:
         redis = RedisAsyncManager(database=5)
-        auth_token = await redis.get_data("onyx_auth_token")
+        auth_token = await redis.get_data("onyx_auth")
         return auth_token
 
-    async def _extract_game_ids(self, league_names: set, session: aiohttp.ClientSession, auth_token: str) -> set | None:
+    async def _extract_game_ids(self, league_names: set, session: aiohttp.ClientSession, auth_token: str, proxy_manager: ProxyManager) -> set | None:
         if not auth_token or not league_names:
             return None
 
         # Not ASYNC Tasks due to potential rate limit and missing leagues.
         results = []
         for league in league_names:
-            result = await self.api_caller(
+            result = await proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("game_ids_url").format(league_name=league),
@@ -45,7 +49,8 @@ class OnyxMapper(BaseMapper):
 
 
     def _extract_mapped_ids(self, api_data: dict, game_id: str | int) -> dict:
-        markets = api_data.get(game_id, {}).get("markets")
+        markets = api_data.get("data", {}).get(game_id, {}).get("markets")
+
         if not markets:
             return {}
 
@@ -89,7 +94,10 @@ class OnyxMapper(BaseMapper):
 
             return
 
-        league_data = await self.api_caller(
+        proxy_manager = ProxyManager(self.api_caller)
+        proxy_manager.proxies = os.getenv("ONYX_PROXIES").split(",") if os.getenv("ONYX_PROXIES") else ""
+
+        league_data = await proxy_manager.proxy_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.mapping.url.get("league_url"),
@@ -110,7 +118,7 @@ class OnyxMapper(BaseMapper):
             return
 
         leagues = self._extract_league_names(league_data)
-        game_ids = await self._extract_game_ids(league_names=leagues, session=session, auth_token=auth_token)
+        game_ids = await self._extract_game_ids(league_names=leagues, session=session, auth_token=auth_token, proxy_manager=proxy_manager)
 
         if not game_ids:
             create_sentry_message(
@@ -123,7 +131,7 @@ class OnyxMapper(BaseMapper):
             return
 
         market_url_tasks = [
-            self.api_caller(
+            proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("market_url").format(game_id=game_id),
@@ -161,3 +169,11 @@ class OnyxMapper(BaseMapper):
                 data_to_store=all_mapped_ids,
                 key_expiration=self.default_key_expiration
             )
+
+if __name__ == "__main__":
+    redis_instance = RedisAsyncManager(database=2)
+    mapper = OnyxMapper()
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            await mapper.run_scheduler(session=session, redis_instance=redis_instance)
+    asyncio.run(main())
