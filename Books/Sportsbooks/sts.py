@@ -224,7 +224,8 @@ class STS(PPHBookBase):
             )
 
             if not raw_league_data:
-                if self.retry < 1:
+                if self.retry < 3:
+                    print("Failed to fetch data, retry #", self.retry + 1)
                     await self.back_up_auth_runner()
                     await self.run_book()
 
@@ -258,6 +259,12 @@ class STS(PPHBookBase):
 
             # league_results = await asyncio.gather(*league_name_tasks)
             cleaned_leagues = [self.clean_return(result) for result in league_results]
+
+            if not cleaned_leagues:
+                if self.retry < 3:
+                    print("Failed to fetch data, retry #", self.retry + 1)
+                    await self.back_up_auth_runner()
+                    await self.run_book()
 
             league_map = {
                 league.get("IdSport"): reduce(lambda name, remove: name.replace(remove, ""), self.LEAGUE_NAME_REPLACER, league.get("Name", "").lower())
@@ -304,6 +311,13 @@ class STS(PPHBookBase):
 
             # market_results = await asyncio.gather(*market_tasks)
             cleaned_markets = [self.clean_return(result) for result in market_results]
+
+            if not cleaned_markets:
+                if self.retry < 3:
+                    print("Failed to fetch data, retry #", self.retry + 1)
+                    await self.back_up_auth_runner()
+                    await self.run_book()
+
 
             event_data = {}
 
