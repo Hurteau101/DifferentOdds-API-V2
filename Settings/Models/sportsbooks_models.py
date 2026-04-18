@@ -3,20 +3,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 from Settings.Models.base_models import Stats, get_static_mapping
-from Utils.helpers import clean_structure
+from Utils.helpers import clean_structure, ordinal_formatter
 
-
-def ordinal_formatter(market_name):
-    """Format the string if it is an ordinal market, otherwise return the original string."""
-    pattern = r'\b\d+(st|nd|rd|th)\b'
-    result = re.sub(pattern, lambda m: m.group(0), market_name, flags=re.IGNORECASE)
-
-    if re.search(pattern, market_name, flags=re.IGNORECASE):
-        result_split = result.split()
-
-        return f"{result_split[0]} {' '.join(result_split[1:]).title()}"
-
-    return market_name.title()
 
 # Use kw_only - As inheritance restriction.
 @dataclass(kw_only=True)

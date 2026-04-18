@@ -53,3 +53,14 @@ def cache_time(date_time_str) -> str | None:
     return convert_to_utc(date_time_str)
 
 
+def ordinal_formatter(market_name):
+    """Format the string if it is an ordinal market, otherwise return the original string."""
+    pattern = r'\b\d+(st|nd|rd|th)\b'
+    result = re.sub(pattern, lambda m: m.group(0), market_name, flags=re.IGNORECASE)
+
+    if re.search(pattern, market_name, flags=re.IGNORECASE):
+        result_split = result.split()
+
+        return f"{result_split[0]} {' '.join(word.capitalize() for word in result_split[1:])}"
+
+    return ' '.join(word.capitalize() for word in market_name.split())
