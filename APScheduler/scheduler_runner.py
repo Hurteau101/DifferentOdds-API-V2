@@ -101,7 +101,7 @@ AUTH_JOBS = [
         "interval": 25200,  # 7 hours
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
-        "redis_key_checker_name": "onyx_auth_token",
+        "redis_key_checker_name": "onyx_auth",
     },
     {
         "book_name": "ace",
@@ -200,7 +200,7 @@ MAPPER_JOBS = [
         "session_type": "aiohttp",
         "requires_auth": True,
         "redis_key_checker_name": "onyx_ids",
-        "redis_auth_checker_name": "onyx_auth_token"
+        "redis_auth_checker_name": "onyx_auth"
     },
     {
         "book_name": "kibl",
