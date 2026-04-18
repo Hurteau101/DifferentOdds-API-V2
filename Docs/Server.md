@@ -3,6 +3,7 @@
 - Auto SGP [Celery]
 - Sportsbooks [Celery]
 - Cron
+- xvfb
 
 ### APScheduler
 - Location: `/etc/systemd/system/ap-scheduler.service`
@@ -52,3 +53,7 @@
 - All Logs: `sudo tail -f /home/administrator/DifferentOdds-API-V2/logs/*.log`
 - Example Single Log: `sudo tail -f /home/administrator/DifferentOdds-API-V2/logs/heartbeat.log`
 - Confirm Running: `sudo grep CRON /var/log/syslog | tail -20`
+
+# XVFB:
+- Location: `/etc/systemd/system/xvfb.service`
+- Description: X Virtual Framebuffer for headless operation (Used by Onyxodds) - Ensures we can run without a physical display with headless false.
