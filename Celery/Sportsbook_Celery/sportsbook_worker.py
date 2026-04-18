@@ -259,7 +259,7 @@ BOOKS = {
         "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
         "soft_limit": SOFT_LIMIT,
         "hard_limit": HARD_LIMIT,
-        "is_active": False,
+        "is_active": True,
     },
     "buckeye1": {
         "class": Buckeye1,
