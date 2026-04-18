@@ -5,6 +5,8 @@ from itertools import zip_longest, batched
 import aiohttp
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager, RedisSyncManager, static_mapping_service
+from Utils.helpers import ordinal_formatter
+
 from Utils.request_caller import APICaller, SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -96,7 +98,7 @@ class BettoroddsMapping(APICaller):
                 print("Normalized Found", normalized)
 
             if original and normalized:
-                mapped["mapped"][f"{original.lower()}-{league_lower}"] = normalized.title() if normalized else None
+                mapped["mapped"][f"{original.lower()}-{league_lower}"] = ordinal_formatter(normalized.lower()) if normalized else None
             elif original:
                 mapped["unmapped"][original] = league
 
