@@ -176,7 +176,7 @@ SGP_PROVIDERS = [
                 "market_url": "https://api.onyxodds.com/api/odds/gameMainLines/{game_id}",
             },
             method="GET",
-            is_active=False
+            is_active=True
         )
     ),
     SGPProvider(

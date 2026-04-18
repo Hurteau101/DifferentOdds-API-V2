@@ -56,7 +56,7 @@ BOOKS = {
     },
     "onyx odds": {
         "class": OnyxSGP,
-        "active": False,
+        "active": True,
         "mapped_name": "onyxodds",
         "session": "aiohttp"
     },

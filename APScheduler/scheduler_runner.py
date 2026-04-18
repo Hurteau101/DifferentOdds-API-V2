@@ -97,7 +97,7 @@ AUTH_JOBS = [
         "book_name": "onyx",
         "class": OnyxAuth,
         "job_type": "auth",
-        "is_active": False,
+        "is_active": True,
         "interval": 18000,  # 5 hours
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
@@ -194,7 +194,7 @@ MAPPER_JOBS = [
         "book_name": "onyxodds",
         "class": OnyxMapper,
         "job_type": "mapper",
-        "is_active": False,
+        "is_active": True,
         "interval": 600,  # 10 minutes
         "redis_db": RedisSelector.MAPPER,
         "session_type": "aiohttp",
