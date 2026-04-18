@@ -61,7 +61,7 @@ class OnyxAuth(BaseScheduler):
                         await redis_instance.store_data(
                             key_name="onyx_auth",
                             data_to_store=auth_token,
-                            key_expiration=27000  # 20 Minutes
+                            key_expiration=27000  # 7.5 Hours
                         )
 
                         return

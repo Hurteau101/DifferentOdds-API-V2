@@ -98,7 +98,7 @@ AUTH_JOBS = [
         "class": OnyxAuth,
         "job_type": "auth",
         "is_active": True,
-        "interval": 18000,  # 5 hours
+        "interval": 25200,  # 7 hours
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
         "redis_key_checker_name": "onyx_auth_token",
