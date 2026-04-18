@@ -14,7 +14,8 @@ from Utils.request_caller import SportbookRequestType
 
 
 class Buckeye2(PPHBookBase):
-    VALID_LEAGUES = ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL"]
+    # VALID_LEAGUES = ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL"]
+    VALID_LEAGUES = ["MLB"]
     def __init__(self):
         super().__init__(book_name="buckeye2", request_type=SportbookRequestType.ASYNC)
 
@@ -246,11 +247,7 @@ class Buckeye2(PPHBookBase):
             favourite_team=event_data.get("FavoredTeamID")
         )
 
-        if all([
-            buy_points,
-            buy_points.get("Spread"),
-            event_data.get("PeriodDescription", '').lower() == "game"
-        ]):
+        if buy_points and buy_points.get("Spread") and event_data.get("PeriodDescription", '').lower() == "game":
             for odd in spread_odds:
                 additional_odds = self.calulate_spread_buy_points(spread_line=odd.line, spread_odds=odd.odds_format.get("american_odds"),
                                                 buy_points_amount=buy_points["Spread"]["amount"],
@@ -269,11 +266,7 @@ class Buckeye2(PPHBookBase):
             over_points_line_name="TotalPoints", # Points goes both directions always. We can just set over since it will be the same, and function will set it automatically.
         )
 
-        if all([
-            buy_points,
-            buy_points.get("Total"),
-            event_data.get("PeriodDescription", '').lower() == "game"
-        ]):
+        if buy_points and buy_points.get("Total") and event_data.get("PeriodDescription", '').lower() == "game":
             for odd in total_odds:
                 additional_odds = self.calulate_total_buy_points(
                     total_line=odd.line, total_odds=odd.odds_format.get("american_odds"),
@@ -355,21 +348,23 @@ class Buckeye2(PPHBookBase):
             })
         )
 
-        buy_points = await self.get_buy_points(username=username, auth_token=auth_token, session=session,
-                                         sport_type=league.get("SportType"), sport_subtype=league.get("SportSubType"))
+        sport_type = league.get("SportType")
+        if sport_type in ["BASKETBALL", "FOOTBALL"]:
+            buy_points = await self.get_buy_points(username=username, auth_token=auth_token, session=session,
+                                             sport_type=league.get("SportType"), sport_subtype=league.get("SportSubType"))
 
-        if buy_points:
-            buy_points_key = buy_points.get("BuyPoints", {})
-            market_data["buypoints"] = {
-                "Spread": {
-                    "amount": buy_points_key.get("SpreadBuy", 0),
-                    "max": buy_points_key.get("SpreadBuyMax", 0)
-                },
-                "Total": {
-                    "amount": buy_points_key.get("TotalBuy", 0),
-                    "max": buy_points_key.get("TotalBuyMax", 0)
+            if buy_points and sport_type in ["BASKETBALL", "FOOTBALL"]:
+                buy_points_key = buy_points.get("BuyPoints", {})
+                market_data["buypoints"] = {
+                    "Spread": {
+                        "amount": buy_points_key.get("SpreadBuy", 0),
+                        "max": buy_points_key.get("SpreadBuyMax", 0)
+                    },
+                    "Total": {
+                        "amount": buy_points_key.get("TotalBuy", 0),
+                        "max": buy_points_key.get("TotalBuyMax", 0)
+                    }
                 }
-            }
 
         return market_data
 
