@@ -222,7 +222,7 @@ class STS(PPHBookBase):
             raw_league_data = await proxy_manager.api_caller(
                 url=self.book_data.url.get("category_url"),
                 headers=self.book_data.headers,
-                payload={"wagerTypeValue": "1"},
+                payload={"wagerTypeValue": 1},
                 method="POST",
                 session=session,
                 book_name=self.book_data.name,
