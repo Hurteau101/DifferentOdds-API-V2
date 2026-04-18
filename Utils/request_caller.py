@@ -59,9 +59,6 @@ class APICaller:
 
     def handle_sync_response(self, response: CurlResponse, parse_json: bool, book_name: str) -> dict | None:
         """Handle a curl_cffi (non-async) response."""
-        if response.status_code not in self.valid_status_codes:
-            if response.status_code == 500:
-                print(f"Response for {book_name}: {response.status_code} | Text: {response.text}")
 
         if response.status_code in self.valid_status_codes:
             try:
@@ -82,8 +79,8 @@ class APICaller:
 
     async def handle_async_response(self, response: ClientResponse, parse_json: bool, book_name: str) -> dict | None:
         """Handle aiohttp async response."""
-        # if response.status not in self.valid_status_codes:
-        #     print(f"\n******* Failed {book_name} | Text: {await response.text()} *************\n", response.status)
+        if response.status not in self.valid_status_codes:
+            print(f"\n******* Failed {book_name} | Text: {await response.text()} *************\n", response.status)
 
         if response.status in self.valid_status_codes:
             try:
