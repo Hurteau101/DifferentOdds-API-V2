@@ -204,10 +204,8 @@ class Buckeye2(PPHBookBase):
 
     def build_markets(self, event_data: dict, buy_points: dict | None):
         start_date = event_data.get("GameDateTime")
-        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").astimezone()
         eastern = ZoneInfo("America/New_York")
-        start_date_dt = start_date_dt.replace(tzinfo=eastern)
-
+        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=eastern)
         modified_date = start_date_dt.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         team_data = TeamData(
@@ -216,7 +214,7 @@ class Buckeye2(PPHBookBase):
         )
 
         game_data = GameData(
-            start_date=event_data.get("GameDateTime"),
+            start_date=modified_date,
             league=event_data.get("SportSubType", '').strip(),
             team_data=team_data,
             odds=[],
