@@ -221,7 +221,7 @@ MAPPER_JOBS = [
         "is_active": True,
         "interval": 600,  # 10 Minutes
         "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
+        "session_type": "curl",
         "requires_auth": False,
         "redis_key_checker_name": "betway_mapped_ids"
     },
