@@ -160,7 +160,12 @@ class STS(PPHBookBase):
         if not raw_line:
             return None
 
-        line = re.match(r"([+-]?\d*\.?\d+)", raw_line).group()
+        match = re.match(r"([+-]?\d*\.?\d+)", raw_line)
+
+        if not match:
+            return None
+
+        line = match.group()
 
         league = kwargs.get("league", "")
 
