@@ -273,8 +273,16 @@ class BetwayMapper(BaseMapper):
 
         return mapping_data
 
+    async def check_categories(self, session: CurlAsyncSession):
+        async def check_redis():
+            return await redis_instance.get_data("betway_categories")
 
-    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
+        has_cache = await check_redis()
+
+        if has_cache:
+            print("Returning Cache")
+            return has_cache
+
         raw_categories = await self.api_caller(
             book_name=self.book_data.name,
             session=session,
@@ -301,7 +309,6 @@ class BetwayMapper(BaseMapper):
             if menu.get("ClientLink", {}).get("ClientLinkValue") in self.ALLOWED_LEAGUES
         )
 
-
         if not category_names:
             create_sentry_message(
                 tag_key="betway",
@@ -319,6 +326,20 @@ class BetwayMapper(BaseMapper):
                 message="No category details found",
                 level="error"
             )
+
+        await redis_instance.store_data(
+            key_name="betway_categories",
+            data_to_store=categories,
+            key_expiration=3600  # 1 Hour
+        )
+
+        return categories
+
+
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
+        categories = await self.check_categories(session)
+        if not categories:
+            return
 
         event_ids = await self._get_event_ids(session, categories)
 
@@ -347,7 +368,6 @@ class BetwayMapper(BaseMapper):
             key_expiration=600
         )
 
-    ### Add to APScheduler if success
 
 if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
