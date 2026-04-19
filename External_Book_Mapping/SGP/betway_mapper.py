@@ -280,7 +280,6 @@ class BetwayMapper(BaseMapper):
         has_cache = await check_redis()
 
         if has_cache:
-            print("Returning Cache")
             return has_cache
 
         raw_categories = await self.api_caller(
