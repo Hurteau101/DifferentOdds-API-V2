@@ -59,6 +59,9 @@ class APICaller:
 
     def handle_sync_response(self, response: CurlResponse, parse_json: bool, book_name: str) -> dict | None:
         """Handle a curl_cffi (non-async) response."""
+        if response.status_code not in self.valid_status_codes:
+            print(f"\n******* Failed {book_name} | Text: {response.text} *************\n", response.status_code)
+
 
         if response.status_code in self.valid_status_codes:
             try:
