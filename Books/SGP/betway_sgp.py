@@ -1,6 +1,6 @@
 import asyncio
 import re
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 import aiohttp
 from aiohttp import payload
 
@@ -10,7 +10,7 @@ from Utils.request_caller import SportbookRequestType
 
 class BetwaySGP(SGPBookBase):
     def __init__(self, mapped_ids_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betway",
+        super().__init__(request_type=SportbookRequestType.SPOOF, category="SGP", book_name="betway",
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     async def _get_outcome_ids(self, additional_list: list) -> list | None:
@@ -46,7 +46,7 @@ class BetwaySGP(SGPBookBase):
 
         return outcome_ids
 
-    async def _extract_odds(self, outcome_ids: list, session: aiohttp.ClientSession):
+    async def _extract_odds(self, outcome_ids: list, session: CurlAsyncSession):
         api_data = await self.api_caller(
             book_name=self.book_data.name,
             session=session,

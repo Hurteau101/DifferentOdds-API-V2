@@ -82,7 +82,7 @@ BOOKS = {
         "class": BetwaySGP,
         "active": True,
         "mapped_name": "betway",
-        "session": "aiohttp"
+        "session": "curl"
     }
 }
 
