@@ -234,6 +234,12 @@ class STS(PPHBookBase):
         proxy = await self.load_proxy()
 
         if not cookies or not proxy:
+            if self.retry < 3:
+                print("Failed to fetch data, retry #", self.retry + 1)
+                auth_ok = await self.back_up_auth_runner()
+                if auth_ok:
+                    await self.run_book()
+
             return
 
         async with CurlAsyncSession(impersonate="safari15_5", cookies=cookies) as session:
