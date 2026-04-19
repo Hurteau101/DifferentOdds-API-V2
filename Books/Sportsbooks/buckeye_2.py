@@ -153,7 +153,7 @@ class Buckeye2(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
-                market=mapped_market_name,
+                market=self.convert_spread_name(mapped_market_name, kwargs.get("league")),
                 bet_team=team,
                 line=float(spread_line),
                 bet_type=None,
@@ -244,18 +244,20 @@ class Buckeye2(PPHBookBase):
             home_spread_value_name="Spread", # Spread value goes both directions. Ex. +7 -> then there is -7
             away_spread_value_name="Spread",
             period_description=event_data.get("PeriodDescription", ''),
-            favourite_team=event_data.get("FavoredTeamID")
+            favourite_team=event_data.get("FavoredTeamID"),
+            league=event_data.get("SportSubType", '').strip()
         )
 
         if buy_points and buy_points.get("Spread") and event_data.get("PeriodDescription", '').lower() == "game":
             for odd in spread_odds:
-                additional_odds = self.calulate_spread_buy_points(spread_line=odd.line, spread_odds=odd.odds_format.get("american_odds"),
+                game_data.odds.extend(self.calulate_spread_buy_points(spread_line=odd.line, spread_odds=odd.odds_format.get("american_odds"),
                                                 buy_points_amount=buy_points["Spread"]["amount"],
-                                                buy_points_max=buy_points["Spread"]["max"], market_name=odd.market, bet_team=odd.bet_team)
-                if additional_odds:
-                    game_data.odds.extend(self.convert_spread_name(additional_odds, game_data.league))
+                                                buy_points_max=buy_points["Spread"]["max"], market_name=odd.market, bet_team=odd.bet_team))
+                # print(additional_odds)
+                # if additional_odds:
+                #     game_data.odds.extend(self.convert_spread_name(additional_odds, game_data.league))
 
-        game_data.odds.extend(self.convert_spread_name(spread_odds, game_data.league))
+        game_data.odds.extend(spread_odds)
 
         total_odds = self.total_type(
             period_description=event_data.get("PeriodDescription", ''),
@@ -443,6 +445,7 @@ class Buckeye2(PPHBookBase):
                         self.add_to_events(event_data, game_data, GameData)
 
             buckeye_2_data = list(event_data.values())
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_2_data)
 
             await self.store_data(

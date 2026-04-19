@@ -45,12 +45,13 @@ class PPHBookBase(SportsbooksBookBase):
             spread_odds = game_data.get(odds_key)
             spread_line = game_data.get(line_key)
 
+            league = kwargs.get("league")
 
             if not spread_odds or spread_line is None:
                 continue
 
             odds.append(SportsbookStats(
-                market=mapped_market_name,
+                market=self.convert_spread_name(mapped_market_name, league),
                 bet_team=team,
                 line=float(spread_line),
                 bet_type=None,
@@ -109,7 +110,8 @@ class PPHBookBase(SportsbooksBookBase):
         """
         ordinal_suffix_markets = ["1h", "2h", "1p", "2p", "3p", '1q', '2q', '3q', '4q']
 
-        irregular_ordinal_markets = ["3p regulation", '3rd innings', '7th inning', '1st 5 innings', '1st 5 innings (3-way)']
+        irregular_ordinal_markets = ["3p regulation", '3rd innings', '3rd inning', '7th inning', '1st 5 innings', '1st 5 innings (3-way)',
+                                     '1st period', '2nd period', '3rd period', '1st quarter', '2nd quarter', '3rd quarter', '4th quarter']
 
 
         mapper = {
@@ -123,15 +125,17 @@ class PPHBookBase(SportsbooksBookBase):
 
 
 
-    def convert_spread_name(self, odds_list: list[SportsbookStats], league: str):
+    def convert_spread_name(self, market_name: str, league: str):
         """Converts spread market names to the appropriate names based on the league."""
-        for odds in odds_list:
-            if "Spread" in odds.market and league == "MLB":
-                odds.market = odds.market.replace("Spread", "Run Line")
-            elif "Spread" in odds.market and league == "NHL":
-                odds.market = odds.market.replace("Spread", "Puck Line")
+        if not market_name:
+            return market_name
 
-        return odds_list
+        if "Spread" in market_name and league.upper() == "MLB":
+            return market_name.replace("Spread", "Run Line")
+        elif "Spread" in market_name and league.upper() == "NHL":
+            return market_name.replace("Spread", "Puck Line")
+
+        return market_name
 
 
     def pph_login_helper(self, payload: dict, sportsbook_name: str, additional_headers: dict = None,

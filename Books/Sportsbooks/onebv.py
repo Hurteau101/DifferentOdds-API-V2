@@ -282,11 +282,10 @@ class OneBv(PPHBookBase):
                                                   name_mapper_func=self.name_mapper,
                                                   home_odds_name=home_odds_name, away_odds_name=away_odds_name, base_market_mapper=base_market_mapper))
 
-        odds = self.spread_type(team_data=team_data, game_data=event_data, market_name=market_name,
+        game_data.odds.extend(self.spread_type(team_data=team_data, game_data=event_data, market_name=market_name,
                                                name_mapper_func=self.name_mapper, home_spread_value_name=home_spread_value_name, away_spread_value_name=away_spread_value_name,
-                                               home_spread_odds_name=home_spread_odds_name, away_spread_odds_name=away_spread_odds_name, base_market_mapper=base_market_mapper)
-
-        game_data.odds.extend(self.convert_spread_name(odds_list=odds, league=game_data.league))
+                                               home_spread_odds_name=home_spread_odds_name, away_spread_odds_name=away_spread_odds_name, base_market_mapper=base_market_mapper,
+                                               league=found_league.get("sport_id", '')))
 
 
         game_data.odds.extend(self.total_type(game_data=event_data, market_name=market_name, name_mapper_func=self.name_mapper,
@@ -371,6 +370,8 @@ class OneBv(PPHBookBase):
             onebv_data = list(event_data.values())
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=onebv_data)
+
+            # print(self.extract_market_names(mapped_data))
 
             await self.store_data(
                 database=self.redis_database,

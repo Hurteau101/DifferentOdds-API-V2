@@ -272,18 +272,10 @@ class Ace(PPHBookBase):
                                                           name_mapper_func=self.name_mapper, home_odds_name=home_odds_name, away_odds_name=away_odds_name,
                                                           base_market_mapper=base_market_mapper))
 
-                # odds = self.spread_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
-                #                                           name_mapper_func=self.name_mapper, home_spread_odds_name="hsprdoddst",
-                #                                        away_spread_odds_name="vsprdoddst", home_spread_value_name="hsprdt",
-                #                                        away_spread_value_name="vsprdt", base_market_mapper=self.base_market_mapper)
-                # game_data.odds.extend(self.convert_spread_name(odds_list=odds, league=game_data.league))
-
-                odds = self.spread_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
+                game_data.odds.extend(self.spread_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
                                         name_mapper_func=self.name_mapper, home_spread_odds_name=home_spread_odds_name,
                                         away_spread_odds_name=away_spread_odds_name, home_spread_value_name=home_spread_value_name,
-                                        away_spread_value_name=away_spread_value_name, base_market_mapper=base_market_mapper)
-
-                game_data.odds.extend(self.convert_spread_name(odds_list=odds, league=game_data.league))
+                                        away_spread_value_name=away_spread_value_name, base_market_mapper=base_market_mapper, league=league))
 
                 game_data.odds.extend(self.total_type(games=games, game_data=main_lines, market_name=modified_description,
                                                       name_mapper_func=self.name_mapper, base_market_mapper=base_market_mapper))

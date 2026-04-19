@@ -93,10 +93,7 @@ class Metallic(PPHBookBase):
 
     def _spread_type(self, market_name: str, market_data: dict, **kwargs) -> SportsbookStats:
         league = kwargs.get("league", '').lower()
-        if "spread" in market_name.lower() and league == "mlb":
-            market_name = market_name.lower().replace("spread", "run line")
-        elif "spread" in market_name.lower() and league == "nhl":
-            market_name = market_name.lower().replace("spread", "puck line")
+        market_name = self.convert_spread_name(market_name=market_name, league=league)
 
         return SportsbookStats(
             market=market_name,

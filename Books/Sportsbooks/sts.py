@@ -169,11 +169,7 @@ class STS(PPHBookBase):
 
         league = kwargs.get("league", "")
 
-        if league == "mlb":
-            market_name = "run line"
-        elif league == "nhl":
-            market_name = "puck line"
-
+        market_name = self.convert_spread_name(market_name, league)
 
         return SportsbookStats(
             market=market_name,
