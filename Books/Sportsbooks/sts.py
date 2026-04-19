@@ -217,12 +217,17 @@ class STS(PPHBookBase):
 
     # Backup Auth since the site has bugs, where the cookie will no longer be valid, even if it was issued.
     # Happens randomly. So if we get no data back, we will try to refresh the cookie and try again once.
-    async def back_up_auth_runner(self):
+    async def back_up_auth_runner(self) -> bool:
         redis_instance = RedisAsyncManager(database=5)
-        async with CurlAsyncSession(impersonate="chrome124") as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:  # Match auth script
             sts = STSAuth()
-            await sts.run_scheduler(session=session, redis_instance=redis_instance)
-            self.retry += 1
+            try:
+                await sts.run_scheduler(session=session, redis_instance=redis_instance)
+                self.retry += 1
+                return True
+            except RuntimeError as e:
+                print(f"Re-auth failed: {e}")
+                return False
 
     async def run_book(self):
         cookies = await self.load_cookies()
@@ -248,8 +253,9 @@ class STS(PPHBookBase):
             if not raw_league_data:
                 if self.retry < 3:
                     print("Failed to fetch data, retry #", self.retry + 1)
-                    await self.back_up_auth_runner()
-                    await self.run_book()
+                    auth_ok = await self.back_up_auth_runner()
+                    if auth_ok:
+                        await self.run_book()
                 return
 
             sports_ids = set(
