@@ -251,11 +251,11 @@ class STS(PPHBookBase):
             )
 
             if not raw_league_data:
-                # if self.retry < 3:
-                #     print("Failed to fetch data, retry #", self.retry + 1)
-                #     auth_ok = await self.back_up_auth_runner()
-                #     if auth_ok:
-                #         await self.run_book()
+                if self.retry < 3:
+                    print("Failed to fetch data, retry #", self.retry + 1)
+                    auth_ok = await self.back_up_auth_runner()
+                    if auth_ok:
+                        await self.run_book()
                 return
 
             sports_ids = set(
