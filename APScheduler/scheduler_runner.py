@@ -218,7 +218,7 @@ MAPPER_JOBS = [
         "book_name": "betway",
         "class": BetwayMapper,
         "job_type": "mapper",
-        "is_active": False,
+        "is_active": True,
         "interval": 600,  # 10 Minutes
         "redis_db": RedisSelector.MAPPER,
         "session_type": "aiohttp",

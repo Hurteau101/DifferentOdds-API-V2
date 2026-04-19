@@ -365,7 +365,6 @@ SGP_PROVIDERS = [
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Content-Type': 'application/json',
             'x-correlation-id': 'f56ef3e5-8cbe-4b8d-b1e1-83db6f1f798b',
             'Origin': 'https://betway.com',
@@ -384,7 +383,6 @@ SGP_PROVIDERS = [
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Content-Type': 'application/json',
                 'Origin': 'https://betway.com',
                 'Connection': 'keep-alive',
@@ -408,7 +406,7 @@ SGP_PROVIDERS = [
 
         },
         method="GET",
-        is_active=True,
+        is_active=False,
         mapping=SGPMapper(
             url={
                 "general_url": "https://stake.com/_api/graphql",
@@ -433,7 +431,7 @@ SGP_PROVIDERS = [
                 'TE': 'trailers',
             },
             method="POST",
-            is_active=True
+            is_active=False
         )
     ),
 ]
