@@ -1,5 +1,8 @@
+import os
 import re
 import aiohttp
+from dotenv import load_dotenv
+
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
@@ -9,6 +12,7 @@ from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Boom(DFSBookBase):
+    load_dotenv()
     def __init__(self):
         super().__init__(book_name="boom", request_type=SportbookRequestType.SPOOF)
 
@@ -125,9 +129,10 @@ class Boom(DFSBookBase):
     async def run_book(self):
         # async with aiohttp.ClientSession() as session:
         async with CurlAsyncSession(impersonate="safari15_5") as session:
-            # proxy_manger = ProxyManager(self.api_caller)
+            proxy_manger = ProxyManager(self.api_caller)
+            proxy_manger.proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
 
-            api_data = await self.api_caller(
+            api_data = await proxy_manger.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
@@ -156,6 +161,7 @@ class Boom(DFSBookBase):
                 self.add_to_events(events, game_data, GameData)
 
             boom_data = list(events.values())
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=boom_data)
 
             await self.store_data(

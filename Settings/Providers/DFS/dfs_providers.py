@@ -75,7 +75,17 @@ DFS_PROVIDERS = [
             "main_url": "https://production-boom-dfs-backend-api.boomfantasy.com/api/v1/contests/multiLine/99708fb7-167a-4314-b69d-e38dc782a63a?questionStatus=available&renderType=multiLine"
         },
         headers={
-            "Authorization": os.getenv("boom_auth_token"),
+            'accept': 'application/json, text/plain, */*',
+              'x-app-name': 'Boom',
+              'x-app-version': '41',
+              'x-product-id': 'boom_dfs',
+              'x-app-build': '176',
+              'x-device-id': '48e0c8468226f089',
+              'x-platform': 'android',
+              'access-control-allow-origin': '*',
+              'authorization': os.getenv("boom_auth_token"),
+              'user-agent': 'okhttp/4.12.0',
+              'if-none-match': 'W/"118d-Ko20dOxZMQt3uUUiTsEJZ5sZZDs"'
         },
         method="GET",
         is_active=True
