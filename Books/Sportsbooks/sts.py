@@ -236,7 +236,7 @@ class STS(PPHBookBase):
         if not cookies or not proxy:
             return
 
-        async with CurlAsyncSession(impersonate="chrome124", cookies=cookies) as session:
+        async with CurlAsyncSession(impersonate="safari15_5", cookies=cookies) as session:
             proxy_manager = ProxyManager(self.api_caller)
             proxy_manager.proxies = [proxy]
 
