@@ -35,6 +35,7 @@ class STSAuth(BaseScheduler):
             return hidden_tag["value"] if hidden_tag else ""
 
         url = "https://bettheguys.com/Logins/001/sites/bettheguys/index.aspx"
+
         proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
 
         for proxy in proxies:
@@ -122,7 +123,7 @@ if __name__ == "__main__":
 
     async def main():
         redis_instance = RedisAsyncManager(database=5)
-        async with CurlAsyncSession(impersonate="chrome124") as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
             sts = STSAuth()
             await sts.run_scheduler(session=session, redis_instance=redis_instance)
         await redis_instance.close_for_shutdown()
