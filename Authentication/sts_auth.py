@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     async def main():
         redis_instance = RedisAsyncManager(database=5)
-        async with CurlAsyncSession(impersonate="safari15_5") as session:
+        async with CurlAsyncSession(impersonate="chrome124") as session:
             sts = STSAuth()
             await sts.run_scheduler(session=session, redis_instance=redis_instance)
         await redis_instance.close_for_shutdown()

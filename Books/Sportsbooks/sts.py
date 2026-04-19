@@ -214,7 +214,7 @@ class STS(PPHBookBase):
     # Happens randomly. So if we get no data back, we will try to refresh the cookie and try again once.
     async def back_up_auth_runner(self):
         redis_instance = RedisAsyncManager(database=5)
-        async with CurlAsyncSession(impersonate="safari15_5") as session:
+        async with CurlAsyncSession(impersonate="chrome124") as session:
             sts = STSAuth()
             await sts.run_scheduler(session=session, redis_instance=redis_instance)
             self.retry += 1
@@ -226,7 +226,7 @@ class STS(PPHBookBase):
         if not cookies or not proxy:
             return
 
-        async with CurlAsyncSession(impersonate="safari15_5", cookies=cookies) as session:
+        async with CurlAsyncSession(impersonate="chrome124", cookies=cookies) as session:
             proxy_manager = ProxyManager(self.api_caller)
             proxy_manager.proxies = [proxy]
 
@@ -351,7 +351,6 @@ class STS(PPHBookBase):
                     self.add_to_events(event_data, game, GameData)
 
             sts_data = list(event_data.values())
-            print(sts_data)
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=sts_data)
 
