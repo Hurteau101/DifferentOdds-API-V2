@@ -273,7 +273,7 @@ class BetwayMapper(BaseMapper):
 
         return mapping_data
 
-    async def check_categories(self, session: CurlAsyncSession):
+    async def check_categories(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
         async def check_redis():
             return await redis_instance.get_data("betway_categories")
 
@@ -336,7 +336,7 @@ class BetwayMapper(BaseMapper):
 
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
-        categories = await self.check_categories(session)
+        categories = await self.check_categories(session, redis_instance)
         if not categories:
             return
 
