@@ -18,13 +18,18 @@ class STSAuth(BaseScheduler):
         if not username or not password:
             raise ValueError("STS_USERNAME and STS_PASSWORD must be set.")
 
+        # Used for Linux. Need to run this non-headless.
+        if os.name != 'nt':
+            os.environ['DISPLAY'] = ':99'
+
+
         for proxy in proxy_list:
             parts = proxy.strip().split(":")
             ip, port, user, pw = parts[0], parts[1], parts[2], parts[3]
 
             try:
                 async with AsyncCamoufox(
-                    headless=True,
+                    headless=False,
                     geoip=True,
                     proxy={
                         "server": f"http://{ip}:{port}",
