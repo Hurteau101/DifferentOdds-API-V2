@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import datetime
 from typing import Callable
 
 import requests
@@ -204,3 +205,22 @@ class PPHBookBase(SportsbooksBookBase):
             for data in book_data
             for odds in data.odds
         )
+
+    @staticmethod
+    def is_within_minutes(minutes: int, date_1: datetime | str, date_2: datetime | str) -> bool:
+        """Used to determine if two dates are within a certain number of minutes of each other."""
+        if isinstance(date_1, str):
+            try:
+                date_1 = datetime.strptime(date_1, "%Y-%m-%dT%H:%M:%SZ")
+            except Exception:
+                raise ValueError(f"Invalid date format for date_1: {date_1}. Expected format: YYYY-MM-DDTHH:MM:SSZ")
+
+        if isinstance(date_2, str):
+            try:
+                date_2 = datetime.strptime(date_2, "%Y-%m-%dT%H:%M:%SZ")
+            except Exception:
+                raise ValueError(f"Invalid date format for date_2: {date_2}. Expected format: YYYY-MM-DDTHH:MM:SSZ")
+
+        difference = abs((date_1 - date_2).total_seconds()) / 60
+
+        return difference <= minutes

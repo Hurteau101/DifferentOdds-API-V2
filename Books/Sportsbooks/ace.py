@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import aiohttp
@@ -17,7 +18,7 @@ class Ace(PPHBookBase):
 
     # Allowed markets refer to the different sections on ace.
     ALLOWED_MARKETS = ["game lines", 'period lines', 'alternative lines', 'team totals', '1h', 'innings', '1st 5', '1st inning',
-                       'alternate runlines']
+                       'alternate runlines', 'player props']
 
     # Some ALLOWED_MARKETS will have multiple markets, so we have to remove any we don't want.
     SPECIAL_REMOVED_MARKETS = ['3 way', 'hits']
@@ -59,8 +60,11 @@ class Ace(PPHBookBase):
                 continue
 
             if filter_markets:
+                raw_league_description = league.get("Description", "").lower()
+                description = raw_league_description.split(" - ")[0].lower() if "player props" in raw_league_description else raw_league_description
+
                 found_market = any(
-                    allowed_market.lower() in league.get("Description", "").lower()
+                    allowed_market.lower() in description
                     for allowed_market in self.ALLOWED_MARKETS
                 )
 
@@ -181,21 +185,101 @@ class Ace(PPHBookBase):
             team_name = ' '.join([word for word in raw_team_name.lower().split()
                                  if word not in market_name_split and word not in ['total', 'team'] + market_name.lower().split()])
 
+            if "team totals" in market_name.lower() or kwargs.get("player_name"):
+                team_name_passed_in = kwargs.get("passed_in_team_name", None)
+                team_name = team_name_passed_in if team_name_passed_in else team_name
+            else:
+                team_name = None
 
             odds.append(SportsbookStats(
                 market=mapped_market_name,
-                bet_team=team_name if "team totals" in market_name.lower() else None,
+                bet_team=team_name,
                 line=abs(float(total_line)),
                 bet_type=bet_type,
                 future=False,
                 odds_format=OddsFormat(american_odds=float(total_odds)),
+                bet_player=kwargs.get("player_name", None)
             ))
 
         return odds
 
+    async def build_player_market(self, description_name: str, games: dict, espn_mapping: dict):
+        raw_date = games.get("gmdt")
+        raw_time = games.get("gmtm")
+        start_date = self._build_start_date(raw_date=raw_date, raw_time=raw_time)
+
+        league = description_name.split("-")[0].strip().lower().replace("player props", "").strip().upper()
+        clean_player_market_name = re.sub(r'\s*\(.*?\)', '', games.get("gdesc", ''))
+
+        # All markets, should have a - with the player name at index 1 and market name at index 2. If not, we don't want it.
+        if " - " not in clean_player_market_name:
+            return None
+
+        player_name, raw_market_name = clean_player_market_name.split(" - ", 1)
+        market_name = f"player {raw_market_name}" if not "player" in raw_market_name.lower() else raw_market_name.lower()
+
+        found_league = espn_mapping.get(league)
+        if not found_league:
+            print("No league found for: ", league)
+            return None
+
+        found_team = next((
+            {team_name: team_data}
+            for team_name, team_data in found_league.items()
+            if player_name.lower().strip() in [player.lower() for player in team_data.get("players", [])]
+        ), None)
+
+        if not found_team:
+            print("No Found Team")
+            return None
+
+        found_scheduled_game_data = next((
+            schedule
+            for team_data in found_team.values()
+            for schedule in team_data.get("schedule", [])
+            if self.is_within_minutes(30, schedule.get("date"), start_date)
+        ))
+
+        if not found_scheduled_game_data:
+            print("No Scheduled Game Daata")
+            return None
+
+        normalized_player_name = next((
+            player
+            for team_data in found_team.values()
+            for player in team_data.get("players", [])
+            if player.lower() == player_name.lower().strip()
+        ), player_name.lower().strip())
+
+        team_data = TeamData(
+            team_a=found_scheduled_game_data.get("team"),
+            team_b=found_scheduled_game_data.get("opponent")
+        )
+
+        game_data = GameData(
+            start_date=start_date,
+            league=league,
+            team_data=team_data,
+            game_key=self.generate_key([team_data.team_a, team_data.team_b, start_date]),
+            odds=[]
+        )
+
+        for main_lines in games.get("GameLines", []):
+            base_market_mapper = {
+                "ovoddst": "Total",
+                "unoddst": "Total",
+            }
+
+            game_data.odds.extend(self.total_type(games=games, game_data=main_lines, market_name=market_name.lower().strip(),
+                            name_mapper_func=self.name_mapper, base_market_mapper=base_market_mapper,
+                            passed_in_team_name=list(found_team.keys())[0], player_name=normalized_player_name))
 
 
-    async def build_market(self, description_name: str, games: dict) -> GameData:
+        return game_data
+
+
+
+    async def build_mainline_market(self, description_name: str, games: dict) -> GameData:
         """Builds the markets
         :param description_name: The description name of the section
         :param games: The game data dict
@@ -292,6 +376,9 @@ class Ace(PPHBookBase):
             return
 
         async with aiohttp.ClientSession(cookies=cookies) as session:
+            espn_redis = RedisAsyncManager(database=8)
+            espn_mapping = await espn_redis.get_data("espn_mapping")
+
             raw_leagues = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
@@ -300,7 +387,7 @@ class Ace(PPHBookBase):
                 headers=self.book_data.headers,
             )
 
-            leagues = self.build_league_ids(raw_leagues)
+            leagues = self.build_league_ids(raw_leagues, exclude_player_props=False)
 
             markets = await self.api_caller(
                 book_name=self.book_data.name,
@@ -319,27 +406,48 @@ class Ace(PPHBookBase):
 
             league_list = chain.from_iterable(markets.get("result", {}).get("listLeagues", []))
 
+            # mainlines = {}
+            # props = {}
             events = {}
+
             for market in league_list:
                 description_name = market.get("Description", "")
+                is_player_prop = True if "player prop" in description_name.lower() else False
 
                 for games in market.get("Games", []):
-                    markets = await self.build_market(description_name=description_name, games=games)
+                    if not is_player_prop:
+                        markets = await self.build_mainline_market(description_name=description_name, games=games)
+                    else:
+                        markets = await self.build_player_market(description_name=description_name, games=games, espn_mapping=espn_mapping)
 
                     if markets:
                         self.add_to_events(events, markets, GameData)
+
+
 
             betvegas_data = list(events.values())
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=betvegas_data)
 
+            final_mapping = {}
+
+            # Loop through it again, due to player props already being mapped, but mainline props aren't.
+            # So then there are numerous duplicated dictionaries. This is because the book doesn't use the proper
+            # spelling when creating the event, so this causes BOS Celtivs vs TOR Raptors, until its ran through
+            # map_runner where its properly mapped, but then the player mapping isn't already properly mapped, so you end
+            # up with similar events that should be grouped together.
+            for mapped in mapped_data:
+                self.add_to_events(final_mapping, mapped, GameData)
+
+            final_data = list(final_mapping.values())
+
             await self.store_data(
                 database=self.redis_database,
-                data_to_store=mapped_data,
+                data_to_store=final_data,
                 book_name=self.book_data.name
             )
 
-            return mapped_data
+            return final_data
 
 
 if __name__ == "__main__":
