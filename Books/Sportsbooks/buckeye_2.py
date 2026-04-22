@@ -230,7 +230,10 @@ class Buckeye2(PPHBookBase):
         if not espn_mapping:
             return None
 
-        found_schedule = espn_mapping.get("found_schedule")
+        found_schedule = espn_mapping.get("found_schedule", {})
+
+        if not found_schedule:
+            return None
 
         team_data = TeamData(
             team_a=found_schedule.get("team"),
