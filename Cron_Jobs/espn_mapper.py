@@ -19,6 +19,14 @@ class ESPNMapper(APICaller):
         super().__init__(SportbookRequestType.ASYNC)
         self.session = session
 
+    def _normalize_team_name(self, name: str) -> str:
+        overrides = {
+            "Athletics": "Oakland Athletics",
+            "Athletics Athletics": "Oakland Athletics",
+
+        }
+        return overrides.get(name, name)
+
     async def run_mapping(self):
         leagues, results = await self._get_teams()
 
@@ -30,7 +38,7 @@ class ESPNMapper(APICaller):
             league_name = league.get("abbreviation")
 
             teams = {
-                team.get("team", {}).get("displayName"): team.get("team", {}).get("id")
+                self._normalize_team_name(team.get("team", {}).get("displayName")): team.get("team", {}).get("id")
                 for team in league.get("teams", [])
             }
 
@@ -107,12 +115,18 @@ class ESPNMapper(APICaller):
             team_id = result.get("team", {}).get("id")
             team_name = result.get("team", {}).get("displayName")
 
+            team_name = self._normalize_team_name(team_name)
+
             for event in result.get("events", []):
                 game_date = event.get("date")
                 modified_game_date = datetime.strptime(game_date, "%Y-%m-%dT%H:%MZ").strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                split_teams = [team.strip() for team in re.split(r'at|vs\.?', event.get("name", ""), flags=re.IGNORECASE)]
-                opponent = next((team for team in split_teams if team != team_name), None)
+                split_teams = [team.strip() for team in
+                               re.split(r'\s+(?:at|vs\.?)\s+', event.get("name", ""), flags=re.IGNORECASE)]
+
+
+                opponent = next((self._normalize_team_name(team) for team in split_teams if self._normalize_team_name(team) != team_name), None)
+
                 schedule_mapping.setdefault(team_id, []).append({
                     "opponent": opponent,
                     "team": team_name,
