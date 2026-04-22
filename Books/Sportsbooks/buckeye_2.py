@@ -6,9 +6,7 @@ from typing import Callable
 from zoneinfo import ZoneInfo
 import aiohttp
 from urllib.parse import urlencode
-
 from rapidfuzz import process, fuzz
-
 from Books.Bases.pph_base import PPHBookBase
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import TeamData, GameData, OddsFormat
@@ -18,14 +16,9 @@ from Utils.request_caller import SportbookRequestType
 
 class Buckeye2(PPHBookBase):
     VALID_LEAGUES = {
-        # "mainlines": [],
         "mainlines": ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL", "NBA Player Props"],
         "player_props": ["NBA PLAYER PROPS", "MLB PLAYER PROPS"]
-        # "player_props": ["MLB PLAYER PROPS"]
     }
-
-    # VALID_LEAGUES = ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL", "NBA Player Props"]
-    # VALID_PLAYER_LEAGUES = ["MLB PLAYER PROPS"]
 
     def __init__(self):
         super().__init__(book_name="buckeye2", request_type=SportbookRequestType.ASYNC)
@@ -215,20 +208,6 @@ class Buckeye2(PPHBookBase):
 
         return odds
 
-    def _fall_back_player_mapping(self, player_name: str, espn_mapping: dict, player_list) -> tuple | None:
-        match, score, _ = process.extractOne(player_name, player_list, scorer=fuzz.token_sort_ratio)
-
-        if score >= 90:
-            return next((
-                {team_name: team_data}
-                for team_name, team_data in espn_mapping.items()
-                if match in [player for player in team_data.get("players", [])]
-            ), None), match
-
-
-        return None, None
-
-
     @staticmethod
     def _convert_date(start_date: str):
         eastern = ZoneInfo("America/New_York")
@@ -236,7 +215,7 @@ class Buckeye2(PPHBookBase):
         return start_date_dt.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-    def build_player_markets(self, event_data: dict, espn_mapping: dict):
+    async def build_player_markets(self, event_data: dict):
         modified_date = self._convert_date(event_data.get("GameDateTime"))
         league = event_data.get("SportSubTypeDisplay", '').lower().replace("player props", '').strip().lower()
 
@@ -246,50 +225,23 @@ class Buckeye2(PPHBookBase):
 
         market_name = f"player {raw_market_name}" if not "player" in raw_market_name.lower() else raw_market_name.lower()
 
-        found_league = espn_mapping.get(league.upper())
-        if not found_league:
+        espn_mapping = await self.find_espn_mapping(player_name=player_name, league=league, game_date=modified_date)
+
+        if not espn_mapping:
             return None
 
-        found_team = next((
-            {team_name: team_data}
-            for team_name, team_data in found_league.items()
-            if player_name.lower() in [player.lower() for player in team_data.get("players", [])]
-        ), None)
-
-        if not found_team:
-            player_list = set(
-                players
-                for team_name, team_data in found_league.items()
-                for players in team_data.get("players", [])
-            )
-
-            found_team, player_name = self._fall_back_player_mapping(player_name=player_name, espn_mapping=espn_mapping.get(league.upper(), {}), player_list=player_list)
-
-            if not found_team:
-                print("No Team Found")
-                return None
-
-        found_scheduled_game_data = next((
-            schedule
-            for team_data in found_team.values()
-            for schedule in team_data.get("schedule", [])
-            if self.is_within_minutes(30, schedule.get("date"), modified_date)
-        ))
-
-        if not found_scheduled_game_data:
-            print("No Scheduled Game Daata")
-            return None
+        found_schedule = espn_mapping.get("found_schedule")
 
         team_data = TeamData(
-            team_a=found_scheduled_game_data.get("team"),
-            team_b=found_scheduled_game_data.get("opponent")
+            team_a=found_schedule.get("team"),
+            team_b=found_schedule.get("opponent")
         )
 
         game_data = GameData(
             start_date=modified_date,
             league=league,
             team_data=team_data,
-            game_key=self.generate_key([team_data.team_a, team_data.team_b, found_scheduled_game_data.get("date")]),
+            game_key=self.generate_key([team_data.team_a, team_data.team_b, found_schedule.get("date")]),
             odds=[]
         )
 
@@ -298,7 +250,7 @@ class Buckeye2(PPHBookBase):
             market_name=market_name,
             bet_player=player_name,
             override_market_name=True,
-            team_name=found_scheduled_game_data.get("team"),
+            team_name=found_schedule.get("team"),
             over_points_odds_name="TtlPtsAdj1",
             under_points_odds_name="TtlPtsAdj2", # Under is always 2.
             over_points_line_name="TotalPoints", # Points goes both directions always. We can just set over since it will be the same, and function will set it automatically.
@@ -353,9 +305,6 @@ class Buckeye2(PPHBookBase):
                 game_data.odds.extend(self.calulate_spread_buy_points(spread_line=odd.line, spread_odds=odd.odds_format.get("american_odds"),
                                                 buy_points_amount=buy_points["Spread"]["amount"],
                                                 buy_points_max=buy_points["Spread"]["max"], market_name=odd.market, bet_team=odd.bet_team))
-                # print(additional_odds)
-                # if additional_odds:
-                #     game_data.odds.extend(self.convert_spread_name(additional_odds, game_data.league))
 
         game_data.odds.extend(spread_odds)
 
@@ -483,9 +432,6 @@ class Buckeye2(PPHBookBase):
                 print("Auth Expired")
                 return
 
-            espn_redis = RedisAsyncManager(database=8)
-            espn_mapping = await espn_redis.get_data("espn_mapping")
-
             raw_leagues = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
@@ -549,7 +495,7 @@ class Buckeye2(PPHBookBase):
                     if not is_player_prop:
                         game_data = self.build_main_markets(event_data=line, buy_points=buy_points)
                     else:
-                        game_data = self.build_player_markets(event_data=line, espn_mapping=espn_mapping)
+                        game_data = await self.build_player_markets(event_data=line)
 
                     if game_data:
                         self.add_to_events(event_data, game_data, GameData)

@@ -6,8 +6,11 @@ from typing import Callable
 import requests
 from bs4 import BeautifulSoup
 from curl_cffi.requests import Session
+from rapidfuzz import process, fuzz
+
 from Books.Bases.book_base import BookBase
 from Monitoring.monitoring import create_sentry_message
+from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import TeamData, OddsFormat, GameData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.request_caller import SportbookRequestType
@@ -205,6 +208,64 @@ class PPHBookBase(SportsbooksBookBase):
             for data in book_data
             for odds in data.odds
         )
+
+    def _fuzzy_match_backup(self, player_name: str, player_list: list, espn_mapping: dict) -> tuple:
+        match, score, _ = process.extractOne(player_name, player_list, scorer=fuzz.token_sort_ratio)
+
+        if score >= 90:
+            return next((
+                {team_name: team_data}
+                for team_name, team_data in espn_mapping.items()
+                if match in [player for player in team_data.get("players", [])]
+            ), None), match
+
+
+        return None, None
+
+
+    async def find_espn_mapping(self, player_name: str, league: str, game_date: datetime | str):
+        """Find the appropriate ESPN mapping for a given player, league, and game date. First tries to find a direct match,
+        then falls back to fuzzy matching if no direct match is found."""
+        espn_redis = RedisAsyncManager(database=8)
+        espn_mapping = await espn_redis.get_data("espn_mapping")
+
+        if not espn_mapping:
+            return {}
+
+        found_league = espn_mapping.get(league.upper())
+
+        found_team = next((
+            {team_name: team_data}
+            for team_name, team_data in found_league.items()
+            if player_name.lower() in [player.lower() for player in team_data.get("players", [])]
+        ), None)
+
+        if not found_team:
+            player_list = set(
+                players
+                for team_name, team_data in found_league.items()
+                for players in team_data.get("players", [])
+            )
+
+            found_team, player_name = self._fuzzy_match_backup(player_name=player_name,
+                                                                     espn_mapping=espn_mapping.get(league.upper(), {}),
+                                                                     player_list=list(player_list))
+
+        found_scheduled_game_data = next((
+            schedule
+            for team_data in found_team.values()
+            for schedule in team_data.get("schedule", [])
+            if self.is_within_minutes(30, schedule.get("date"), game_date)
+        ))
+
+        return found_scheduled_game_data
+
+
+
+
+
+
+
 
     @staticmethod
     def is_within_minutes(minutes: int, date_1: datetime | str, date_2: datetime | str) -> bool:
