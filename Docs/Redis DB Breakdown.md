@@ -30,7 +30,7 @@
 ##### Unmapped Bettorodds Cache
 
 ### Redis DB - `8`
-##### This is for cached BettorOdds Odds
+##### This is for cached BettorOdds Odds & Player Mapping (ESPN & Other External Mapping)
 
 ### Reids DB - `9`
 ##### This is for Auto SGP Previously Stored Data
@@ -56,6 +56,6 @@
 ### Redis DB - `16`
 ##### This is for Celery Broker
 
-
 ### Redis DB - `17`
 ##### This is for Heartbeat Cache
+
