@@ -1,4 +1,5 @@
 from Authentication.buckeye1_auth import Buckeye1Auth
+from Authentication.fliff_auth import FliffAuth
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
@@ -21,7 +22,7 @@ from External_Book_Mapping.SGP.betmgm_mapper import BetMgmMapper
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from curl_cffi import AsyncSession as CurlAsyncSession
 from aiohttp import ClientSession as AiohttpClientSession
@@ -153,6 +154,16 @@ AUTH_JOBS = [
         "session_type": "curl",
         "redis_key_checker_name": "buckeye1_cookies",
     },
+    {
+        "book_name": "fliff",
+        "class": FliffAuth,
+        "job_type": "auth",
+        "is_active": True,
+        "interval": 180,  # 3 minutes
+        "redis_db": RedisSelector.AUTH,
+        "session_type": "aiohttp",
+        "redis_key_checker_name": "fliff_auth_token",
+    },
 ]
 
 MAPPER_JOBS = [
@@ -244,6 +255,7 @@ class BaseSchedulerRunner:
 
     async def schedule_creator(self, scheduler: AsyncIOScheduler, schedule: dict, run_function: callable,
                                session: [AiohttpClientSession, CurlAsyncSession], job: dict,
+                               start_up_delay: int,
                                redis_instance_mapper: dict, skip_missed_runs: bool = True, max_instances: int = 1,
                                misfire_grace_time: int = 300):
         scheduler.add_job(
@@ -252,7 +264,7 @@ class BaseSchedulerRunner:
             name=f"{schedule['book_name']}_{schedule['job_type']}_job",
             coalesce=skip_missed_runs,
             max_instances=max_instances,
-            next_run_time=datetime.now(),  # Run immediately on start
+            next_run_time=datetime.now() + timedelta(seconds=start_up_delay),  # Run immediately on start
             kwargs={
                 "cls": schedule["class"],
                 "session": session,
@@ -279,7 +291,7 @@ class BaseSchedulerRunner:
     async def start(self, session_dict: dict):
         scheduler = AsyncIOScheduler()
 
-        async def schedule_if_passes(job):
+        async def schedule_if_passes(job, index):
             if not await self.pre_job_check(job):
                 return
 
@@ -295,14 +307,17 @@ class BaseSchedulerRunner:
                 run_function=self.run_one,
                 session=session,
                 redis_instance_mapper=self.redis_instances,
-                job=job
+                job=job,
+                start_up_delay=index * 15
             )
 
         scheduler.start()
 
+        active_jobs = [job for job in self.job_list if job["is_active"]]
+
         await asyncio.gather(*[
-            schedule_if_passes(job)
-            for job in self.job_list if job["is_active"]
+            schedule_if_passes(job, index)
+            for index, job in enumerate(active_jobs)
         ])
 
 class AuthRunner(BaseSchedulerRunner):
