@@ -250,13 +250,15 @@ class PPHBookBase(SportsbooksBookBase):
             found_team, player_name = self._fuzzy_match_backup(player_name=player_name,
                                                                      espn_mapping=espn_mapping.get(league.upper(), {}),
                                                                      player_list=list(player_list))
+            if not found_team:
+                return {}
 
         found_scheduled_game_data = next((
             schedule
             for team_data in found_team.values()
             for schedule in team_data.get("schedule", [])
             if self.is_within_minutes(30, schedule.get("date"), game_date)
-        ))
+        ), {})
 
         return found_scheduled_game_data
 
