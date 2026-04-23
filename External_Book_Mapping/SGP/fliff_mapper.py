@@ -183,7 +183,7 @@ class FliffMapper(BaseMapper):
             await redis_instance.store_data(
                 key_name="fliff_ids",
                 data_to_store=mapped_ids,
-                key_expiration=300
+                key_expiration=900
             )
 
             return True
