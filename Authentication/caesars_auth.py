@@ -17,7 +17,7 @@ class CaesarAuth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
 
         proxy = os.getenv("RESIDENTIAL_PROXIES")
         if not proxy:
@@ -27,7 +27,7 @@ class CaesarAuth(BaseScheduler):
                 message="No proxy found",
                 level="error"
             )
-            return
+            return False
 
         # proxies = [proxy]
         proxies = proxy.split(",")
@@ -84,15 +84,13 @@ class CaesarAuth(BaseScheduler):
                             None
                         )
 
-                        print(waf_token)
-
                         if waf_token:
                             await redis_instance.store_data(
                                 key_name="caesars_waf_token",
                                 data_to_store=waf_token,
                                 key_expiration=720
                             )
-                            return
+                            return True
 
                     except Exception as e:
                         create_sentry_message(
@@ -118,6 +116,8 @@ class CaesarAuth(BaseScheduler):
             message="WAF token not found after authentication attempts.",
             level="error"
         )
+
+        return False
 
 if __name__ == "__main__":
     import asyncio

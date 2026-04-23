@@ -70,7 +70,7 @@ class FanduelMapper(BaseMapper):
 
         return event_ids
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         base_raw_stat_list = await self.api_caller(
             book_name=self.book_data.name,
             session=session,
@@ -85,7 +85,7 @@ class FanduelMapper(BaseMapper):
                 message="No raw stat IDs were retrieved from Fanduel SGP mapping.",
                 level="error"
             )
-            return
+            return False
 
         stat_ids = set(base_raw_stat_list)
         external_ids = await self._runner_external_map(session=session)
@@ -98,7 +98,7 @@ class FanduelMapper(BaseMapper):
                 message="No stat IDs were found for Fanduel SGP mapping.",
                 level="error"
             )
-            return
+            return False
 
         raw_sgp_markets = [
             self.api_caller(
@@ -120,7 +120,7 @@ class FanduelMapper(BaseMapper):
                 message="No SGP market data were retrieved from Fanduel mapping.",
                 level="error"
             )
-            return
+            return False
 
         mapped_ids = {}
 
@@ -137,6 +137,8 @@ class FanduelMapper(BaseMapper):
             data_to_store=mapped_ids,
             key_expiration=self.default_key_expiration
         )
+
+        return True
 
 if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)

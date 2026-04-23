@@ -335,10 +335,10 @@ class BetwayMapper(BaseMapper):
         return categories
 
 
-    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         categories = await self.check_categories(session, redis_instance)
         if not categories:
-            return
+            return False
 
         event_ids = await self._get_event_ids(session, categories)
 
@@ -348,6 +348,8 @@ class BetwayMapper(BaseMapper):
                 tag_value="mapping_failure",
                 message="No event details found",
             )
+
+            return False
 
         mapping = await self._get_mappings(session, event_ids)
 
@@ -359,13 +361,15 @@ class BetwayMapper(BaseMapper):
                 level="error"
             )
 
-            return
+            return False
 
         await redis_instance.store_data(
             key_name="betway_mapped_ids",
             data_to_store=mapping,
             key_expiration=600
         )
+
+        return True
 
 
 if __name__ == "__main__":

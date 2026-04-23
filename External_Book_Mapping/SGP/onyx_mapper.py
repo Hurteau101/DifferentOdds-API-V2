@@ -82,7 +82,7 @@ class OnyxMapper(BaseMapper):
             for league_data in raw_data.get("data", {}).values()
         )
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         auth_token = await self._get_auth()
         if not auth_token:
             create_sentry_message(
@@ -92,7 +92,7 @@ class OnyxMapper(BaseMapper):
                 level="error"
             )
 
-            return
+            return False
 
         proxy_manager = ProxyManager(self.api_caller)
         proxy_manager.proxies = os.getenv("ONYX_PROXIES").split(",") if os.getenv("ONYX_PROXIES") else ""
@@ -115,7 +115,7 @@ class OnyxMapper(BaseMapper):
                 level="error"
             )
 
-            return
+            return False
 
         leagues = self._extract_league_names(league_data)
         game_ids = await self._extract_game_ids(league_names=leagues, session=session, auth_token=auth_token, proxy_manager=proxy_manager)
@@ -128,7 +128,7 @@ class OnyxMapper(BaseMapper):
                 level="error"
             )
 
-            return
+            return False
 
         market_url_tasks = [
             proxy_manager.proxy_caller(
@@ -153,7 +153,7 @@ class OnyxMapper(BaseMapper):
                 level="error"
             )
 
-            return
+            return False
 
 
         all_mapped_ids = {}
@@ -169,6 +169,10 @@ class OnyxMapper(BaseMapper):
                 data_to_store=all_mapped_ids,
                 key_expiration=self.default_key_expiration
             )
+
+            return True
+
+        return False
 
 if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)

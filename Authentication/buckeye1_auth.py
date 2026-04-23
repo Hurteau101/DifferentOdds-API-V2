@@ -13,7 +13,7 @@ class Buckeye1Auth(BaseScheduler):
         super().__init__(request_type=SportbookRequestType.SPOOF)
 
 
-    async def run_scheduler(self, session: CurlAsyncSession, redis_instance):
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance) -> bool:
         username = os.getenv("BUCKEYE_1_USERNAME")
         password = os.getenv("BUCKEYE_1_PASSWORD")
 
@@ -50,6 +50,10 @@ class Buckeye1Auth(BaseScheduler):
                 data_to_store=cookies,
                 key_expiration=1200  # 20 Minutes
             )
+
+            return True
+
+        return False
 
 
 if __name__ == "__main__":

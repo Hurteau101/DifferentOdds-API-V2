@@ -159,7 +159,7 @@ class BetMgmMapper(BaseMapper):
             chain.from_iterable(self._filter_mapping(result).items() for result in results if result)
         )
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         mapped_ids = await self._extract_mapping(session=session)
         if not mapped_ids:
             create_sentry_message(
@@ -169,7 +169,7 @@ class BetMgmMapper(BaseMapper):
                 level="error"
             )
 
-            return
+            return False
 
 
         await redis_instance.store_data(
@@ -177,6 +177,8 @@ class BetMgmMapper(BaseMapper):
             data_to_store=mapped_ids,
             key_expiration=self.default_key_expiration
         )
+
+        return True
 
 if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)

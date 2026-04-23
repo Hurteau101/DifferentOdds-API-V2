@@ -70,22 +70,24 @@ class MetallicAuth(BaseScheduler):
 
             return token_data["AccessToken"]
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance) -> bool:
         temp_token = await self.login_redirect(session)
 
         if not temp_token:
-            return
+            return False
 
         auth_token = await self.get_auth(session, temp_token)
 
         if not auth_token:
-            return
+            return False
 
         await redis_instance.store_data(
             key_name="metallic_token",
             data_to_store=auth_token,
             key_expiration=5400 # 90 Minutes
         )
+
+        return True
 
 
 if __name__ == "__main__":

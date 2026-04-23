@@ -11,7 +11,7 @@ class ChalkboardAuth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         load_dotenv()
         token_url = os.getenv("CHALKBOARD_TOKEN_URL")
         api_key = os.getenv("CHALKBOARD_API_KEY")
@@ -48,7 +48,7 @@ class ChalkboardAuth(BaseScheduler):
                 level="error"
             )
 
-            return
+            return False
 
         previous_refresh = await redis_instance.get_data(
             key_name="chalkboard_refresh_token_backup"
@@ -67,3 +67,5 @@ class ChalkboardAuth(BaseScheduler):
             data_to_store=auth,
             key_expiration=5270400  # 61 Days
         )
+
+        return True

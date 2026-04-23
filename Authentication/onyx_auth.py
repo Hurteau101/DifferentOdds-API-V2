@@ -12,7 +12,7 @@ class OnyxAuth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
-    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         login_username = os.getenv("ONYX_EMAIL")
         login_password = os.getenv("ONYX_PASSWORD")
 
@@ -64,7 +64,7 @@ class OnyxAuth(BaseScheduler):
                             key_expiration=27000  # 7.5 Hours
                         )
 
-                        return
+                        return True
 
             except Exception as e:
                 print(f"OnyxAuth error with proxy {proxy}: {e}")
@@ -75,6 +75,7 @@ class OnyxAuth(BaseScheduler):
                     await browser.close()
 
         print("All proxies failed for OnyxAuth")
+        return False
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ class FourcxAuth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         payload = {
             "username": os.getenv("4CX_USERNAME"),
             "password": os.getenv("4CX_PASSWORD")
@@ -52,13 +52,15 @@ class FourcxAuth(BaseScheduler):
                 level="error"
             )
 
-            return
+            return False
 
         await redis_instance.store_data(
             key_name="4cx_auth_token",
             data_to_store=auth,
             key_expiration=5270400  # 61 Days
         )
+
+        return True
 
 if __name__ == "__main__":
     import asyncio

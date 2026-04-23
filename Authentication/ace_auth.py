@@ -12,7 +12,7 @@ class AceAuth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance) -> bool:
         await session.post(
             url=AceAuth.URL,
             data={
@@ -27,14 +27,17 @@ class AceAuth(BaseScheduler):
 
         cookies = session.cookie_jar.filter_cookies(URL(AceAuth.URL))
         cookie_dict = {name: morsel.value for name, morsel in cookies.items()}
+
         if not cookie_dict:
-            return
+            return False
 
         await redis_instance.store_data(
             key_name="ace_cookies",
             data_to_store=cookie_dict,
             key_expiration=1200 # 20 Minutes
         )
+
+        return True
 
 
 if __name__ == "__main__":

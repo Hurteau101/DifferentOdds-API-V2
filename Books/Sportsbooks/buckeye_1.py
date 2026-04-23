@@ -355,7 +355,7 @@ class Buckeye1(PPHBookBase):
                     self.add_to_events(event_data, game, GameData)
 
             buckeye_data = list(event_data.values())
-
+            print(buckeye_data)
             mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_data)
 
             await self.store_data(

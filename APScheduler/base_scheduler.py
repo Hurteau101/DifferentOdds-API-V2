@@ -9,5 +9,5 @@ class BaseScheduler(APICaller, ABC):
         super().__init__(request_type=request_type)
 
     @abstractmethod
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         raise NotImplementedError("Subclasses must implement the run_scheduler method.")

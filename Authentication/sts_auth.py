@@ -10,7 +10,7 @@ class STSAuth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.SPOOF)
 
-    async def run_scheduler(self, redis_instance, **kwargs):
+    async def run_scheduler(self, redis_instance, **kwargs) -> bool:
         username = os.getenv("STS_USERNAME")
         password = os.getenv("STS_PASSWORD")
         proxy_list = os.getenv("RESIDENTIAL_PROXIES", "").split(",")
@@ -49,14 +49,14 @@ class STSAuth(BaseScheduler):
 
                     await redis_instance.store_data(key_name="sts_cookies", data_to_store=cookies, key_expiration=1200)
                     await redis_instance.store_data(key_name="sts_proxy", data_to_store=proxy, key_expiration=1200)
-                    return
+                    return True
 
             except Exception as e:
                 print(f"Proxy {ip}:{port} failed: {e}, trying next.")
                 continue
 
-        raise RuntimeError("Failed to authenticate with all provided proxies.")
-
+        print("Failed to authenticate with all provided proxies.")
+        return False
 
 if __name__ == "__main__":
     import asyncio

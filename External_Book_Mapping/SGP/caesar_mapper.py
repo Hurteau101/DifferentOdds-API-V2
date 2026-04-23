@@ -115,7 +115,7 @@ class CaesarMapper(BaseMapper):
 
         return results
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         waf_token = await self._get_waf_token()
 
         if not waf_token:
@@ -126,7 +126,7 @@ class CaesarMapper(BaseMapper):
                 level="error"
             )
 
-            return
+            return False
 
         proxy = os.getenv("RESIDENTIAL_PROXIES")
         if not proxy:
@@ -136,7 +136,7 @@ class CaesarMapper(BaseMapper):
                 message="No proxy found",
                 level="error"
             )
-            return
+            return False
 
         proxies = proxy.split(",")
         proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
@@ -188,7 +188,7 @@ class CaesarMapper(BaseMapper):
                 message="No market data found during Caesar mapping.",
                 level="error"
             )
-            return
+            return False
 
         mapping = {}
 
@@ -203,6 +203,10 @@ class CaesarMapper(BaseMapper):
                 data_to_store=mapping,
                 key_expiration=600
             )
+
+            return True
+
+        return False
 
 if __name__ == "__main__":
     from curl_cffi import AsyncSession as CurlAsyncSession

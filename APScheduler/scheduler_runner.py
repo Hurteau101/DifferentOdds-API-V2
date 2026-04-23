@@ -3,6 +3,7 @@ from Authentication.buckeye1_auth import Buckeye1Auth
 from Monitoring.monitoring import init_sentry
 init_sentry()
 import os
+import random
 from Authentication.buckeye2_auth import Buckeye2Auth
 from Authentication.metallic_auth import MetallicAuth
 from Authentication.ace_auth import AceAuth
@@ -278,11 +279,21 @@ class BaseSchedulerRunner:
         logging.info("=" * 10)
         logging.info(f"-> STARTING: {cls.__name__}")
         instance = cls()
-        try:
-            await asyncio.wait_for(instance.run_scheduler(session=session, redis_instance=redis_instance_mapper), timeout=300)
-            # await instance.run_scheduler(session=session, redis_instance=redis_instance_mapper)
-        except asyncio.TimeoutError:
-            logging.error(f"Timeout: {cls.__name__} - Releasing Job")
+
+        for retry in range(1, 4):
+            try:
+               success  = await asyncio.wait_for(instance.run_scheduler(session=session, redis_instance=redis_instance_mapper), timeout=300)
+               if success:
+                   break
+            except asyncio.TimeoutError:
+                logging.error(f"Timeout: {cls.__name__} - Releasing Job")
+            except Exception as e:
+                logging.error(f"Error: {cls.__name__} - {e}")
+
+            wait_time = retry * random.uniform(3, 10)
+            await asyncio.sleep(wait_time)
+
+            logging.log(logging.WARNING if retry < 3 else logging.ERROR, f"Retrying {cls.__name__} (attempt {retry}/3)...")
 
         logging.info(f"-> FINISHED: {cls.__name__}")
         logging.info("=" * 10 + "\n")

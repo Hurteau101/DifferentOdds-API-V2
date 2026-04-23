@@ -71,7 +71,7 @@ class KiblAuth(BaseScheduler):
         return self._extract_auth_refresh(response)
 
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         load_dotenv()
 
         previous_refresh_token = await redis_instance.get_data(key_name="kibl_refresh_token")
@@ -85,7 +85,7 @@ class KiblAuth(BaseScheduler):
                     message="Auth token not found after authentication attempts.",
                     level="error"
                 )
-                return
+                return False
 
             await redis_instance.store_data(
                 key_name="kibl_refresh_token",
@@ -99,7 +99,7 @@ class KiblAuth(BaseScheduler):
                 key_expiration=expiry  # 61 Days
             )
 
-            return
+            return True
 
 
         auth, refresh, expiry = await self.get_auth_from_refresh(session=session, refresh_token=previous_refresh_token)
@@ -111,13 +111,15 @@ class KiblAuth(BaseScheduler):
                 message="Auth token not found after authentication attempts.",
                 level="error"
             )
-            return
+            return False
 
         await redis_instance.store_data(
             key_name="kibl_auth_token",
             data_to_store=auth,
             key_expiration=82800  # 61 Days
         )
+
+        return True
 
 
 if __name__ == "__main__":

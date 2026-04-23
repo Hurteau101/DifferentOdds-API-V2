@@ -12,7 +12,7 @@ class Buckeye2Auth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance):
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance) -> bool:
         username=os.getenv("BUCKEYE_2_USERNAME")
         password=os.getenv("BUCKEYE_2_PASSWORD")
 
@@ -32,12 +32,12 @@ class Buckeye2Auth(BaseScheduler):
             })
 
         if response.status != 200:
-            return
+            return False
 
         token_data = await response.json()
 
         if not any([isinstance(token_data, dict), "code" in token_data]):
-            return
+            return False
 
         auth_token = token_data.get("code")
 
@@ -46,6 +46,8 @@ class Buckeye2Auth(BaseScheduler):
             data_to_store=auth_token,
             key_expiration=1200 # 20 Minutes
         )
+
+        return True
 
 
 if __name__ == "__main__":
