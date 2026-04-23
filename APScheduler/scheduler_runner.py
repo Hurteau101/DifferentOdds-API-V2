@@ -57,6 +57,16 @@ class RedisSelector(Enum):
 
 AUTH_JOBS = [
     {
+        "book_name": "fliff",
+        "class": FliffAuth,
+        "job_type": "auth",
+        "is_active": True,
+        "interval": 180,  # 3 minutes
+        "redis_db": RedisSelector.AUTH,
+        "session_type": "aiohttp",
+        "redis_key_checker_name": "fliff_auth_token",
+    },
+    {
         "book_name": "fourcx",
         "class": FourcxAuth,
         "job_type": "auth",
@@ -155,17 +165,7 @@ AUTH_JOBS = [
         "redis_db": RedisSelector.AUTH,
         "session_type": "curl",
         "redis_key_checker_name": "buckeye1_cookies",
-    },
-    {
-        "book_name": "fliff",
-        "class": FliffAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 180,  # 3 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "fliff_auth_token",
-    },
+    }
 ]
 
 MAPPER_JOBS = [
