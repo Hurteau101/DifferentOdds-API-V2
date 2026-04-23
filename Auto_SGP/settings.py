@@ -4,6 +4,7 @@ from Books.SGP.caesar_sgp import CaesarsSGP
 from Books.SGP.draftkings_sgp import DraftkingsSGP
 from Books.SGP.fanactics_sgp import FanaticsSGP
 from Books.SGP.fanduel_sgp import FanduelSGP
+from Books.SGP.fliff_sgp import FliffSGP
 from Books.SGP.hardrock_sgp import HardrockSGP
 from Books.SGP.kambi_sgp import KambiSGP
 from Books.SGP.novig_sgp import NovigSGP
@@ -83,6 +84,12 @@ BOOKS = {
         "active": True,
         "mapped_name": "betway",
         "session": "curl"
+    },
+    "fliff": {
+        "class": FliffSGP,
+        "active": True,
+        "mapped_name": "fliff",
+        "session": "aiohttp"
     }
 }
 

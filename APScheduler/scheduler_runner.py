@@ -1,7 +1,8 @@
-from Authentication.buckeye1_auth import Buckeye1Auth
-# from Authentication.fliff_auth import FliffAuth
+from External_Book_Mapping.SGP.fliff_mapper import FliffMapper
 from Monitoring.monitoring import init_sentry
 init_sentry()
+from Authentication.buckeye1_auth import Buckeye1Auth
+from Authentication.fliff_auth import FliffAuth
 import os
 import random
 from Authentication.buckeye2_auth import Buckeye2Auth
@@ -155,16 +156,16 @@ AUTH_JOBS = [
         "session_type": "curl",
         "redis_key_checker_name": "buckeye1_cookies",
     },
-    # {
-    #     "book_name": "fliff",
-    #     "class": FliffAuth,
-    #     "job_type": "auth",
-    #     "is_active": True,
-    #     "interval": 180,  # 3 minutes
-    #     "redis_db": RedisSelector.AUTH,
-    #     "session_type": "aiohttp",
-    #     "redis_key_checker_name": "fliff_auth_token",
-    # },
+    {
+        "book_name": "fliff",
+        "class": FliffAuth,
+        "job_type": "auth",
+        "is_active": True,
+        "interval": 180,  # 3 minutes
+        "redis_db": RedisSelector.AUTH,
+        "session_type": "aiohttp",
+        "redis_key_checker_name": "fliff_auth_token",
+    },
 ]
 
 MAPPER_JOBS = [
@@ -236,6 +237,17 @@ MAPPER_JOBS = [
         "session_type": "curl",
         "requires_auth": False,
         "redis_key_checker_name": "betway_mapped_ids"
+    },
+    {
+        "book_name": "fliff",
+        "class": FliffMapper,
+        "job_type": "mapper",
+        "is_active": True,
+        "interval": 600,  # 10 Minutes
+        "redis_db": RedisSelector.MAPPER,
+        "session_type": "aiohttp",
+        "requires_auth": False,
+        "redis_key_checker_name": "fliff_ids"
     },
 ]
 

@@ -448,7 +448,7 @@ SGP_PROVIDERS = [
             'user-agent': 'okhttp/4.10.0'
         },
         regex={
-
+            "event_id": r"eventId=([^&]+)",
         },
         method="GET",
         is_active=True,
