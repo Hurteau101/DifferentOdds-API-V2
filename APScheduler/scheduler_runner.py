@@ -246,7 +246,7 @@ MAPPER_JOBS = [
         "interval": 600,  # 10 Minutes
         "redis_db": RedisSelector.MAPPER,
         "session_type": "aiohttp",
-        "requires_auth": False,
+        "requires_auth": True,
         "redis_key_checker_name": "fliff_ids"
     },
 ]
