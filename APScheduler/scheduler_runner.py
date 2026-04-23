@@ -247,7 +247,8 @@ MAPPER_JOBS = [
         "redis_db": RedisSelector.MAPPER,
         "session_type": "aiohttp",
         "requires_auth": True,
-        "redis_key_checker_name": "fliff_ids"
+        "redis_key_checker_name": "fliff_ids",
+        "redis_auth_checker_name": "fliff_auth_token"
     },
 ]
 
