@@ -34,7 +34,12 @@ class OnyxAuth(BaseScheduler):
 
                 async with async_playwright() as play:
                     browser = await play.chromium.launch(
-                        args=["--no-sandbox", "--disable-setuid-sandbox"],
+                        args=[
+                            "--no-sandbox",
+                            "--disable-setuid-sandbox",
+                            "--disable-blink-features=AutomationControlled",
+                            "--disable-infobars",
+                        ],
                         headless=False,
                         proxy={
                             "server": server,
@@ -43,7 +48,11 @@ class OnyxAuth(BaseScheduler):
                         },
                     )
 
-                    page = await browser.new_page()
+                    context = await browser.new_context(
+                        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                    )
+
+                    page = await context.new_page()
                     await page.goto("https://app.onyxodds.com/login")
                     await page.wait_for_load_state('networkidle')
                     await page.fill('input[name="email"]', login_username)
