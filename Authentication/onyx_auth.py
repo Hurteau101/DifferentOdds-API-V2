@@ -1,11 +1,13 @@
 import os
+import json
 from dotenv import load_dotenv
 from curl_cffi import AsyncSession as CurlAsyncSession
 from APScheduler.base_scheduler import BaseScheduler
 from playwright.async_api import async_playwright
+from playwright_stealth import Stealth
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
-from playwright_stealth import Stealth
+
 
 class OnyxAuth(BaseScheduler):
     load_dotenv()
@@ -19,7 +21,6 @@ class OnyxAuth(BaseScheduler):
         if not login_password or not login_username:
             raise ValueError("ONYX_EMAIL and ONYX_PASSWORD must be set in the environment variables.")
 
-        # Used for Linux. Need to run this non-headless.
         if os.name != 'nt':
             os.environ['DISPLAY'] = ':99'
 
@@ -50,17 +51,34 @@ class OnyxAuth(BaseScheduler):
                     )
 
                     context = await browser.new_context(
-                        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36"
+                        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+                        locale="en-US",
+                        timezone_id="America/New_York",
                     )
 
                     page = await context.new_page()
+                    await page.add_init_script("""
+                        Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+                        Object.defineProperty(navigator, 'oscpu', { get: () => 'Windows NT 10.0; Win64; x64' });
+                    """)
                     await Stealth().apply_stealth_async(page)
 
                     await page.goto("https://app.onyxodds.com/login")
                     await page.wait_for_load_state('networkidle')
-                    await page.fill('input[name="email"]', login_username)
-                    await page.fill('input[name="password"]', login_password)
+                    await page.type('input[name="email"]', login_username, delay=50)
+                    await page.type('input[name="password"]', login_password, delay=50)
+
+                    await page.evaluate("""
+                        new Promise((resolve) => {
+                            grecaptcha.ready(() => {
+                                grecaptcha.execute('6LdhQEEsAAAAABff6XVoV1RPLOitPR7T0vEKvzE6', {action: 'login'})
+                                    .then(resolve);
+                            });
+                        })
+                    """)
+
                     await page.click('button[type="submit"]')
+
                     try:
                         await page.wait_for_url("https://app.onyxodds.com/", timeout=15000)
                         print("Login successful - redirected to dashboard")
@@ -80,9 +98,8 @@ class OnyxAuth(BaseScheduler):
                         await redis_instance.store_data(
                             key_name="onyx_auth",
                             data_to_store=auth_token,
-                            key_expiration=27000  # 7.5 Hours
+                            key_expiration=27000
                         )
-
                         return True
 
             except Exception as e:
