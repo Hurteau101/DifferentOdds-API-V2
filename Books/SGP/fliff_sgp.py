@@ -75,7 +75,7 @@ class FliffSGP(SGPBookBase):
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("sgp_url"),
-            method="POST",
+            method=self.book_data.method,
             headers={
                 **self.book_data.headers,
                 "Authorization": f"Bearer {auth_token}"
