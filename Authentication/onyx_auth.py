@@ -23,7 +23,7 @@ class OnyxAuth(BaseScheduler):
         if os.name != 'nt':
             os.environ['DISPLAY'] = ':99'
 
-        proxies = os.getenv("ONYX_PROXIES").split(",") if os.getenv("ONYX_PROXIES") else ""
+        proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
 
         for proxy in proxies:
             try:
