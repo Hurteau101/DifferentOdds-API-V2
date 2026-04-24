@@ -23,7 +23,7 @@ class OnyxAuth(BaseScheduler):
         if os.name != 'nt':
             os.environ['DISPLAY'] = ':99'
 
-        proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
+        proxies = os.getenv("ONYX_PROXIES").split(",") if os.getenv("ONYX_PROXIES") else ""
 
         for proxy in proxies:
             try:
@@ -49,10 +49,15 @@ class OnyxAuth(BaseScheduler):
                     await page.fill('input[name="email"]', login_username)
                     await page.fill('input[name="password"]', login_password)
                     await page.click('button[type="submit"]')
-                    await page.wait_for_timeout(15000)
+                    try:
+                        await page.wait_for_url("https://app.onyxodds.com/", timeout=15000)
+                        print("Login successful - redirected to dashboard")
+                    except:
+                        error_text = await page.inner_text('//html/body/main/div/div/div/div[2]/form/div[3]')
+                        print(f"Login failed, still on login page. Error: {error_text}")
+                        continue
 
                     session_data = await page.evaluate("fetch('/api/auth/session').then(r => r.json())")
-                    print(session_data)
 
                     if not session_data:
                         continue
