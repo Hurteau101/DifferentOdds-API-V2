@@ -34,6 +34,7 @@ class OnyxAuth(BaseScheduler):
 
                 async with async_playwright() as play:
                     browser = await play.chromium.launch(
+                        args=["--no-sandbox", "--disable-setuid-sandbox"],
                         headless=False,
                         proxy={
                             "server": server,
