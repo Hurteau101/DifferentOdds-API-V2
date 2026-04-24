@@ -5,7 +5,7 @@ from APScheduler.base_scheduler import BaseScheduler
 from playwright.async_api import async_playwright
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
-
+from playwright_stealth import Stealth
 
 class OnyxAuth(BaseScheduler):
     load_dotenv()
@@ -26,6 +26,7 @@ class OnyxAuth(BaseScheduler):
         proxies = os.getenv("ONYX_PROXIES").split(",") if os.getenv("ONYX_PROXIES") else ""
 
         for proxy in proxies:
+            browser = None
             try:
                 split_proxy = proxy.split(":")
                 server = ':'.join(split_proxy[0:2])
@@ -53,6 +54,8 @@ class OnyxAuth(BaseScheduler):
                     )
 
                     page = await context.new_page()
+                    await Stealth().apply_stealth_async(page)
+
                     await page.goto("https://app.onyxodds.com/login")
                     await page.wait_for_load_state('networkidle')
                     await page.fill('input[name="email"]', login_username)
