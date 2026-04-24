@@ -52,6 +52,7 @@ class OnyxAuth(BaseScheduler):
                     await page.wait_for_timeout(15000)
 
                     session_data = await page.evaluate("fetch('/api/auth/session').then(r => r.json())")
+                    print(session_data)
 
                     if not session_data:
                         continue
