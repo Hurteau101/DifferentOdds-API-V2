@@ -67,7 +67,7 @@ class BovadaMapper(BaseMapper):
 
 
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> dict | None:
         tasks = [
             self.api_caller(
                 book_name=self.book_data.name,
@@ -83,9 +83,11 @@ class BovadaMapper(BaseMapper):
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
+
         filtered_results = [
             event
             for outer in results
+            if outer
             for result in outer
             if result
             for event in result.get("events", [])
@@ -210,18 +212,22 @@ class BovadaMapper(BaseMapper):
                                                                                 cleaned_market_name).lower()
                         mapped_ids.setdefault(custom_id, {}).setdefault(market_name, {}).setdefault(selection, outcome_id)
 
-
+        return mapped_ids
         # stat_types = set(
         #     stat_type
         #     for game in mapped_ids.values()
         #     for stat_type in game.keys()
         # )
 
-        await redis_instance.store_data(
-            key_name="bovada_ids",
-            data_to_store=mapped_ids,
-            key_expiration=90
-        )
+        # import json
+        # with open("bovada_mapped_ids.json", "w") as f:
+        #     json.dump(mapped_ids, f, indent=4)
+        #
+        # await redis_instance.store_data(
+        #     key_name="bovada_ids",
+        #     data_to_store=mapped_ids,
+        #     key_expiration=90
+        # )
 
 
 if __name__ == "__main__":

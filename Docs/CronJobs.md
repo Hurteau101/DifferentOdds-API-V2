@@ -18,10 +18,6 @@ league names and mapped stat types.
  - **Frequency**: 1 Hour
  - **Description**: This job stores Auto SGP Configs from the database and stores in Redis.
 
-### `special_book_mapper`
- - **Frequency**: 1 Minute
- - **Description**: This jobs stores mapping that is required to be ran faster than APScheduler
-
 ### `heartbeat`
  - **Frequency**: 2 Minutes
  - **Description**: Checks if there are redis-keys that are missing, and sends a message if so.

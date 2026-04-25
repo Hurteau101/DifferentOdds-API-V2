@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
+from External_Book_Mapping.SGP.bovada_mapper import BovadaMapper
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
@@ -11,9 +12,18 @@ class BovadaSGP(SGPBookBase):
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
 
+    async def _get_mapped_ids(self):
+        async with aiohttp.ClientSession() as session:
+            redis_instance = RedisAsyncManager(database=2)
+            mapper = BovadaMapper()
+            mapped_ids = await mapper.run_scheduler(session=session, redis_instance=redis_instance)
+            return mapped_ids
+
+
     async def _create_param_string(self) -> list | None:
         """Creates params for API call"""
-        mapped_ids = await self.load_mapped_ids(key_name="bovada_ids")
+        # mapped_ids = await self.load_mapped_ids(key_name="bovada_ids")
+        mapped_ids = await self._get_mapped_ids()
 
         if not mapped_ids:
             return None
@@ -88,12 +98,12 @@ if __name__ == "__main__":
             sgp_data = {
                 'book_name': 'bovada',
                 'links': [
-                    "https://www.bovada.lv/sports/basketball/nba/oklahoma-city-thunder-phoenix-suns-202604251530",
-                    "https://www.bovada.lv/sports/basketball/nba/oklahoma-city-thunder-phoenix-suns-202604251530", # Under 215.5
+                    "https://www.bovada.lv/sports/basketball/nba/denver-nuggets-minnesota-timberwolves-202604252030",
+                    "https://www.bovada.lv/sports/basketball/nba/denver-nuggets-minnesota-timberwolves-202604252030",
                 ],
                 'event_data': [
-                    {'market_name': 'Player Points', 'selection_name': 'Devin Booker Over 24.5'},
-                    {'market_name': 'Player Rebounds', 'selection_name': 'Devin Booker Over 4.5'}
+                    {'market_name': 'Player Assists', 'selection_name': 'Christian Braun Under 1.5'},
+                    {'market_name': 'Total Points', 'selection_name': 'Under 230.5'}
                 ]
             }
 
