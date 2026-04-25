@@ -92,12 +92,6 @@ class BovadaMapper(BaseMapper):
             if not event.get("live")
         ]
 
-        # print(results)
-        # import json
-        # with open("bovada_results.json", "w") as file:
-        #     json.dump(filtered_results, file, indent=4)
-
-        # results = results[0]
         if not filtered_results:
             return False
 
@@ -226,7 +220,7 @@ class BovadaMapper(BaseMapper):
         await redis_instance.store_data(
             key_name="bovada_ids",
             data_to_store=mapped_ids,
-            key_expiration=900
+            key_expiration=90
         )
 
 
