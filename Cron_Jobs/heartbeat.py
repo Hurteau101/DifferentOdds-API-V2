@@ -26,6 +26,16 @@ class HeartBeat:
         "DFS", "SPORTSBOOKS"
     ]
 
+    # Reference 'Cron_Jobs.special_book_mapper' for break down of why this is special
+    SPECIAL_MAPPING_BOOKS = [
+        {
+            "book_name": "bovada",
+            "book_key": "bovada_ids",
+            "redis": RedisDatabaseMapper.MAPPER.return_redis(),
+            "db_num": RedisDatabaseMapper.MAPPER.value
+        }
+    ]
+
     WEBHOOK_URL = os.getenv("DISCORD_HEARTBEAT_URL")
     TML_USER_ID = os.getenv("TML_USER_ID")
 
@@ -91,6 +101,7 @@ class HeartBeat:
         ]
 
         self.books["MAPPER"] = map_books
+        self.books["MAPPER"].extend(self.SPECIAL_MAPPING_BOOKS)
         self.books["AUTH"] = auth_books
 
     def store_key(self, display_name: str, category: str, sent_already_instance: RedisSyncManager, actual_redis_key_name: str,
