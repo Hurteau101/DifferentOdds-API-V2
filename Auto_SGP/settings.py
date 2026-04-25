@@ -92,12 +92,12 @@ BOOKS = {
         "mapped_name": "fliff",
         "session": "aiohttp"
     },
-    "bovada": {
-        "class": BovadaSGP,
-        "active": True,
-        "mapped_name": "bovada",
-        "session": "aiohttp"
-    }
+    # "bovada": {
+    #     "class": BovadaSGP,
+    #     "active": False,
+    #     "mapped_name": "bovada",
+    #     "session": "aiohttp"
+    # }
 }
 
 
