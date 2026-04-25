@@ -1,3 +1,4 @@
+from External_Book_Mapping.SGP.bovada_mapper import BovadaMapper
 from External_Book_Mapping.SGP.fliff_mapper import FliffMapper
 from Monitoring.monitoring import init_sentry
 init_sentry()
@@ -248,6 +249,17 @@ MAPPER_JOBS = [
         "session_type": "aiohttp",
         "requires_auth": False,
         "redis_key_checker_name": "fliff_ids",
+    },
+    {
+        "book_name": "bovada",
+        "class": BovadaMapper,
+        "job_type": "mapper",
+        "is_active": True,
+        "interval": 600,  # 10 Minutes
+        "redis_db": RedisSelector.MAPPER,
+        "session_type": "aiohttp",
+        "requires_auth": False,
+        "redis_key_checker_name": "bovada_ids",
     },
 ]
 

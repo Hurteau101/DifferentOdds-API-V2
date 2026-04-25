@@ -1,5 +1,6 @@
 from Books.SGP.betmgm_sgp import BetmgmSGP
 from Books.SGP.betway_sgp import BetwaySGP
+from Books.SGP.bovada_sgp import BovadaSGP
 from Books.SGP.caesar_sgp import CaesarsSGP
 from Books.SGP.draftkings_sgp import DraftkingsSGP
 from Books.SGP.fanactics_sgp import FanaticsSGP
@@ -89,6 +90,12 @@ BOOKS = {
         "class": FliffSGP,
         "active": True,
         "mapped_name": "fliff",
+        "session": "aiohttp"
+    },
+    "bovada": {
+        "class": BovadaSGP,
+        "active": True,
+        "mapped_name": "bovada",
         "session": "aiohttp"
     }
 }
