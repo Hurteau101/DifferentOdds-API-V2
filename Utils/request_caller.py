@@ -31,7 +31,7 @@ class APICaller:
                     proxy: dict | None = None,
                     payload: dict | str | list | None = None,
                     parse_json: bool = False,
-                    params: dict | None =None
+                    params: dict | list | None =None
                     ) -> dict | list | None:
         """Fetch data from the API based on request type."""
 
