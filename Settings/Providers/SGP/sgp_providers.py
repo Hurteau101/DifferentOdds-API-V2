@@ -450,7 +450,7 @@ SGP_PROVIDERS = [
         regex={
             "event_id": r"eventId=([^&]+)",
         },
-        method="GET",
+        method="POST",
         is_active=True,
         mapping=SGPMapper(
             url={
@@ -470,6 +470,57 @@ SGP_PROVIDERS = [
                 'Sec-Fetch-Site': 'same-site'
             },
             method="POST",
+            is_active=True
+        )
+    ),
+SGPProvider(
+        title="Bovada Sportsbook",
+        name="bovada",
+        url={
+            "sgp_url": "https://services.ozoon.eu/services/sports/bet/betslip"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Referer': 'https://services.ozoon.eu/',
+            'content-type': 'application/json',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'same-origin',
+            'Sec-Fetch-Site': 'same-origin',
+            'Priority': 'u=4',
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache',
+            'TE': 'trailers',
+        },
+        regex={
+            "event_id": r"sports\/(.+)"
+        },
+        method="GET",
+        is_active=True,
+        mapping=SGPMapper(
+            url={
+                "main_url": "https://www.bovada.lv/services/sports/event/coupon/events/A/description/",
+            },
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br, zstd',
+                'Referer': 'https://services.ozoon.eu/',
+                'content-type': 'application/json',
+                'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'same-origin',
+                'Sec-Fetch-Site': 'same-origin',
+                'Priority': 'u=4',
+                'Pragma': 'no-cache',
+                'Cache-Control': 'no-cache',
+                'TE': 'trailers',
+            },
+            method="GET",
             is_active=True
         )
     ),
