@@ -222,10 +222,6 @@ class BovadaMapper(BaseMapper):
         #     for stat_type in game.keys()
         # )
 
-        with open("../../Books/SGP/bovada_mapped_ids.json", "w") as file:
-            import json
-            json.dump(mapped_ids, file, indent=4)
-
         await redis_instance.store_data(
             key_name="bovada_ids",
             data_to_store=mapped_ids,
