@@ -1,7 +1,8 @@
 import asyncio
+import re
+
 import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
-from External_Book_Mapping.SGP.bovada_mapper import BovadaMapper
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
@@ -11,19 +12,18 @@ class BovadaSGP(SGPBookBase):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="bovada",
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
+    def _verify_line(self, selection_list: list, current_entries: dict):
+        selections = {
+            selection.get("outcomeId", ''): selection.get("points")
+            for selection in selection_list
+        }
 
-    async def _get_mapped_ids(self):
-        async with aiohttp.ClientSession() as session:
-            redis_instance = RedisAsyncManager(database=2)
-            mapper = BovadaMapper()
-            mapped_ids = await mapper.run_scheduler(session=session, redis_instance=redis_instance)
-            return mapped_ids
+        return current_entries == selections
 
 
-    async def _create_param_string(self) -> list | None:
+    async def _create_param_string(self) -> dict | None:
         """Creates params for API call"""
-        # mapped_ids = await self.load_mapped_ids(key_name="bovada_ids")
-        mapped_ids = await self._get_mapped_ids()
+        mapped_ids = await self.load_mapped_ids(key_name="bovada_ids")
 
         if not mapped_ids:
             return None
@@ -31,24 +31,41 @@ class BovadaSGP(SGPBookBase):
         additional_data = self.sgp_data.get("event_data", [])
         merged_data = [mapped | additional for mapped, additional in zip(self.link_data, additional_data)]
 
-        outcome_ids = []
+        sgp_data = {
+            "outcome_ids": [],
+            "lines": {}
+        }
 
         for index, merged in enumerate(merged_data, start=1):
             found = mapped_ids.get(merged.get("event_id", '').lower())
             if not found:
                 continue
 
-            outcome_id = found.get(merged.get("market_name", '').lower(), {}).get(
+            outcome_found = found.get(merged.get("market_name", '').lower(), {}).get(
                 merged.get("selection_name", '').lower())
 
-            if outcome_id:
-                outcome_ids.append(("outcomeId", f"A:{outcome_id}"))
-                # outcome_ids.append(f"A:{outcome_id}{index}")
+            if not outcome_found:
+                continue
 
-        if len(outcome_ids) != len(self.link_data):
+            line = outcome_found.get("line")
+
+            if line:
+                merged_line = float(merged.get("line", 0))
+
+                if float(merged.get("line")) != merged_line:
+                    continue
+
+            outcome_id = outcome_found.get("outcome_id")
+
+            if outcome_id:
+                sgp_data["outcome_ids"].append(("outcomeId", f"A:{outcome_id}"))
+                sgp_data["lines"].update({outcome_id: float(line) if line else 0.0})
+
+
+        if len(sgp_data["outcome_ids"]) != len(self.link_data):
             return None
 
-        return outcome_ids
+        return sgp_data
 
 
 
@@ -65,8 +82,13 @@ class BovadaSGP(SGPBookBase):
             url=self.book_data.url.get("sgp_url"),
             method=self.book_data.method,
             headers=self.book_data.headers,
-            params=params
+            params=params.get("outcome_ids", [])
         )
+
+        import json
+
+        with open("bovada_sgp_response.json", "w") as f:
+            json.dump(api_data, f, indent=4)
 
         if not api_data:
             return
@@ -79,6 +101,12 @@ class BovadaSGP(SGPBookBase):
         ), {})
 
         if sgp_dict.get("numWays") !=  len(self.links):
+            return None
+
+
+        has_same_lines = self._verify_line(selection_list=api_data.get("selections", {}).get("selection"), current_entries=params.get("lines", {}))
+
+        if not has_same_lines:
             return None
 
         american_odds = sgp_dict.get("totalPriceFormattedMap", {}).get("AMERICAN")
@@ -98,12 +126,13 @@ if __name__ == "__main__":
             sgp_data = {
                 'book_name': 'bovada',
                 'links': [
-                    "https://www.bovada.lv/sports/basketball/nba/denver-nuggets-minnesota-timberwolves-202604252030",
-                    "https://www.bovada.lv/sports/basketball/nba/denver-nuggets-minnesota-timberwolves-202604252030",
+                    "https://www.bovada.lv/sports/basketball/nba/boston-celtics-philadelphia-76ers-202604261900",
+                    "https://www.bovada.lv/sports/basketball/nba/boston-celtics-philadelphia-76ers-202604261900",
                 ],
                 'event_data': [
-                    {'market_name': 'Player Assists', 'selection_name': 'Christian Braun Under 1.5'},
-                    {'market_name': 'Total Points', 'selection_name': 'Under 230.5'}
+                    {'market_name': 'Player Assists', 'selection_name': 'Sam Hauser Under 1.5', "line": 1.5},
+                    # {'market_name': 'moneyline', 'selection_name': 'boston celtics', "line": None},
+                    {'market_name': 'Total Points', 'selection_name': 'under 213', "line": 213}
                 ]
             }
 

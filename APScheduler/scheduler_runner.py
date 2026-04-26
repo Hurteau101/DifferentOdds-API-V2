@@ -3,6 +3,7 @@ from Monitoring.monitoring import init_sentry
 init_sentry()
 from Authentication.buckeye1_auth import Buckeye1Auth
 from Authentication.fliff_auth import FliffAuth
+from External_Book_Mapping.SGP.bovada_mapper import BovadaMapper
 import os
 import random
 from Authentication.buckeye2_auth import Buckeye2Auth
@@ -248,6 +249,17 @@ MAPPER_JOBS = [
         "session_type": "aiohttp",
         "requires_auth": False,
         "redis_key_checker_name": "fliff_ids",
+    },
+    {
+        "book_name": "bovada",
+        "class": BovadaMapper,
+        "job_type": "mapper",
+        "is_active": True,
+        "interval": 600,  # 10 Minutes
+        "redis_db": RedisSelector.MAPPER,
+        "session_type": "aiohttp",
+        "requires_auth": False,
+        "redis_key_checker_name": "bovada_ids",
     }
 ]
 

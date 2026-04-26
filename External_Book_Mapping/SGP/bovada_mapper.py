@@ -67,7 +67,7 @@ class BovadaMapper(BaseMapper):
 
 
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> dict | None:
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         tasks = [
             self.api_caller(
                 book_name=self.book_data.name,
@@ -83,7 +83,6 @@ class BovadaMapper(BaseMapper):
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
-
         filtered_results = [
             event
             for outer in results
@@ -94,6 +93,7 @@ class BovadaMapper(BaseMapper):
             if not event.get("live")
         ]
 
+        # results = results[0]
         if not filtered_results:
             return False
 
@@ -210,24 +210,27 @@ class BovadaMapper(BaseMapper):
 
                         market_name = get_static_mapping().get("stats", {}).get(cleaned_market_name,
                                                                                 cleaned_market_name).lower()
-                        mapped_ids.setdefault(custom_id, {}).setdefault(market_name, {}).setdefault(selection, outcome_id)
+                        mapped_ids.setdefault(custom_id, {}).setdefault(market_name, {}).setdefault(selection, {
+                            "outcome_id": outcome_id,
+                            "line": line,
+                        })
 
-        return mapped_ids
+
         # stat_types = set(
         #     stat_type
         #     for game in mapped_ids.values()
         #     for stat_type in game.keys()
         # )
 
-        # import json
-        # with open("bovada_mapped_ids.json", "w") as f:
-        #     json.dump(mapped_ids, f, indent=4)
-        #
-        # await redis_instance.store_data(
-        #     key_name="bovada_ids",
-        #     data_to_store=mapped_ids,
-        #     key_expiration=90
-        # )
+        with open("../../Books/SGP/bovada_mapped_ids.json", "w") as file:
+            import json
+            json.dump(mapped_ids, file, indent=4)
+
+        await redis_instance.store_data(
+            key_name="bovada_ids",
+            data_to_store=mapped_ids,
+            key_expiration=900
+        )
 
 
 if __name__ == "__main__":
