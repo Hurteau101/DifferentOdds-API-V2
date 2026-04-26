@@ -339,7 +339,9 @@ SGP_PROVIDERS = [
                 "sports_url": "https://api-offering.betonline.ag/api/offering/sgp/sports",
                 "leagues_url": "https://api-offering.betonline.ag/api/offering/sgp/leagues",
                 "events_url": "https://api-offering.betonline.ag/api/offering/sgp/events",
-                "mapping_url": "https://public-prod-gen2.sportcastlive.com/public/getmarketsV2/"
+                "market_labels_url": "https://public-prod-gen2.sportcastlive.com/public/getmarketsV2/"
+                # "teams_url": "https://public-prod-gen2.sportcastlive.com/public/GetFixture/"
+                # "mapping_url": "https://public-prod-gen2.sportcastlive.com/public/getmarketsV2/"
             },
             headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0",
