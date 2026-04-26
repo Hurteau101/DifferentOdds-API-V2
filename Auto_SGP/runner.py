@@ -135,9 +135,11 @@ class AutoSGP(APICaller):
             mapped_book_name = BOOKS.get(book_name.lower(), book_name.lower()).get("mapped_name", book_name.lower())
 
             for side_name, side_information in sides.items():
-                selection_name = markets.get("Stat", None)
+                # selection_name = markets.get("Stat", None)
                 if markets.get("Player"):
                     selection_name = f"{markets.get('Player')} {side_name} {line}"
+                else:
+                    selection_name = f"{side_name} {line}" if line else markets.get("Stat")
 
                 if side_information.get("betlink") or side_information.get("internal_betlink"):
                     betlink = side_information.get("betlink") or side_information.get("internal_betlink")
@@ -147,7 +149,8 @@ class AutoSGP(APICaller):
                         "line": {betlink: float(line)} if line else None,
                         "event_data": {
                             "market_name": markets.get("Prop", None),
-                            "selection_name": selection_name
+                            "selection_name": selection_name,
+                            "line": line
                         }
                     }
 
