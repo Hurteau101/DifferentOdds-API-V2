@@ -13,7 +13,7 @@ celerybeat-schedule
 *.log
 .idea/
 todo
-External_Book_Mapping/WIP/*
+
 
 Books/Sportsbooks/1bv_explain.md
 Books/Sportsbooks/metalic_explained.md
