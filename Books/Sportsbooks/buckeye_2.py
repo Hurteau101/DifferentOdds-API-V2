@@ -6,15 +6,19 @@ from typing import Callable
 from zoneinfo import ZoneInfo
 import aiohttp
 from urllib.parse import urlencode
+
+from dotenv import load_dotenv
 from rapidfuzz import process, fuzz
 from Books.Bases.pph_base import PPHBookBase
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import TeamData, GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 
 
 class Buckeye2(PPHBookBase):
+    load_dotenv()
     VALID_LEAGUES = {
         "mainlines": ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL", "NBA Player Props"],
         "player_props": ["NBA PLAYER PROPS", "MLB PLAYER PROPS"]
@@ -348,8 +352,8 @@ class Buckeye2(PPHBookBase):
         return game_data
 
     # This is used for the dropdowns on the website.
-    async def get_buy_points(self, username: str, auth_token: str, session: aiohttp.ClientSession, sport_type: str, sport_subtype: str):
-        return await self.api_caller(
+    async def get_buy_points(self, username: str, auth_token: str, session: aiohttp.ClientSession, sport_type: str, sport_subtype: str, proxy_manager: ProxyManager):
+        return await proxy_manager.proxy_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("point_group_url"),
@@ -371,8 +375,8 @@ class Buckeye2(PPHBookBase):
 
 
 
-    async def market_caller(self, session: aiohttp.ClientSession, username: str, auth_token: str, league: dict):
-        market_data = await self.api_caller(
+    async def market_caller(self, session: aiohttp.ClientSession, username: str, auth_token: str, league: dict, proxy_manager: ProxyManager):
+        market_data = await proxy_manager.proxy_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("market_url"),
@@ -405,7 +409,8 @@ class Buckeye2(PPHBookBase):
         sport_type = league.get("SportType")
         if sport_type in ["BASKETBALL", "FOOTBALL"]:
             buy_points = await self.get_buy_points(username=username, auth_token=auth_token, session=session,
-                                             sport_type=league.get("SportType"), sport_subtype=league.get("SportSubType"))
+                                             sport_type=league.get("SportType"), sport_subtype=league.get("SportSubType"),
+                                                   proxy_manager=proxy_manager)
 
             if buy_points and sport_type in ["BASKETBALL", "FOOTBALL"]:
                 buy_points_key = buy_points.get("BuyPoints", {})
@@ -435,7 +440,10 @@ class Buckeye2(PPHBookBase):
                 print("Auth Expired")
                 return
 
-            raw_leagues = await self.api_caller(
+            proxy_manager = ProxyManager(self.api_caller)
+            proxy_manager.proxies = os.getenv("RESIDENTIAL_PROXIES", '').split(",")
+
+            raw_leagues = await proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("league_url"),
@@ -479,7 +487,8 @@ class Buckeye2(PPHBookBase):
                     session=session,
                     username=username,
                     auth_token=auth_token,
-                    league=league
+                    league=league,
+                    proxy_manager=proxy_manager
                 )
                 for league in leagues
             ]
