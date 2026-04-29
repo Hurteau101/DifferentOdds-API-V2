@@ -19,35 +19,49 @@ class Buckeye2Auth(BaseScheduler):
         if not username or not password:
             raise ValueError("Missing required environment variables: BUCKEYE_2_USERNAME, BUCKEYE_2_PASSWORD")
 
-        response = await session.post(
-            url=Buckeye2Auth.URL,
-            data={
-                "customerID": username,
-                "password": password,
-            },
-            headers={
-                "User-Agent": "Mozilla/5.0",
-                "Referer": "https://betvegas23.com/",
-                "Origin": "https://betvegas23.com",
-            })
+        proxies = os.environ.get("RESIDENTIAL_PROXIES")
+        if not proxies:
+            raise ValueError("Missing required environment variables: RESIDENTIAL_PROXIES")
 
-        if response.status != 200:
-            return False
 
-        token_data = await response.json()
+        for proxy in proxies.split(","):
+            split_proxy = proxy.split(":")
 
-        if not any([isinstance(token_data, dict), "code" in token_data]):
-            return False
+            ip, port, proxy_user, proxy_pass = split_proxy
+            proxy_url = f"http://{proxy_user}:{proxy_pass}@{ip}:{port}"
 
-        auth_token = token_data.get("code")
+            response = await session.post(
+                url=Buckeye2Auth.URL,
+                data={
+                    "customerID": username,
+                    "password": password,
+                },
+                proxy=proxy_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Referer": "https://betvegas23.com/",
+                    "Origin": "https://betvegas23.com",
+                })
 
-        await redis_instance.store_data(
-            key_name="buckeye_2_auth_token",
-            data_to_store=auth_token,
-            key_expiration=1200 # 20 Minutes
-        )
+            if response.status != 200:
+                continue
 
-        return True
+            token_data = await response.json()
+
+            if not (isinstance(token_data, dict) and "code" in token_data):
+                continue
+
+            auth_token = token_data.get("code")
+
+            await redis_instance.store_data(
+                key_name="buckeye_2_auth_token",
+                data_to_store=auth_token,
+                key_expiration=1200 # 20 Minutes
+            )
+
+            return True
+
+        return False
 
 
 if __name__ == "__main__":
