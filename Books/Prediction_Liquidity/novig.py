@@ -147,7 +147,7 @@ class Novig(PredictionLiquidityBase):
                     "market_id": order.get("market_id"),
                 }
             )
-            for order in open_orders
+            for order in sorted(open_orders, key=lambda o: o.get("price") or 0, reverse=False)
         ]
 
     # async def _filter_data(self, event_data: list, league_name: str):
