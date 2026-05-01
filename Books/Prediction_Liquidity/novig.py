@@ -123,7 +123,7 @@ class Novig(PredictionLiquidityBase):
     def organize_orders(self, order_list: list, outcome_id: str):
         open_orders = [o for o in order_list if o.get("status") == "OPEN"]
 
-        best_price = max(
+        best_price = min(
             (order["price"] for order in open_orders if order.get("price") is not None),
             default=None
         )
