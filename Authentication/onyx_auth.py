@@ -1,5 +1,4 @@
 import os
-import json
 from dotenv import load_dotenv
 from curl_cffi import AsyncSession as CurlAsyncSession
 from APScheduler.base_scheduler import BaseScheduler
@@ -35,13 +34,7 @@ class OnyxAuth(BaseScheduler):
                 password = split_proxy[3]
 
                 async with async_playwright() as play:
-                    browser = await play.chromium.launch(
-                        args=[
-                            "--no-sandbox",
-                            "--disable-setuid-sandbox",
-                            "--disable-blink-features=AutomationControlled",
-                            "--disable-infobars",
-                        ],
+                    browser = await play.firefox.launch(
                         headless=False,
                         proxy={
                             "server": server,
@@ -50,41 +43,46 @@ class OnyxAuth(BaseScheduler):
                         },
                     )
 
-                    context = await browser.new_context(
-                        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
-                        locale="en-US",
-                        timezone_id="America/New_York",
-                    )
-
-                    page = await context.new_page()
-                    await page.add_init_script("""
-                        Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
-                        Object.defineProperty(navigator, 'oscpu', { get: () => 'Windows NT 10.0; Win64; x64' });
-                    """)
+                    page = await browser.new_page()
                     await Stealth().apply_stealth_async(page)
 
                     await page.goto("https://app.onyxodds.com/login")
                     await page.wait_for_load_state('networkidle')
-                    await page.type('input[name="email"]', login_username, delay=50)
-                    await page.type('input[name="password"]', login_password, delay=50)
+                    await page.wait_for_timeout(3000)
 
-                    await page.evaluate("""
-                        new Promise((resolve) => {
-                            grecaptcha.ready(() => {
-                                grecaptcha.execute('6LdhQEEsAAAAABff6XVoV1RPLOitPR7T0vEKvzE6', {action: 'login'})
-                                    .then(resolve);
-                            });
-                        })
-                    """)
+                    logged_in = False
+                    for attempt in range(3):
+                        print(f"Login attempt {attempt + 1}...")
 
-                    await page.click('button[type="submit"]')
+                        await page.fill('input[name="email"]', login_username)
+                        await page.fill('input[name="password"]', login_password)
+                        await page.wait_for_timeout(2000)
 
-                    try:
-                        await page.wait_for_url("https://app.onyxodds.com/", timeout=15000)
-                        print("Login successful - redirected to dashboard")
-                    except:
-                        error_text = await page.inner_text('//html/body/main/div/div/div/div[2]/form/div[3]')
-                        print(f"Login failed, still on login page. Error: {error_text}")
+                        await page.evaluate("""
+                            new Promise((resolve) => {
+                                grecaptcha.ready(() => {
+                                    grecaptcha.execute('6LdhQEEsAAAAABff6XVoV1RPLOitPR7T0vEKvzE6', {action: 'login'})
+                                        .then(resolve);
+                                });
+                            })
+                        """)
+
+                        await page.click('button[type="submit"]')
+
+                        try:
+                            await page.wait_for_url("https://app.onyxodds.com/", timeout=15000)
+                            print("Login successful - redirected to dashboard")
+                            logged_in = True
+                            break
+                        except:
+                            error_text = await page.inner_text('//html/body/main/div/div/div/div[2]/form/div[3]')
+                            print(f"Attempt {attempt + 1} failed: {error_text}")
+                            await page.wait_for_timeout(3000)
+                            await page.goto("https://app.onyxodds.com/login", timeout=60000)
+                            await page.wait_for_load_state('networkidle')
+                            await page.wait_for_timeout(3000)
+
+                    if not logged_in:
                         continue
 
                     session_data = await page.evaluate("fetch('/api/auth/session').then(r => r.json())")
