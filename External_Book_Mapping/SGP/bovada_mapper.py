@@ -17,6 +17,7 @@ class BovadaMapper(BaseMapper):
     SPORT_PATHS = [
         "baseball/mlb",
         "basketball/nba",
+        "basketball/wnba",
         "hockey/nhl",
         "football/nfl",
         "football/college-football"
@@ -216,17 +217,12 @@ class BovadaMapper(BaseMapper):
                         })
 
 
-        # stat_types = set(
-        #     stat_type
-        #     for game in mapped_ids.values()
-        #     for stat_type in game.keys()
-        # )
-
-        await redis_instance.store_data(
-            key_name="bovada_ids",
-            data_to_store=mapped_ids,
-            key_expiration=900
-        )
+        if mapped_ids:
+            await redis_instance.store_data(
+                key_name="bovada_ids",
+                data_to_store=mapped_ids,
+                key_expiration=900
+            )
 
 
 if __name__ == "__main__":
