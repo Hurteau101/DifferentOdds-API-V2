@@ -365,7 +365,8 @@ class Buckeye2(PPHBookBase):
             },
 
             payload=urlencode({
-                "customerID": username,
+                # "customerID": username,
+                "customerID": f"{username}_0",
                 "wagerType": "Straight",
                 "sportType": sport_type,
                 "sportSubType": sport_subtype,
@@ -386,7 +387,8 @@ class Buckeye2(PPHBookBase):
             },
             method=self.book_data.method,
             payload=urlencode({
-                "customerID": username,
+                # "customerID": username,
+                "customerID": f"{username}_0",
                 "operation": "Get_LeagueLines2",
                 "sportType": league.get("SportType"),
                 "sportSubType": league.get("SportSubType"),
@@ -455,9 +457,11 @@ class Buckeye2(PPHBookBase):
                     'Accept-Encoding': 'gzip, deflate',
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'Origin': 'https://wwcd.me',
+                    # 'Origin': 'https://wwcd.me',
+                    'Origin': 'https://www.247bettor.com',
                     'Connection': 'keep-alive',
-                    'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
+                    'Referer': 'https://www.247bettor.com/sports.html?v=1778340204456',
+                    # 'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
                     'Sec-Fetch-Dest': 'empty',
                     'Sec-Fetch-Mode': 'cors',
                     'Sec-Fetch-Site': 'same-origin',
@@ -466,7 +470,8 @@ class Buckeye2(PPHBookBase):
                 },
                 # Ensure its urlencode, or pass a string, or else you won't get the proper data back.
                 payload=urlencode({
-                    "customerID": username,
+                    # "customerID": username,
+                    "customerID": f"{username}_0",
                     "wagerType": "Straight",
                     "office": "WAGERHOME",
                     "placeLateFlag": "false",
@@ -497,24 +502,46 @@ class Buckeye2(PPHBookBase):
 
             event_data = {}
 
+            # for result, league in zip(results, leagues):
+            #     print(league)
+            #     sport_sub_type = league.get("SportSubTypeDisplay", '').upper()
+            #
+            #     is_player_prop = sport_sub_type in self.VALID_LEAGUES["player_props"]
+            #
+            #
+            #     buy_points = result.get("buypoints", None)
+            #     for line in result.get("Lines", []):
+            #         if not is_player_prop:
+            #             game_data = self.build_main_markets(event_data=line, buy_points=buy_points)
+            #         else:
+            #             game_data = await self.build_player_markets(event_data=line)
+            #
+            #         if game_data:
+            #             self.add_to_events(event_data, game_data, GameData)
+
             for result, league in zip(results, leagues):
                 sport_sub_type = league.get("SportSubTypeDisplay", '').upper()
-
                 is_player_prop = sport_sub_type in self.VALID_LEAGUES["player_props"]
-
                 buy_points = result.get("buypoints", None)
-                for line in result.get("Lines", []):
-                    if not is_player_prop:
-                        game_data = self.build_main_markets(event_data=line, buy_points=buy_points)
-                    else:
-                        game_data = await self.build_player_markets(event_data=line)
+                lines = result.get("Lines", [])
 
+                if is_player_prop:
+                    game_data_list = await asyncio.gather(*[
+                        self.build_player_markets(event_data=line) for line in lines
+                    ])
+                else:
+                    game_data_list = [
+                        self.build_main_markets(event_data=line, buy_points=buy_points)
+                        for line in lines
+                    ]
+
+                for game_data in game_data_list:
                     if game_data:
                         self.add_to_events(event_data, game_data, GameData)
 
             buckeye_2_data = list(event_data.values())
-
             mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_2_data)
+
 
             final_mapping = {}
 

@@ -6,7 +6,8 @@ import aiohttp
 
 
 class Buckeye2Auth(BaseScheduler):
-    URL = "https://wwcd.me/cloud/api/System/authenticateCustomer"
+    # URL = "https://wwcd.me/cloud/api/System/authenticateCustomer"
+    URL = "https://www.247bettor.com/cloud/api/System/authenticateCustomer"
     load_dotenv()
 
     def __init__(self):
@@ -39,8 +40,8 @@ class Buckeye2Auth(BaseScheduler):
                 proxy=proxy_url,
                 headers={
                     "User-Agent": "Mozilla/5.0",
-                    "Referer": "https://betvegas23.com/",
-                    "Origin": "https://betvegas23.com",
+                    "Referer": "https://www.247bettor.com/",
+                    "Origin": "https://www.247bettor.com",
                 })
 
             if response.status != 200:
