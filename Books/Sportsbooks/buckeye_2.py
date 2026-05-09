@@ -212,10 +212,17 @@ class Buckeye2(PPHBookBase):
 
         return odds
 
+    # @staticmethod
+    # def _convert_date(start_date: str):
+    #     print(start_date)
+    #     eastern = ZoneInfo("America/New_York")
+    #     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=eastern)
+    #     return start_date_dt.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     @staticmethod
     def _convert_date(start_date: str):
-        eastern = ZoneInfo("America/New_York")
-        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=eastern)
+        pst = ZoneInfo("America/Los_Angeles")
+        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=pst)
         return start_date_dt.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
@@ -540,6 +547,8 @@ class Buckeye2(PPHBookBase):
                         self.add_to_events(event_data, game_data, GameData)
 
             buckeye_2_data = list(event_data.values())
+            print(buckeye_2_data)
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_2_data)
 
 
