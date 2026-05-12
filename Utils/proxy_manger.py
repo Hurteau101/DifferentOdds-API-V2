@@ -10,7 +10,7 @@ class ProxyManager:
     def __init__(self, api_caller_func, proxies=None):
         self.proxies = proxies
         if not proxies:
-            self.proxies = os.getenv("PROXIES").split(",") if os.getenv("PROXIES") else ""
+            self.proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
 
         self.proxy_amount = len(self.proxies)
         self.proxy_pool = cycle(self.proxies)
