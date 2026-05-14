@@ -457,7 +457,7 @@ class STS(PPHBookBase):
             start_date = utc_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             game_key = self.generate_key([teams.team_a, teams.team_b, start_date]) if teams else None
-            league = league_map.get(line.get("idsport"), "unknown league")
+            league = league_map.get(line.get("idsport"), {}).get("name", "unknown league")
 
             game_data = GameData(
                 start_date=start_date,
@@ -642,24 +642,36 @@ class STS(PPHBookBase):
                         await self.run_book()
                 return
 
-            sports_ids = set(
-                category.get("IdSport")
+            sport_data = [
+                {
+                    "sport_id": str(category.get("IdSport", '')),
+                    "sport_name": category.get("Name"),
+                    "token": category.get("Token"),
+                }
                 for category in self.clean_return(raw_league_data).get("Sports").get("SportsList", [])
                 if category.get("Name", '').lower() in self.VALID_CATEGORIES
-            )
+            ]
 
             league_name_tasks = [
                 proxy_manager.api_caller(
                     url=self.book_data.url.get("league_url"),
                     headers=self.book_data.headers,
-                    payload={"idMainHeader":str(sport_id), "wagerTypeValue": "1"},
+                    # payload={"idMainHeader":str(sport_id), "wagerTypeValue": "1"},
+                    payload={
+                        "menuItem": {
+                            "idSport": sport.get("sport_id"),
+                            "name": sport.get("sport_name"),
+                            "token": sport.get("token")
+                        },
+                        "wagerTypeValue": "1"
+                    },
                     method="POST",
                     session=session,
                     book_name=self.book_data.name,
                     parse_json=True
                 )
 
-                for sport_id in sports_ids
+                for sport in sport_data
             ]
 
             semaphore = asyncio.Semaphore(2)
@@ -672,34 +684,45 @@ class STS(PPHBookBase):
             cleaned_leagues = [self.clean_return(result) for result in league_results]
 
             league_map = {
-                league.get("IdSport"): reduce(lambda name, remove: name.replace(remove, ""), self.LEAGUE_NAME_REPLACER, league.get("Name", "").lower())
+                league.get("IdSport"): {
+                    "name": reduce(lambda name, remove: name.replace(remove, ""), self.LEAGUE_NAME_REPLACER, league.get("Name", "").lower()),
+                    "value": league.get("Value"),
+                    "token": league.get("Token")
+
+                }
                 for result in cleaned_leagues
                 if result
                 for league in result
             }
 
-            league_ids = [
-                children.get("Value")
-                for result in cleaned_leagues
-                if result
-                for league in result
-                for children in league.get("Children", [])
-                if league.get("Name", "").upper() in self.VALID_LEAGUES
-            ]
+            # league_ids = [
+            #     children.get("Value")
+            #     for result in cleaned_leagues
+            #     if result
+            #     for league in result
+            #     for children in league.get("Children", [])
+            #     if league.get("Name", "").upper() in self.VALID_LEAGUES
+            # ]
+
 
             market_tasks = [
                 proxy_manager.api_caller(
                     url=self.book_data.url.get("market_url"),
                     headers=self.book_data.headers,
                     payload={
-                        "value":str(market),
-                        "iscontest":False,
-                        "wagerTypeInfo":"1",
-                        "isRefresh":False,
-                        "contestOrderBy":0,
-                        "isContestRelated":False,
-                        "specialEventId":0,
-                        "getOnlyPeriods":False
+                        "menuItems": [
+                            {
+                                "idSport": market.get("value"),
+                                "token": market.get("token")
+                            }
+                        ],
+                        "iscontest": False,
+                        "wagerTypeInfo": "1",
+                        "isRefresh": False,
+                        "contestOrderBy": 0,
+                        "isContestRelated": False,
+                        "specialEvent": None,
+                        "getOnlyPeriods": False
                     },
                     method="POST",
                     session=session,
@@ -707,7 +730,8 @@ class STS(PPHBookBase):
                     parse_json=True
                 )
 
-                for market in league_ids
+                for market in league_map.values()
+                if market.get("value")
             ]
 
             market_results = await asyncio.gather(*[
