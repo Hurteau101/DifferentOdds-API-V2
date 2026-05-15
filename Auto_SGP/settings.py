@@ -24,7 +24,7 @@ BOOKS = {
         "class": DraftkingsSGP,
         "active": True,
         "mapped_name": "draftkings",
-        "session": "aiohttp"
+        "session": "curl"
     },
     "fanatics": {
         "class": FanaticsSGP,

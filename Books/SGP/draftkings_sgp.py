@@ -1,12 +1,12 @@
 import asyncio
-import aiohttp
+from curl_cffi import AsyncSession as CurlAsyncSession
 from Books.Bases.sgp_book_base import SGPBookBase
 from Utils.request_caller import SportbookRequestType
 
 
 class DraftkingsSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="draftkings", sgp_data=sgp_data, **kwargs)
+        super().__init__(request_type=SportbookRequestType.SPOOF, category="SGP", book_name="draftkings", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
@@ -49,7 +49,7 @@ class DraftkingsSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
             sgp_data = {'book_name': 'draftkings', 'links': ['https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83722837O11950_1', 'https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83681931O23450_1']}
 
             book = DraftkingsSGP(sgp_data=sgp_data)
