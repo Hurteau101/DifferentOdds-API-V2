@@ -92,10 +92,6 @@ class Checker:
                             endpoint.add(endpoint_key)
                             break
 
-                if compared_odds.get("dictionary_item_removed") or compared_odds.get("dictionary_item_added"):
-                    previously_sent.add(previously_sent_key)
-                    endpoint.add(endpoint_key)
-
         await self.remover(previously_sent, endpoint)
 
 
