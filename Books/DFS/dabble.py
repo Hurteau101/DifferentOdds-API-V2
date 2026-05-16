@@ -6,11 +6,11 @@ from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
 from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Dabble(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="dabble", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="dabble", request_type=SportbookRequestType.SPOOF)
 
     def _extract_teams(self, game_data: dict, player_data: dict, start_time: str) -> dict | None:
         def team_splitter(team_name):
@@ -118,7 +118,7 @@ class Dabble(DFSBookBase):
         return list(merged_stats.values())
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
             league_data = await self.api_caller(
                 book_name=self.book_data.name,
                 session=session,
@@ -203,6 +203,7 @@ class Dabble(DFSBookBase):
                         self.add_to_events(events, game_data, GameData)
 
             dabble_data = list(events.values())
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=dabble_data)
 
             await self.store_data(
@@ -212,3 +213,7 @@ class Dabble(DFSBookBase):
             )
 
             return mapped_data
+
+if __name__ == "__main__":
+    dabble = Dabble()
+    asyncio.run(dabble.run_book())
