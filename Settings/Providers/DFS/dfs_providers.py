@@ -88,7 +88,7 @@ DFS_PROVIDERS = [
               'if-none-match': 'W/"118d-Ko20dOxZMQt3uUUiTsEJZ5sZZDs"'
         },
         method="GET",
-        is_active=True
+        is_active=False
     ),
     BaseProvider(
         title="ParlayPlay",
