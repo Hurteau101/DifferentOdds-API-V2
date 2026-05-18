@@ -3,8 +3,68 @@ from Books.Prediction_Liquidity.prophetx import Prophetx
 from Redis.redis_manager import RedisAsyncManager
 import json
 import asyncio
+from datetime import datetime
 
 class LiquidityCompare:
+    # def _create_selection_mapping(self, books: dict):
+    #     combined = {}
+    #
+    #     for index, (book_name, book_data) in enumerate(books.items()):
+    #         if not book_data:
+    #             continue
+    #
+    #         if index == 0 and book_name != "novig":
+    #             raise ValueError("Novig should be first in the books dictionary, as their times are usually off.")
+    #
+    #         for game in book_data:
+    #             book_selection_key = game.get("selection_key", {})
+    #             selection_key = (
+    #                 book_selection_key.get("event_name"),
+    #                 book_selection_key.get("market"),
+    #                 book_selection_key.get("line"),
+    #                 book_selection_key.get("bet_type"),
+    #                 book_selection_key.get("bet_team"),
+    #                 book_selection_key.get("bet_player"),
+    #             )
+    #
+    #             start_date = game.get("start_date", "").replace("T", "_")
+    #             event_name = game.get("event_name")
+    #
+    #             bettorodds_key = "_".join(
+    #                 str(value) for value in [
+    #                     start_date,
+    #                     event_name,
+    #                     book_selection_key.get("market"),
+    #                     book_selection_key.get("bet_type"),
+    #                     book_selection_key.get("line"),
+    #                     book_selection_key.get("bet_team"),
+    #                 ] if value is not None
+    #             ).replace(" ", "_").replace("-", "_").lower()
+    #
+    #             event_data = combined.setdefault(event_name, {
+    #                 "league": game.get("league"),
+    #                 "start_date": game.get("start_date"),
+    #                 "event_name": event_name,
+    #                 "odds_map": {}
+    #             })
+    #
+    #             selection = event_data["odds_map"].setdefault(selection_key, {
+    #                 "market": book_selection_key.get("market"),
+    #                 "line": book_selection_key.get("line"),
+    #                 "bettorodds_key": bettorodds_key,
+    #                 "bet_type": book_selection_key.get("bet_type"),
+    #                 "bet_team": book_selection_key.get("bet_team"),
+    #                 "bet_player": book_selection_key.get("bet_player"),
+    #
+    #                 "books": {},
+    #                 "games": {}
+    #             })
+    #
+    #             selection["books"][book_name] = game.get("liquidity_data")
+    #             selection["games"][book_name] = game
+    #
+    #     return combined
+
     def _create_selection_mapping(self, books: dict):
         combined = {}
 
@@ -19,7 +79,7 @@ class LiquidityCompare:
                 book_selection_key = game.get("selection_key", {})
                 selection_key = (
                     book_selection_key.get("event_name"),
-                    book_selection_key.get("market"),
+                    book_selection_key.get("market", '').replace("Player ", ""),
                     book_selection_key.get("line"),
                     book_selection_key.get("bet_type"),
                     book_selection_key.get("bet_team"),
@@ -28,6 +88,15 @@ class LiquidityCompare:
 
                 start_date = game.get("start_date", "").replace("T", "_")
                 event_name = game.get("event_name")
+
+                if event_name in combined:
+                    try:
+                        existing_dt = datetime.fromisoformat(combined[event_name]["start_date"])
+                        current_dt = datetime.fromisoformat(game.get("start_date", ""))
+                        if abs((existing_dt - current_dt).total_seconds()) > 600:
+                            continue
+                    except ValueError:
+                        pass
 
                 bettorodds_key = "_".join(
                     str(value) for value in [
@@ -54,7 +123,6 @@ class LiquidityCompare:
                     "bet_type": book_selection_key.get("bet_type"),
                     "bet_team": book_selection_key.get("bet_team"),
                     "bet_player": book_selection_key.get("bet_player"),
-
                     "books": {},
                     "games": {}
                 })
@@ -63,6 +131,60 @@ class LiquidityCompare:
                 selection["games"][book_name] = game
 
         return combined
+
+    # def add_book_feed(self, bettorodds_data: dict, merged_data: list):
+    #     excluded_values = {
+    #         "bettorodds_key",
+    #         "market",
+    #         "line",
+    #         "bet_type",
+    #         "bet_team",
+    #         "bet_player"
+    #     }
+    #
+    #     unmatched_data = []
+    #     matched_data = []
+    #
+    #     for event in merged_data:
+    #         odds_list = []
+    #
+    #         for odds in event["odds"]:
+    #             odds_key = odds.get("bettorodds_key")
+    #             if not odds_key:
+    #                 continue
+    #
+    #             matched_bettorodds = bettorodds_data.get(odds_key, {})
+    #             book_feed = matched_bettorodds.get("book_feed", {})
+    #
+    #             if not book_feed:
+    #                 continue
+    #
+    #             odds["nvig_map"] = matched_bettorodds.get("nvig_map", {})
+    #             existing_books = set(odds) - excluded_values
+    #
+    #             new_books = {
+    #                 book: values
+    #                 for book, values in book_feed.items()
+    #                 if book not in existing_books
+    #             }
+    #
+    #             if new_books:
+    #                 odds["book_feed"] = new_books
+    #                 odds_list.append(odds)
+    #
+    #         if odds_list:
+    #             matched_data.append({
+    #                 "league": event["league"],
+    #                 "start_date": event["start_date"],
+    #                 "event_name": event["event_name"],
+    #                 "odds": odds_list
+    #             })
+    #
+    #             continue
+    #
+    #         unmatched_data.append(event)
+    #
+    #     return matched_data, unmatched_data
 
     def add_book_feed(self, bettorodds_data: dict, merged_data: list):
         excluded_values = {
@@ -86,6 +208,21 @@ class LiquidityCompare:
                     continue
 
                 matched_bettorodds = bettorodds_data.get(odds_key, {})
+
+                if not matched_bettorodds:
+                    for existing_data in bettorodds_data.values():
+                        if existing_data.get("Match") != event["event_name"]:
+                            continue
+                        try:
+                            existing_dt = datetime.fromisoformat(
+                                existing_data["Date"].replace(" ", "T").replace("Z", "+00:00"))
+                            event_dt = datetime.fromisoformat(event["start_date"].replace("Z", "+00:00"))
+                            if abs((existing_dt - event_dt).total_seconds()) <= 600:
+                                matched_bettorodds = existing_data
+                                break
+                        except (ValueError, KeyError):
+                            continue
+
                 book_feed = matched_bettorodds.get("book_feed", {})
 
                 if not book_feed:
@@ -102,6 +239,9 @@ class LiquidityCompare:
 
                 if new_books:
                     odds["book_feed"] = new_books
+                    # odds_list.append(odds)
+                    if odds.get("bet_player") and not odds["market"].startswith("Player"):
+                        odds["market"] = f"Player {odds['market']}"
                     odds_list.append(odds)
 
             if odds_list:
@@ -185,6 +325,13 @@ class LiquidityCompare:
             "prophetx": await liquidity_redis_instance.get_data("prophetx_chunked"),
         }
 
+        # with open("novig.json", "w") as file:
+        #     json.dump(books.get("novig"), file, indent=2)
+        #
+        # with open("prophetx.json", "w") as file:
+        #     json.dump(books.get("prophetx"), file, indent=2)
+
+
         merged, unmatched = self.compare_books(books)
 
         bettorodds_sportsbook_data = await bettorodds_redis_instance.get_data("bettoroddds_odds")
@@ -193,6 +340,9 @@ class LiquidityCompare:
             return
 
         formated_bettorodds = self.reformat_bettorodds_data(bettorodds_sportsbook_data)
+
+        # with open("formatted_bettorodds.json", "w") as file:
+        #     json.dump(formated_bettorodds, file, indent=2)
 
         finalized_map, finalized_unmapped = self.add_book_feed(formated_bettorodds, merged)
 
@@ -209,12 +359,12 @@ class LiquidityCompare:
 
             with open("finalized_unmapped.json", "w") as file:
                 json.dump(finalized_unmapped, file, indent=2)
+            #
+            # with open("formatted_bettorodds.json", "w") as file:
+            #     json.dump(formated_bettorodds, file, indent=2)
 
-            with open("formatted_bettorodds.json", "w") as file:
-                json.dump(formated_bettorodds, file, indent=2)
-
-            with open("raw_bettorodds.json", "w") as file:
-                json.dump(bettorodds_sportsbook_data, file, indent=2)
+            # with open("raw_bettorodds.json", "w") as file:
+            #     json.dump(bettorodds_sportsbook_data, file, indent=2)
 
             with open("merged.json", "w") as f:
                 json.dump(merged, f, indent=2)
