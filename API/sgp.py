@@ -55,7 +55,7 @@ BOOK_INITIALIZERS = {
     },
     "draftkings": {
         "class": DraftkingsSGP,
-        "session": DEFAULT_SESSION,
+        "session": "curl",
         "timeout": DEFAULT_TIMEOUT
     },
     "hardrock": {
