@@ -6,6 +6,17 @@ from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
 class PredictionLiquidityBase(BookBase):
+    LEAGUE_STAT_OVERRIDES = {
+        "NHL": {
+            "total points": "Total Goals",
+            "spread": "Puck Line",
+        },
+        "MLB": {
+            "total points": "Total Runs",
+            "spread": "Run Line",
+        },
+    }
+
     def __init__(self, book_name: str, request_type: SportbookRequestType):
         super().__init__(category="prediction_liquidity", book_name=book_name, request_type=request_type, redis_database=1,
                          payload_batch=10, async_batch=20, expiration_time=600)
@@ -55,6 +66,11 @@ class PredictionLiquidityBase(BookBase):
 
         if game_data:
             await self._store_chunk_data(data_to_store=game_data, book_name=book_name, timestamp_data=timestamp_data)
+
+    def special_stat_mapper(self, stat_type: str, league: str) -> str:
+        overrides = self.LEAGUE_STAT_OVERRIDES.get(league, {})
+        return overrides.get(stat_type.lower(), stat_type)
+
 
     async def map_runner(self, sportsbook_data: list, session: aiohttp.ClientSession = None):
         mapped_data = await self.bettorodds_mapping.run_mapping(session=session, sportsbook_data=sportsbook_data)
