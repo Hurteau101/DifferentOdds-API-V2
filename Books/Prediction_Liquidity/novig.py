@@ -243,7 +243,8 @@ class Novig(PredictionLiquidityBase):
                 if not outcomes:
                     continue
 
-                market_name = market.get("type", "")
+                market_name = market.get("type", "").replace("_", " ")
+
                 player = market.get("player", {}).get("full_name") if market.get("player") else None
                 line = market.get("strike") if market.get("strike") != 0 else None
 
@@ -267,9 +268,7 @@ class Novig(PredictionLiquidityBase):
                     else:
                         bet_team = None
 
-
-                    event_obj.odds.append(
-                        PredictionLiquidityStats(
+                    stats = PredictionLiquidityStats(
                             line=line,
                             bet_type=modified_info if modified_info in ["over", "under"] else None,
                             market=market_name,
@@ -278,8 +277,23 @@ class Novig(PredictionLiquidityBase):
                             bet_team=bet_team,
                             player_team=None,
                             future=False,
-                        )
                     )
+
+                    stats.market = self.special_stat_mapper(stats.market, league_name)
+                    event_obj.odds.append(stats)
+
+                    # event_obj.odds.append(
+                    #     PredictionLiquidityStats(
+                    #         line=line,
+                    #         bet_type=modified_info if modified_info in ["over", "under"] else None,
+                    #         market=market_name,
+                    #         liquidity_data=orders,
+                    #         bet_player=player,
+                    #         bet_team=bet_team,
+                    #         player_team=None,
+                    #         future=False,
+                    #     )
+                    # )
 
             if event_obj.odds:
                 merged[raw_event.get("id")] = event_obj
@@ -375,6 +389,7 @@ class Novig(PredictionLiquidityBase):
         async with aiohttp.ClientSession() as session:
             leagues = await self.get_leagues(session=session,
                                              excluded_leagues=["ENTERTAINMENT", "HOT", "CUSTOM", "LIVE"])
+
             if not leagues:
                 return None
 
@@ -397,7 +412,6 @@ class Novig(PredictionLiquidityBase):
                 )
             )
 
-
             market_data = await asyncio.gather(
                 *(
                     self._fetch_and_filter_markets(
@@ -412,6 +426,9 @@ class Novig(PredictionLiquidityBase):
             )
 
             game_data = list(chain.from_iterable(filter(None, market_data)))
+            leagues = set()
+            stat_types = set()
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=game_data)
 
             await self.store_data(

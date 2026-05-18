@@ -37,13 +37,22 @@ class Prophetx(PredictionLiquidityBase):
 
 
     def extract_markets(self, market_data: dict, event_data: dict, event_id: str):
+        def normalize_tennis(league):
+            if not league:
+                return league
+
+            return re.sub(r'^(WTA|ATP)\s+.*', r'\1', league, flags=re.IGNORECASE)
+
         event_information = event_data.get(int(event_id)) or event_data.get(event_id)
         if event_information is None:
             print(f"No event information found for event id: {event_id}")
             return
 
+        raw_league = event_information.get("league")
+        league = normalize_tennis(raw_league)
+
         game_data = GameData(
-            league=event_information.get("league"),
+            league=league,
             start_date=event_information.get("start_date"),
             game_key=event_information.get("event_name"),
             team_data=TeamData(
@@ -104,7 +113,10 @@ class Prophetx(PredictionLiquidityBase):
                 if not prediction_data["liquidity_data"]:
                     continue
 
-                game_data.odds.append(PredictionLiquidityStats(**prediction_data))
+                stats = PredictionLiquidityStats(**prediction_data)
+                stats.market = self.special_stat_mapper(stats.market, league)
+                game_data.odds.append(stats)
+                # game_data.odds.append(PredictionLiquidityStats(**prediction_data))
 
 
         return game_data
