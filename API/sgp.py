@@ -27,7 +27,7 @@ class SGPBooks(BaseModel):
     book_name: str
     links: list[str]
     lines: dict | None = None
-    event_data: dict | None = None
+    event_data: dict | list | None = None
 
 DEFAULT_TIMEOUT = 15
 DEFAULT_SESSION = "aiohttp"
