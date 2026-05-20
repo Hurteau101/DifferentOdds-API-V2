@@ -1,7 +1,7 @@
 import asyncio
 import aiohttp
 from fastapi import APIRouter, Request, Query, Depends
-from openai import BaseModel
+from pydantic import BaseModel
 from typing import List, Optional
 from collections import Counter
 from API.Helpers.common import get_books, get_cached_books, get_redis_data
@@ -126,7 +126,7 @@ async def get_sgp_odds(books: List[SGPBooks], request: Request):
         sgp_data = {
             "book_name": book.book_name.lower(),
             "links": book.links,
-            "event_data": book.event_data,
+            "event_data": book.event_data or [],
         }
 
 
@@ -171,7 +171,7 @@ async def get_sgp_odds(books: List[SGPBooks], request: Request):
         odds_by_book = {}
 
         for merge in merged:
-            book_name = merge.get("book_name")
+            book_name: str = merge.get("book_name")
             if book_occurrence[book_name] <= 1:
                 odds_by_book[book_name] = merge.get("odds", None)
             else:
