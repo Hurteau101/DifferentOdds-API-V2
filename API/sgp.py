@@ -90,7 +90,7 @@ BOOK_INITIALIZERS = {
     },
     "betway": {
         "class": BetwaySGP,
-        "session": DEFAULT_SESSION,
+        "session": "curl",
         "timeout": DEFAULT_TIMEOUT
     }
 }
