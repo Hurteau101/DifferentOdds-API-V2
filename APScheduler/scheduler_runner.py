@@ -299,29 +299,42 @@ class BaseSchedulerRunner:
             misfire_grace_time=misfire_grace_time,
         )
 
-    async def run_one(self, cls: type, session: [AiohttpClientSession, CurlAsyncSession], redis_instance_mapper: dict, job: dict):
+    async def run_one(self, cls: type, session: [AiohttpClientSession, CurlAsyncSession], redis_instance_mapper: dict,
+                      job: dict):
         logging.info("=" * 10)
         logging.info(f"-> STARTING: {cls.__name__}")
         instance = cls()
 
         for retry in range(1, 4):
             try:
-               success  = await asyncio.wait_for(instance.run_scheduler(session=session, redis_instance=redis_instance_mapper), timeout=300)
-               if success:
-                   break
+                if job.get("session_type") == "curl":
+                    async with CurlAsyncSession(impersonate="safari15_5") as fresh_session:
+                        success = await asyncio.wait_for(
+                            instance.run_scheduler(session=fresh_session, redis_instance=redis_instance_mapper),
+                            timeout=300
+                        )
+                else:
+                    success = await asyncio.wait_for(
+                        instance.run_scheduler(session=session, redis_instance=redis_instance_mapper),
+                        timeout=300
+                    )
+
+                if success:
+                    break
+
             except asyncio.TimeoutError:
-                logging.error(f"Timeout: {cls.__name__} - Releasing Job")
+                logging.error(f"Timeout: {cls.__name__} - attempt {retry}/3 timed out")
             except Exception as e:
                 logging.error(f"Error: {cls.__name__} - {e}")
 
             wait_time = retry * random.uniform(3, 10)
             await asyncio.sleep(wait_time)
 
-            logging.log(logging.WARNING if retry < 3 else logging.ERROR, f"Retrying {cls.__name__} (attempt {retry}/3)...")
+            logging.log(logging.WARNING if retry < 3 else logging.ERROR,
+                        f"Retrying {cls.__name__} (attempt {retry}/3)...")
 
         logging.info(f"-> FINISHED: {cls.__name__}")
         logging.info("=" * 10 + "\n")
-
 
     async def start(self, session_dict: dict):
         scheduler = AsyncIOScheduler()
