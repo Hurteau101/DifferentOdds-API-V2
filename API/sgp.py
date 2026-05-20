@@ -126,6 +126,7 @@ async def get_sgp_odds(books: List[SGPBooks], request: Request):
         sgp_data = {
             "book_name": book.book_name.lower(),
             "links": book.links,
+            "event_data": book.event_data,
         }
 
 
