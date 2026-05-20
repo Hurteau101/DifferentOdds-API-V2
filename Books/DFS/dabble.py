@@ -5,6 +5,7 @@ from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -119,7 +120,9 @@ class Dabble(DFSBookBase):
 
     async def run_book(self):
         async with CurlAsyncSession(impersonate="safari15_5") as session:
-            league_data = await self.api_caller(
+            proxy_manager = ProxyManager(self.api_caller)
+
+            league_data = await proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
@@ -141,7 +144,7 @@ class Dabble(DFSBookBase):
             ]
 
             tasks = [
-                self.api_caller(
+                proxy_manager.proxy_caller(
                     book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("alternate_url").format(league_id=league_id),
@@ -169,7 +172,7 @@ class Dabble(DFSBookBase):
             )
 
             tasks = [
-                self.api_caller(
+                proxy_manager.proxy_caller(
                     book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("alternate_url_2").format(game_id=game_id),
