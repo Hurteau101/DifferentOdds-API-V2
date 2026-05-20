@@ -210,7 +210,6 @@ class CaesarMapper(BaseMapper):
     #     return False
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
         waf_token = await self._get_waf_token()
-        print(waf_token)
         if not waf_token:
             create_sentry_message(
                 tag_key="caesars",
