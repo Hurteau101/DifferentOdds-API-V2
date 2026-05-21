@@ -603,8 +603,6 @@ class CaesarMapper(BaseMapper):
         else:
             print("Using cached paths for mapping.")
 
-        print(f"Total paths to fetch: {len(cache_data)}")
-
         semaphore = asyncio.Semaphore(5)
 
         async def fetch_market(path):
@@ -658,7 +656,7 @@ class CaesarMapper(BaseMapper):
                 data_to_store=mapping,
                 key_expiration=600
             )
-            print(f"Mapping complete. Total selections mapped: {len(mapping)}")
+
             return True
 
         return False
