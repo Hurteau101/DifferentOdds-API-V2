@@ -646,7 +646,7 @@ class CaesarMapper(BaseMapper):
             await redis_instance.store_data(
                 key_name="caesar_mapped_ids",
                 data_to_store=mapping,
-                key_expiration=600
+                key_expiration=800
             )
             return True
 
