@@ -19,7 +19,7 @@ class CaesarAuth(BaseScheduler):
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager, proxy_index=None) -> bool:
 
-        proxy = os.getenv("RESIDENTIAL_PROXIES")
+        proxy = os.getenv("CAESAR_PROXIES")
         if not proxy:
             create_sentry_message(
                 tag_key="caesars",
