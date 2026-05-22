@@ -80,15 +80,25 @@ class CaesarsSGP(SGPBookBase):
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
-        auth_token = await self.load_auth_token(key_name="caesars_waf_token")
-        if not auth_token:
+        auth_token_data = await self.load_auth_token(key_name="caesars_waf_token")
+
+        if not auth_token_data:
+            return None
+
+        waf_token = auth_token_data.get("waf_token")
+        cookie_str = auth_token_data.get("cookie_str")
+        proxy_index = auth_token_data.get("proxy_index")
+        proxy_str = auth_token_data.get("proxy_str")
+
+
+        if not all([waf_token is not None, cookie_str is not None, proxy_index is not None, proxy_str is not None]):
             create_sentry_message(
                 tag_key="caesars",
-                tag_value="auth_failure",
-                message="No auth token was found in Redis",
+                tag_value="no_auth",
+                message="Couldn't find WAF token in redis",
                 level="error"
             )
-            return
+            return False
 
         line_data = self._lines_extraction(self.lines if self.lines else {})
 
@@ -137,7 +147,9 @@ class CaesarsSGP(SGPBookBase):
             session=session,
             url=self.book_data.url.get("main_url"),
             method=self.book_data.method,
-            headers={**self.book_data.headers, "x-aws-waf-token": auth_token},
+            headers={**self.book_data.mapping.headers,
+                     "x-aws-waf-token": waf_token,
+                     "Cookie": cookie_str},
             payload=payload,
             parse_json=True
         )
@@ -172,8 +184,8 @@ if __name__ == "__main__":
             sgp_data = {
                 "book_name": "caesars",
                 "links": [
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=a9aa77a0-f652-344b-b4d1-44ca1b5483d2",
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=b2d1a928-3d0f-3e34-99be-6ab446ee305c",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=f1a06cf7-57a7-3550-90f4-01b6b69ce94b",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=935c7b73-6120-385a-adac-402b97a2876b",
                 ],
             }
 
