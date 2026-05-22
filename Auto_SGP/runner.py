@@ -517,7 +517,7 @@ class AutoSGP(APICaller):
                     print(f"Failed after retries: {e} [{book_name}]")
                     traceback.print_exc()
 
-        return book_name, No
+        return book_name, None
 
     async def controller(self, sgp_data: dict, minimum_ev: float) -> dict:
         individual_odds_dict = sgp_data.get("individual_odds_dict", {})
