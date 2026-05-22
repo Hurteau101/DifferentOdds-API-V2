@@ -1,13 +1,13 @@
-# # import asyncio
-# # from itertools import chain
-# # import aiohttp
-# # import os
-# # from Database.database import Database
-# # from External_Book_Mapping.base_mapper import BaseMapper
-# # from Monitoring.monitoring import create_sentry_message
-# # from Redis.redis_manager import RedisAsyncManager
-# # from Utils.proxy_manger import ProxyManager
-# # from Utils.request_caller import SportbookRequestType
+# import asyncio
+# from itertools import chain
+# import aiohttp
+# import os
+# from Database.database import Database
+# from External_Book_Mapping.base_mapper import BaseMapper
+# from Monitoring.monitoring import create_sentry_message
+# from Redis.redis_manager import RedisAsyncManager
+# from Utils.proxy_manger import ProxyManager
+# from Utils.request_caller import SportbookRequestType
 # #
 # #
 # # class CaesarMapper(BaseMapper):
@@ -452,6 +452,10 @@ import asyncio
 import random
 from itertools import chain
 import os
+
+import aiohttp
+
+from Authentication.caesars_auth import CaesarAuth
 from Database.database import Database
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
@@ -559,10 +563,25 @@ class CaesarMapper(BaseMapper):
 
         return results
 
-    async def run_scheduler(self, session, redis_instance: RedisAsyncManager) -> bool:
-        waf_token = await self._get_waf_token()
+    async def _recall_auth(self, proxy_index):
+        redis_instance = RedisAsyncManager(database=5)
+        caesar = CaesarAuth()
+        async with aiohttp.ClientSession() as session:
+            return await caesar.run_scheduler(session, redis_instance, proxy_index=proxy_index)
 
-        if not waf_token:
+    async def run_scheduler(self, session, redis_instance: RedisAsyncManager) -> bool:
+        waf_token_data = await self._get_waf_token()
+
+        if not waf_token_data:
+            return False
+
+        waf_token = waf_token_data.get("waf_token")
+        cookie_str = waf_token_data.get("cookie_str")
+        proxy_index = waf_token_data.get("proxy_index")
+        proxy_str = waf_token_data.get("proxy_str")
+
+
+        if not all([waf_token is not None, cookie_str is not None, proxy_index is not None, proxy_str is not None]):
             create_sentry_message(
                 tag_key="caesars",
                 tag_value="no_auth",
@@ -571,26 +590,15 @@ class CaesarMapper(BaseMapper):
             )
             return False
 
-        proxy = os.getenv("CAESAR_PROXIES")
-        if not proxy:
-            create_sentry_message(
-                tag_key="caesars",
-                tag_value="proxy_failure",
-                message="No proxy found",
-                level="error"
-            )
-            return False
 
-        proxies = proxy.split(",")
-        print(proxies)
-
-        proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
+        proxy_manager = ProxyManager(proxies=[proxy_str], api_caller_func=self.api_caller)
 
         had_cache, cache_data = await self._get_path_cache(redis_instance)
 
         if not had_cache:
             print("No cache found, extracting paths...")
             cache_data = await self._extract_cache(proxy_manager, session, waf_token, redis_instance)
+
             if not cache_data:
                 create_sentry_message(
                     tag_key="caesars",
@@ -598,52 +606,36 @@ class CaesarMapper(BaseMapper):
                     message="No paths extracted",
                     level="error"
                 )
-                return False
+
+                print("Retrying auth...")
+                success = await self._recall_auth(proxy_index=proxy_index)
+
+                if not success:
+                    return False
+
+                return await self.run_scheduler(session, redis_instance)
+
+
             print(f"Extracted {len(cache_data)} paths and stored in cache.")
         else:
             print("Using cached paths for mapping.")
 
-        semaphore = asyncio.Semaphore(5)
+        semaphore = asyncio.Semaphore(10)
 
         async def fetch_market(path):
             async with semaphore:
-                await asyncio.sleep(random.uniform(0.3, 0.8))
                 return await proxy_manager.proxy_caller(
                     book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.mapping.url.get("market_url").format(path=path),
                     method=self.book_data.mapping.method,
-                    headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token,
-                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
-                             'Accept': 'application/json',
-                             'Accept-Language': 'en-US,en;q=0.9',
-                             'Accept-Encoding': 'gzip, deflate, br, zstd',
-                             'Referer': 'https://sportsbook.caesars.com/',
-                             'content-type': 'application/json',
-                             'x-app-version': '7.47.1',
-                             'x-platform': 'cordova-desktop',
-                             'x-unique-device-id': '53c26028-d052-4871-83e7-a6cbf3686f57',
-                             'Origin': 'https://sportsbook.caesars.com',
-                             'Connection': 'keep-alive',
-                             'Sec-Fetch-Dest': 'empty',
-                             'Sec-Fetch-Mode': 'cors',
-                             'Sec-Fetch-Site': 'cross-site',
-                             'Priority': 'u=0',
-                             'TE': 'trailers'
-                             },
+                    headers={**self.book_data.mapping.headers,
+                             "x-aws-waf-token": waf_token,
+                             "Cookie": cookie_str},
                     parse_json=True
                 )
 
         market_url_results = await asyncio.gather(*[fetch_market(path) for path in cache_data])
-
-        if not market_url_results:
-            create_sentry_message(
-                tag_key="caesars",
-                tag_value="no_market_data",
-                message="No market data found during Caesar mapping.",
-                level="error"
-            )
-            return False
 
         mapping = {}
         for result in market_url_results:
@@ -656,10 +648,73 @@ class CaesarMapper(BaseMapper):
                 data_to_store=mapping,
                 key_expiration=600
             )
-
             return True
 
-        return False
+        success = await self._recall_auth(proxy_index=proxy_index)
+
+        if not success:
+            return False
+
+        return await self.run_scheduler(session, redis_instance)
+
+        #
+        # semaphore = asyncio.Semaphore(1)
+        #
+        # async def fetch_market(path):
+        #     async with semaphore:
+        #         # await asyncio.sleep(random.uniform(0.3, 0.8))
+        #         return await proxy_manager.proxy_caller(
+        #             book_name=self.book_data.name,
+        #             session=session,
+        #             url=self.book_data.mapping.url.get("market_url").format(path=path),
+        #             method=self.book_data.mapping.method,
+        #             headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token,
+        #                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+        #                      'Accept': 'application/json',
+        #                      'Accept-Language': 'en-US,en;q=0.9',
+        #                      'Accept-Encoding': 'gzip, deflate, br, zstd',
+        #                      'Referer': 'https://sportsbook.caesars.com/',
+        #                      'content-type': 'application/json',
+        #                      'x-app-version': '7.47.1',
+        #                      'x-platform': 'cordova-desktop',
+        #                      'x-unique-device-id': '53c26028-d052-4871-83e7-a6cbf3686f57',
+        #                      'Origin': 'https://sportsbook.caesars.com',
+        #                      'Connection': 'keep-alive',
+        #                      'Sec-Fetch-Dest': 'empty',
+        #                      'Sec-Fetch-Mode': 'cors',
+        #                      'Sec-Fetch-Site': 'cross-site',
+        #                      'Priority': 'u=0',
+        #                      'TE': 'trailers'
+        #                      },
+        #             parse_json=True
+        #         )
+        #
+        # market_url_results = await asyncio.gather(*[fetch_market(path) for path in cache_data])
+        #
+        # if not market_url_results:
+        #     create_sentry_message(
+        #         tag_key="caesars",
+        #         tag_value="no_market_data",
+        #         message="No market data found during Caesar mapping.",
+        #         level="error"
+        #     )
+        #     return False
+        #
+        # mapping = {}
+        # for result in market_url_results:
+        #     if result:
+        #         mapping.update(self._create_mapping(result))
+        #
+        # if mapping:
+        #     await redis_instance.store_data(
+        #         key_name="caesar_mapped_ids",
+        #         data_to_store=mapping,
+        #         key_expiration=600
+        #     )
+        #
+        #     return True
+        #
+        # return False
 
 
 if __name__ == "__main__":

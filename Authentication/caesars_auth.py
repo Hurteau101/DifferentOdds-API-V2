@@ -17,7 +17,7 @@ class CaesarAuth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager, proxy_index=None) -> bool:
 
         proxy = os.getenv("RESIDENTIAL_PROXIES")
         if not proxy:
@@ -33,82 +33,88 @@ class CaesarAuth(BaseScheduler):
         proxies = proxy.split(",")
 
         async with async_playwright() as play:  # ← start once
-            for attempt in range(CaesarAuth.MAX_RETRY):
-                for proxy in proxies:
-                    ip, port, username, password = proxy.split(":")
+            for index, proxy in enumerate(proxies):
+                if proxy_index is not None and index <= proxy_index:
+                    print("Skipping index:", index)
+                    continue
 
-                    browser = None
+                ip, port, username, password = proxy.split(":")
 
-                    try:
-                        browser = await play.chromium.launch(
-                            headless=True,
-                            proxy={
-                                "server": f"http://{ip}:{port}",
-                                "username": username,
-                                "password": password,
+                browser = None
+
+                try:
+                    browser = await play.chromium.launch(
+                        headless=True,
+                        proxy={
+                            "server": f"http://{ip}:{port}",
+                            "username": username,
+                            "password": password,
+                        },
+
+                        args=[
+                            "--disable-blink-features=AutomationControlled",
+                            "--start-maximized"
+                        ]
+                    )
+
+                    context = await browser.new_context()
+
+                    await context.route(
+                        "**/*",
+                        lambda route: (
+                            route.abort()
+                            if route.request.resource_type in ["image", "media", "font"]
+                            else route.continue_()
+                        )
+                    )
+
+                    page = await context.new_page()
+
+                    await page.goto(
+                        "https://sportsbook.caesars.com/us/az/bet/",
+                        wait_until="networkidle",
+                        timeout=60_000
+                    )
+
+                    await page.locator(
+                        "//div[normalize-space()='Betslip']"
+                    ).wait_for(state="visible", timeout=60_000)
+
+                    cookies = await context.cookies()
+
+                    waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
+                    cookie_str = "; ".join(f"{c['name']}={c['value']}" for c in cookies)
+
+                    if waf_token and cookie_str:
+                        await redis_instance.store_data(
+                            key_name="caesars_waf_token",
+                            data_to_store={
+                                "waf_token": waf_token,
+                                "cookie_str": cookie_str,
+                                "proxy_index": index,
+                                "proxy_str": proxy
                             },
-
-                            args=[
-                                "--disable-blink-features=AutomationControlled",
-                                "--start-maximized"
-                            ]
+                            key_expiration=720
                         )
+                        return True
 
-                        context = await browser.new_context()
+                except Exception as e:
+                    create_sentry_message(
+                        tag_key="caesars",
+                        tag_value="Exception",
+                        message=str(e),
+                        level="error"
+                    )
 
-                        await context.route(
-                            "**/*",
-                            lambda route: (
-                                route.abort()
-                                if route.request.resource_type in ["image", "media", "font"]
-                                else route.continue_()
-                            )
-                        )
+                    print(e)
 
-                        page = await context.new_page()
+                    continue
 
-                        await page.goto(
-                            "https://sportsbook.caesars.com/us/az/bet/",
-                            wait_until="networkidle",
-                            timeout=60_000
-                        )
+                finally:
+                    if browser:
+                        await browser.close()
 
-                        await page.locator(
-                            "//div[normalize-space()='Betslip']"
-                        ).wait_for(state="visible", timeout=60_000)
 
-                        cookies = await context.cookies()
-
-                        waf_token = next(
-                            (cookie["value"] for cookie in cookies if cookie["name"] == "aws-waf-token"),
-                            None
-                        )
-
-                        if waf_token:
-                            await redis_instance.store_data(
-                                key_name="caesars_waf_token",
-                                data_to_store=waf_token,
-                                key_expiration=720
-                            )
-                            return True
-
-                    except Exception as e:
-                        create_sentry_message(
-                            tag_key="caesars",
-                            tag_value="Exception",
-                            message=str(e),
-                            level="error"
-                        )
-
-                        print(e)
-
-                        continue
-
-                    finally:
-                        if browser:
-                            await browser.close()
-
-                await asyncio.sleep(CaesarAuth.RETRY_DELAY)
 
         create_sentry_message(
             tag_key="caesars",
