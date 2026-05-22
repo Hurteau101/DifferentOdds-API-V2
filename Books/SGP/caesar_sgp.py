@@ -118,7 +118,7 @@ class CaesarsSGP(SGPBookBase):
 
         payload = self._create_payload(mapped_data)
 
-        proxy = os.getenv("RESIDENTIAL_PROXIES")
+        proxy = os.getenv("CAESAR_PROXIES")
 
         if not proxy:
             create_sentry_message(

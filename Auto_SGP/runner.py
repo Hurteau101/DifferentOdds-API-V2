@@ -483,20 +483,41 @@ class AutoSGP(APICaller):
             "non_met_books": non_met_books
         }
 
-    async def run_sgp_with_retry(self, book_cls, book_name, session, retry_times=3):
+    # async def run_sgp_with_retry(self, book_cls, book_name, session, retry_times=3):
+    #     for attempt in range(retry_times):
+    #         try:
+    #             odds = await book_cls.run_book(session=session)
+    #
+    #             if odds:
+    #                 return book_name, odds
+    #
+    #         except Exception as e:
+    #             if attempt == retry_times - 1:
+    #                 print(f"Failed after retries: {e} [{book_name}]")
+    #                 traceback.print_exc()
+    #
+    #     return book_name, None
+
+    async def run_sgp_with_retry(self, book_cls, book_name, session, retry_times=3, timeout=20):
         for attempt in range(retry_times):
             try:
-                odds = await book_cls.run_book(session=session)
-
+                odds = await asyncio.wait_for(
+                    book_cls.run_book(session=session),
+                    timeout=timeout
+                )
                 if odds:
                     return book_name, odds
 
+            except asyncio.TimeoutError:
+                print(f"Timeout on attempt {attempt + 1} for {book_name}")
+                if attempt == retry_times - 1:
+                    print(f"Giving up on {book_name} after {retry_times} timeouts")
             except Exception as e:
                 if attempt == retry_times - 1:
                     print(f"Failed after retries: {e} [{book_name}]")
                     traceback.print_exc()
 
-        return book_name, None
+        return book_name, No
 
     async def controller(self, sgp_data: dict, minimum_ev: float) -> dict:
         individual_odds_dict = sgp_data.get("individual_odds_dict", {})
