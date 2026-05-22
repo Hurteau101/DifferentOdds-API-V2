@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 import redis
@@ -38,7 +39,8 @@ def run_autosgp():
     start_time = time.perf_counter()
 
     try:
-        async_to_sync(run_sgp)()
+        # async_to_sync(run_sgp)()
+        asyncio.run(run_sgp())
         elapsed_time = time.perf_counter() - start_time
         print(f"<><><> Full Parlay Process Took: {elapsed_time:.2f} seconds <><><>")
 
