@@ -133,12 +133,49 @@ from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
-
+import aiohttp, re
 
 class OnyxAuth(BaseScheduler):
     load_dotenv()
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
+
+    async def _extract_otp(self):
+        email_client_base_url = "https://api.mail.tm"
+
+        EMAIL_OTP_EMAIL = os.getenv("EMAIL_OTP_EMAIL")
+        EMAIL_OTP_PASSWORD = os.getenv("EMAIL_OTP_PASSWORD")
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{email_client_base_url}/token", json={"address": EMAIL_OTP_EMAIL, "password": EMAIL_OTP_PASSWORD}) as response:
+                token = (await response.json())["token"]
+
+            headers = {"Authorization": f"Bearer {token}"}
+
+            for _ in range(15):
+                async with session.get(f"{email_client_base_url}/messages", headers=headers) as r:
+                    messages = (await r.json())["hydra:member"]
+
+                unread = [message for message in messages if not message["seen"]]
+                if unread:
+                    msg_id = unread[0]["id"]
+                    async with session.get(f"{email_client_base_url}/messages/{msg_id}", headers=headers) as r:
+                        msg = await r.json()
+
+                    # Delete the message, so there is no conflict.
+                    async with session.delete(f"{email_client_base_url}/messages/{msg_id}", headers=headers):
+                        pass
+
+                    body = msg.get("text") or msg.get("html") or ""
+                    match = re.search(r'\b\d{6}\b', body)
+                    if match:
+                        return match.group()
+
+                await asyncio.sleep(2)
+
+        return None
+
+
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         login_username = os.getenv("ONYX_EMAIL")
@@ -199,6 +236,23 @@ class OnyxAuth(BaseScheduler):
                         """)
 
                         await page.click('button[type="submit"]')
+
+                        try:
+                            await page.wait_for_selector('input[name="emailCode"]', timeout=10000)
+                            print("2FA required, fetching OTP...")
+
+                            otp = await self._extract_otp()
+                            if not otp:
+                                print("Failed to get OTP")
+                                continue
+
+                            print(f"Got OTP: {otp}")
+                            await page.fill('input[name="emailCode"]', otp)
+                            await page.click('button[type="submit"]')
+
+                        except:
+                            pass
+
 
                         try:
                             await page.wait_for_url("https://app.onyxodds.com/", timeout=15000)
