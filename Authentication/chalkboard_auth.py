@@ -69,3 +69,18 @@ class ChalkboardAuth(BaseScheduler):
         )
 
         return True
+
+if __name__ == "__main__":
+    import asyncio
+    from Redis.redis_manager import RedisAsyncManager
+    import aiohttp
+
+    redis_instance = RedisAsyncManager(database=5)
+    caesar = ChalkboardAuth()
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            await caesar.run_scheduler(session, redis_instance)
+
+    asyncio.run(main())
+
+
