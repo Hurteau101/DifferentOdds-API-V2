@@ -88,12 +88,19 @@ def create_differences(esports_data):
             team_b = teams[1]
 
             player_team = entry.get("player_team") or team_data.get("player_team")
-
             opponent = team_b if player_team.lower() != team_b.lower() else team_a
 
             for stat in entry.get("stats", []):
+                if book_name == "prizepicks":
+                    if not stat.get("regular_line"):
+                        continue
+                else:
+                    multiplier = stat.get("optional_stats", {}).get("multiplier") or 1
+                    if multiplier not in (1, 1.0):
+                        continue
+
                 stat_type = stat.get("stat_type").lower()
-                stat_key = f"{player_key}-{stat_type}-{opponent.lower()}"
+                stat_key = f"{player_key}-{stat_type}-{league}"
                 team_list = sorted([team_a.lower(), team_b.lower()])
                 game = " vs ".join(team_list)
 
@@ -110,28 +117,22 @@ def create_differences(esports_data):
                     }
 
                 book_entry = next(
-                    (book for book in differences[stat_key]["books"] if
-                     book["book_name"] == book_name),
+                    (book for book in differences[stat_key]["books"] if book["book_name"] == book_name),
                     None
                 )
 
                 if not book_entry:
                     book_entry = {
                         "book_name": book_name,
-                        "betlink": stat.get("optional_stats").get("betlink", {}) if book_name == "prizepicks" else {},
+                        "betlink": stat.get("optional_stats", {}).get("betlink", {}) if book_name == "prizepicks" else {},
                         "line": stat.get("line"),
                         "directions": []
                     }
                     differences[stat_key]["books"].append(book_entry)
 
-                if book_name == "prizepicks":
-                    multiplier = 1 if stat.get("regular_line") else 1.01
-                else:
-                    multiplier = stat.get("optional_stats", {}).get("multiplier") if stat.get("optional_stats", {}).get("multiplier") else 1
-
                 direction = {
                     "bet_direction": stat.get("bet_direction"),
-                    "multiplier": multiplier,
+                    "multiplier": 1,
                 }
                 if direction not in book_entry["directions"]:
                     book_entry["directions"].append(direction)
@@ -147,6 +148,97 @@ def create_differences(esports_data):
             reverse=False
         )
     )
+
+
+# def create_differences(esports_data):
+#     """Create a structure to identify differences in esports DFS lines across books."""
+#
+#     differences = {}
+#
+#     for book_name, book_data in esports_data.items():
+#         for entry in book_data.get("data", []):
+#             player_name = entry.get("player_name").lower() if entry.get("player_name") else None
+#             start_date = entry.get("start_date", None)
+#             league = entry.get("league").upper() if entry.get("league") else None
+#
+#             if not all([player_name, start_date, league]):
+#                 continue
+#
+#             if entry.get("is_combo"):
+#                 continue
+#
+#             team_data = entry.get("team_data", {})
+#             teams = sorted([team_data.get("team_a").strip(), team_data.get("team_b").strip()])
+#
+#             if league in ["COD"]:
+#                 player_key = f"{player_name}-{league}-{''.join(teams)}"
+#             else:
+#                 player_key = f"{player_name}-{league}-{start_date}"
+#                 print(player_key)
+#
+#             team_a = teams[0]
+#             team_b = teams[1]
+#
+#             player_team = entry.get("player_team") or team_data.get("player_team")
+#
+#             opponent = team_b if player_team.lower() != team_b.lower() else team_a
+#
+#             for stat in entry.get("stats", []):
+#                 stat_type = stat.get("stat_type").lower()
+#                 stat_key = f"{player_key}-{stat_type}-{opponent.lower()}"
+#                 team_list = sorted([team_a.lower(), team_b.lower()])
+#                 game = " vs ".join(team_list)
+#
+#                 if stat_key not in differences:
+#                     differences[stat_key] = {
+#                         "player_name": player_name,
+#                         "start_date": start_date,
+#                         "league": league,
+#                         "player_team": player_team,
+#                         "opponent": opponent,
+#                         "game": game,
+#                         "stat_type": stat_type,
+#                         "books": []
+#                     }
+#
+#                 book_entry = next(
+#                     (book for book in differences[stat_key]["books"] if
+#                      book["book_name"] == book_name),
+#                     None
+#                 )
+#
+#                 if not book_entry:
+#                     book_entry = {
+#                         "book_name": book_name,
+#                         "betlink": stat.get("optional_stats").get("betlink", {}) if book_name == "prizepicks" else {},
+#                         "line": stat.get("line"),
+#                         "directions": []
+#                     }
+#                     differences[stat_key]["books"].append(book_entry)
+#
+#                 if book_name == "prizepicks":
+#                     multiplier = 1 if stat.get("regular_line") else 1.01
+#                 else:
+#                     multiplier = stat.get("optional_stats", {}).get("multiplier") if stat.get("optional_stats", {}).get("multiplier") else 1
+#
+#                 direction = {
+#                     "bet_direction": stat.get("bet_direction"),
+#                     "multiplier": multiplier,
+#                 }
+#                 if direction not in book_entry["directions"]:
+#                     book_entry["directions"].append(direction)
+#
+#     differences = find_highest_discrep(differences)
+#
+#     filtered = {k: v for k, v in sorted(differences.items()) if len(v["books"]) > 1}
+#
+#     return dict(
+#         sorted(
+#             filtered.items(),
+#             key=lambda item: item[1].get("highest_discrepancy", 0),
+#             reverse=False
+#         )
+#     )
 
 
 
