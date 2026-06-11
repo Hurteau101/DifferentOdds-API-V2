@@ -1,12 +1,18 @@
 import asyncio
+import os
+
 import aiohttp
+from dotenv import load_dotenv
+
 from Books.Bases.sgp_book_base import SGPBookBase
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 
+load_dotenv()
 
 class NovigSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="novig", sgp_data=sgp_data, **kwargs)
+        super().__init__(request_type=SportbookRequestType.SPOOF, category="SGP", book_name="novig", sgp_data=sgp_data, **kwargs)
 
     def _extract_odds(self, api_data: list) -> float | None:
         check_sgp = set(
@@ -38,9 +44,29 @@ class NovigSGP(SGPBookBase):
             "outcomes": ids
         }
 
-        api_data = await self.api_caller(
+        proxy_1 = os.getenv("RESIDENTIAL_PROXIES")
+        proxy_2 = os.getenv("PROXIES")
+        proxies = [
+            prx
+            for proxy in [proxy_1, proxy_2] if proxy
+            for prx in proxy.split(",")
+        ]
+
+        proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
+
+        # api_data = await self.api_caller(
+        #     book_name=self.book_data.name,
+        #     headers=self.book_data.headers,
+        #     session=session,
+        #     url=self.book_data.url.get("main_url"),
+        #     method="POST",
+        #     payload=payload
+        # )
+
+        api_data = await proxy_manager.proxy_caller(
             book_name=self.book_data.name,
             session=session,
+            headers=self.book_data.headers,
             url=self.book_data.url.get("main_url"),
             method="POST",
             payload=payload
@@ -57,3 +83,18 @@ class NovigSGP(SGPBookBase):
 
 
         return None
+
+
+if __name__ == "__main__":
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            sgp_data = {'book_name': 'novig', 'links': [
+                "https://novig.com/events/019eb156-1ad0-7fd3-be04-bbce01dea3d2/null",
+                "https://novig.com/events/019eb156-1ad7-7322-8be2-9aa8f8a0b141/null",
+
+            ]}
+            novig_sgp = NovigSGP(sgp_data=sgp_data)
+            results = await novig_sgp.run_book(session=session)
+
+
+    asyncio.run(main())

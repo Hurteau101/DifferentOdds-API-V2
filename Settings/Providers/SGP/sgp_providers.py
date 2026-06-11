@@ -156,6 +156,20 @@ SGP_PROVIDERS = [
             "event_id": r"events/([^/]+)",
         },
         method="POST",
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Content-Type': 'application/json',
+            'Origin': 'https://novig.com',
+            'Connection': 'keep-alive',
+            'Referer': 'https://novig.com/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
+            'TE': 'trailers'
+        },
         is_active=True,
     ),
     SGPProvider(
