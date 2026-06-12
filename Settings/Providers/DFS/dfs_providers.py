@@ -227,6 +227,6 @@ DFS_PROVIDERS = [
             "stat_url": "https://sportsdata.prod.epickfantasy.com/api/props/ui?state_or_territory=CA&mode=DUEL&limit=1000"
         },
         method="GET",
-        is_active=True
+        is_active=False
     )
 ]
