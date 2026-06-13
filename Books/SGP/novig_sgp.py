@@ -12,7 +12,7 @@ load_dotenv()
 
 class NovigSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.SPOOF, category="SGP", book_name="novig", sgp_data=sgp_data, **kwargs)
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="novig", sgp_data=sgp_data, **kwargs)
 
     def _extract_odds(self, api_data: list) -> float | None:
         check_sgp = set(
@@ -63,7 +63,16 @@ class NovigSGP(SGPBookBase):
         #     payload=payload
         # )
 
-        api_data = await proxy_manager.proxy_caller(
+        # api_data = await proxy_manager.proxy_caller(
+        #     book_name=self.book_data.name,
+        #     session=session,
+        #     headers=self.book_data.headers,
+        #     url=self.book_data.url.get("main_url"),
+        #     method="POST",
+        #     payload=payload
+        # )
+
+        api_data = await proxy_manager.rotating_proxy_caller(
             book_name=self.book_data.name,
             session=session,
             headers=self.book_data.headers,
@@ -71,7 +80,6 @@ class NovigSGP(SGPBookBase):
             method="POST",
             payload=payload
         )
-
 
         if not api_data:
             return None
@@ -95,6 +103,6 @@ if __name__ == "__main__":
             ]}
             novig_sgp = NovigSGP(sgp_data=sgp_data)
             results = await novig_sgp.run_book(session=session)
-
+            print(results)
 
     asyncio.run(main())

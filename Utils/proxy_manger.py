@@ -1,10 +1,13 @@
+import asyncio
 import os
 from itertools import cycle
 from typing import Union
 from curl_cffi import AsyncSession as CurlAsyncSession
 from aiohttp import ClientSession as AiohttpClientSession
+from dotenv import load_dotenv
 from Monitoring.monitoring import create_sentry_message
 
+load_dotenv()
 
 class ProxyManager:
     def __init__(self, api_caller_func, proxies=None):
@@ -15,6 +18,67 @@ class ProxyManager:
         self.proxy_amount = len(self.proxies)
         self.proxy_pool = cycle(self.proxies)
         self.api_caller = api_caller_func
+
+
+    async def rotating_proxy_caller(
+            self,
+            book_name: str,
+            session: Union[CurlAsyncSession, AiohttpClientSession],
+            url: str,
+            method: str,
+            headers: dict | None = None,
+            payload: dict | None = None,
+            parse_json: bool = False,
+            params: dict | None = None,
+            max_retries: int = 5,
+    ):
+        """Attempt to call the API using Floppydata rotating proxy, retrying on failure."""
+        connection_url = os.getenv("FLOPPYDATA_PROXY_URL")
+        if not connection_url:
+            create_sentry_message(
+                tag_key="proxy",
+                tag_value="proxy_failure",
+                message="FLOPPYDATA_PROXY_URL environment variable is not set.",
+                level="error"
+            )
+
+            return None
+
+        for attempt in range(max_retries):
+            try:
+                api_data = await self.api_caller(
+                    book_name=book_name,
+                    session=session,
+                    url=url,
+                    method=method,
+                    proxy=connection_url,
+                    headers=headers,
+                    params=params,
+                    payload=payload,
+                    parse_json=parse_json
+                )
+
+                return api_data
+
+                # if api_data:
+                #     return api_data
+
+            except Exception as e:
+                print(e)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(0.5)
+                    continue
+
+        create_sentry_message(
+            tag_key="proxy",
+            tag_value="all_proxies_failed",
+            message=f"All proxy attempts failed for {book_name}",
+            level="error"
+        )
+
+        print(f"All proxies failed for {book_name}")
+        return None
+
 
     def _cycle_proxies(self):
         """Get the next proxy from the pool."""

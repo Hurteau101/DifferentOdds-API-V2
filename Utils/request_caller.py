@@ -20,6 +20,7 @@ class APICaller:
     """Class to handle outbound API requests for sportsbooks and handle there responses"""
     def __init__(self, request_type: SportbookRequestType, valid_status_codes: list[int] | None = None):
         self.valid_status_codes = valid_status_codes or [200, 201]
+        self.invalid_pass_codes = [400]
         self.request_type = request_type
 
     async def api_caller(self,
@@ -59,9 +60,11 @@ class APICaller:
 
     def handle_sync_response(self, response: CurlResponse, parse_json: bool, book_name: str) -> dict | None:
         """Handle a curl_cffi (non-async) response."""
-        if response.status_code not in self.valid_status_codes:
+        if response.status_code not in self.valid_status_codes and response.status_code not in self.invalid_pass_codes:
             print(f"\n******* Failed {book_name} | Text: {response.text} *************\n", response.status_code)
 
+        if response.status_code in self.invalid_pass_codes:
+            return None
 
         if response.status_code in self.valid_status_codes:
             try:
@@ -82,8 +85,11 @@ class APICaller:
 
     async def handle_async_response(self, response: ClientResponse, parse_json: bool, book_name: str) -> dict | None:
         """Handle aiohttp async response."""
-        if response.status not in self.valid_status_codes:
+        if response.status not in self.valid_status_codes and response.status not in self.invalid_pass_codes:
             print(f"\n******* Failed {book_name} | Text: {await response.text()} *************\n", response.status)
+
+        if response.status in self.invalid_pass_codes:
+            return None
 
         if response.status in self.valid_status_codes:
             try:
