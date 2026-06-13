@@ -82,13 +82,9 @@ class BovadaSGP(SGPBookBase):
             url=self.book_data.url.get("sgp_url"),
             method=self.book_data.method,
             headers=self.book_data.headers,
-            params=params.get("outcome_ids", [])
+            params=params.get("outcome_ids", []),
+            ssl=False
         )
-
-        import json
-
-        with open("bovada_sgp_response.json", "w") as f:
-            json.dump(api_data, f, indent=4)
 
         if not api_data:
             return
@@ -124,15 +120,25 @@ if __name__ == "__main__":
     async def main():
         async with aiohttp.ClientSession() as session:
             sgp_data = {
-                'book_name': 'bovada',
-                'links': [
-                    "https://www.bovada.lv/sports/basketball/nba/boston-celtics-philadelphia-76ers-202604261900",
-                    "https://www.bovada.lv/sports/basketball/nba/boston-celtics-philadelphia-76ers-202604261900",
+                "book_name": "bovada",
+                "links": [
+                    "https://www.bovada.lv/sports/basketball/nba/new-york-knicks-san-antonio-spurs-202606132030",
+                    "https://www.bovada.lv/sports/basketball/nba/new-york-knicks-san-antonio-spurs-202606132030"
                 ],
-                'event_data': [
-                    {'market_name': 'Player Assists', 'selection_name': 'Sam Hauser Under 1.5', "line": 1.5},
-                    # {'market_name': 'moneyline', 'selection_name': 'boston celtics', "line": None},
-                    {'market_name': 'Total Points', 'selection_name': 'under 213', "line": 213}
+                "lines": {
+                    "https://www.bovada.lv/sports/basketball/nba/new-york-knicks-san-antonio-spurs-202606132030": 18.5
+                },
+                "event_data": [
+                    {
+                        "market_name": "player total points",
+                        "selection_name": "og anunoby under 16.5",
+                        "line": "16.5"
+                    },
+                    {
+                        "market_name": "player points milestones",
+                        "selection_name": "de'aaron fox over 9.5",
+                        "line": "935"
+                    }
                 ]
             }
 
