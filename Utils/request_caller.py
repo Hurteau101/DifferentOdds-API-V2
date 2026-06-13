@@ -31,7 +31,8 @@ class APICaller:
                     proxy: dict | None = None,
                     payload: dict | str | list | None = None,
                     parse_json: bool = False,
-                    params: dict | list | None =None
+                    params: dict | list | None =None,
+                    ssl: bool = True,
                     ) -> dict | list | None:
         """Fetch data from the API based on request type."""
 
@@ -44,7 +45,8 @@ class APICaller:
             async with getattr(session, method)(
                     url, headers=headers, proxy=proxy, params=params if method == "get" else None,
                     data=payload if isinstance(payload, str) else None,
-                    json=payload if isinstance(payload, dict) or isinstance(payload, list) else None
+                    json=payload if isinstance(payload, dict) or isinstance(payload, list) else None,
+                    ssl=ssl
             ) as response:
                 return await self.handle_async_response(response, parse_json, book_name)
 
@@ -52,7 +54,8 @@ class APICaller:
         response = await getattr(session, method)(
             url, headers=headers, proxy=proxy, params=params if method == "get" else None,
             data=payload if isinstance(payload, str) else None,
-            json=payload if isinstance(payload, dict) or isinstance(payload, list) else None
+            json=payload if isinstance(payload, dict) or isinstance(payload, list) else None,
+            verify=ssl
         )
 
         return self.handle_sync_response(response, parse_json, book_name)
