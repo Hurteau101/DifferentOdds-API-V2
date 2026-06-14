@@ -54,7 +54,7 @@ BOOKS = {
         "class": NovigSGP,
         "active": True,
         "mapped_name": "novig",
-        "session": "curl"
+        "session": "aiohttp"
     },
     "onyx odds": {
         "class": OnyxSGP,
