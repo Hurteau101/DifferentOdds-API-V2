@@ -44,8 +44,14 @@ class AutoSGP(APICaller):
     @classmethod
     async def create(cls):
         """Factory method to create an instance of AutoSGP and set up configurations"""
+        environment_type = os.getenv("ENVIRONMENT")
+        if not environment_type:
+            raise RuntimeError("Environment not set")
+
+        production = environment_type.lower() == "production"
+
         db = Database()
-        configs = db.get_auto_sgp_configs()
+        configs = db.get_auto_sgp_configs(is_production=production)
 
         if not configs:
             raise RuntimeError("Configs not found in database")
@@ -59,10 +65,6 @@ class AutoSGP(APICaller):
             if row.get("active")
         ]
 
-        environment_type = os.getenv("ENVIRONMENT")
-        if not environment_type:
-            raise RuntimeError("Environment not set")
-
         endpoint_redis = RedisAsyncManager(database=10)
         redis_previously_stored_instance = RedisAsyncManager(database=9)
         previously_sent_discord_redis = RedisAsyncManager(database=12)
@@ -70,7 +72,6 @@ class AutoSGP(APICaller):
         redis_auth_instance = RedisAsyncManager(database=5)
         bettorodds_redis_instance = RedisSyncManager(database=8)
 
-        production = environment_type.lower() == "production"
         discord_sgp = DiscordSGP(production=production)
 
 

@@ -294,9 +294,15 @@ class Database:
         self.cursor.execute(sql, (names, leagues))
         self.connection.commit()
 
-    def get_auto_sgp_configs(self) -> list:
+    def get_auto_sgp_configs(self, is_production) -> list:
         """Re-loads all teams from the database."""
-        self.cursor.execute("SELECT * FROM autospg_configs ")
+        table_name = "autospg_configs" if is_production else "autosgp_configs_test"
+        print(table_name)
+
+        self.cursor.execute(f"SELECT * FROM {table_name}")
+
+
+        # self.cursor.execute("SELECT * FROM autospg_configs ")
 
         return [dict(row) for row in self.cursor.fetchall()]
 
