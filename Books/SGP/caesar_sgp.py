@@ -165,7 +165,8 @@ class CaesarsSGP(SGPBookBase):
                      "x-aws-waf-token": waf_token,
                      "Cookie": cookie_str},
             payload=payload,
-            parse_json=True
+            parse_json=True,
+            max_retries=10,
         )
 
         if not raw_api_data or not raw_api_data.get("parlays", []):
