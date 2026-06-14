@@ -61,6 +61,7 @@ class ESPN:
         return {
             player.get("displayName"): result.get("team", {}).get("displayName")
             for result in results
+            if result
             for athlete in result.get("athletes", [])
             for player in (athlete.get("items") or [athlete])
             if player.get("displayName")
