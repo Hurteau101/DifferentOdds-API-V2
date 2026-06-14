@@ -55,7 +55,6 @@ class APICaller:
             url, headers=headers, proxy=proxy, params=params if method == "get" else None,
             data=payload if isinstance(payload, str) else None,
             json=payload if isinstance(payload, dict) or isinstance(payload, list) else None,
-            verify=ssl
         )
 
         return self.handle_sync_response(response, parse_json, book_name)
