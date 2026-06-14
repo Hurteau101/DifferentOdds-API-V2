@@ -128,21 +128,35 @@ class CaesarsSGP(SGPBookBase):
 
         payload = self._create_payload(mapped_data)
 
-        proxy = os.getenv("CAESAR_PROXIES")
+        # proxy = os.getenv("CAESAR_PROXIES")
+        #
+        # if not proxy:
+        #     create_sentry_message(
+        #         tag_key="caesars",
+        #         tag_value="proxy_failure",
+        #         message="No proxy found",
+        #         level="error"
+        #     )
+        #     return
 
-        if not proxy:
-            create_sentry_message(
-                tag_key="caesars",
-                tag_value="proxy_failure",
-                message="No proxy found",
-                level="error"
-            )
-            return
+        # proxies = proxy.split(",")
+        # proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
+        proxy_manager = ProxyManager(api_caller_func=self.api_caller)
 
-        proxies = proxy.split(",")
-        proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
 
-        raw_api_data = await proxy_manager.proxy_caller(
+        # raw_api_data = await proxy_manager.proxy_caller(
+        #     book_name=self.book_data.name,
+        #     session=session,
+        #     url=self.book_data.url.get("main_url"),
+        #     method=self.book_data.method,
+        #     headers={**self.book_data.mapping.headers,
+        #              "x-aws-waf-token": waf_token,
+        #              "Cookie": cookie_str},
+        #     payload=payload,
+        #     parse_json=True
+        # )
+
+        raw_api_data = await proxy_manager.rotating_proxy_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("main_url"),
