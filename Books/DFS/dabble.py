@@ -119,7 +119,7 @@ class Dabble(DFSBookBase):
         return list(merged_stats.values())
 
     async def run_book(self):
-        async with CurlAsyncSession(impersonate="safari15_5") as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             proxy_manager = ProxyManager(self.api_caller)
 
             league_data = await proxy_manager.proxy_caller(
@@ -127,6 +127,7 @@ class Dabble(DFSBookBase):
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
+                headers=self.book_data.headers
             )
 
             if not league_data:
@@ -149,6 +150,7 @@ class Dabble(DFSBookBase):
                     session=session,
                     url=self.book_data.url.get("alternate_url").format(league_id=league_id),
                     method=self.book_data.method,
+                    headers=self.book_data.headers
                 )
                 for league_id in league_ids
             ]
@@ -177,6 +179,7 @@ class Dabble(DFSBookBase):
                     session=session,
                     url=self.book_data.url.get("alternate_url_2").format(game_id=game_id),
                     method=self.book_data.method,
+                    headers=self.book_data.headers
                 )
                 for game_id in game_ids
             ]

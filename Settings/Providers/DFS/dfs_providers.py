@@ -184,6 +184,13 @@ DFS_PROVIDERS = [
             "alternate_url": "https://api.dabble.com/competitions/{league_id}/sport-fixtures?exclude[]=markets&exclude[]=selections&exclude[]=prices", # Game Ids
             "alternate_url_2": "https://api.dabble.com/sportfixtures/details/{game_id}?filter=dfs-enabled",
         },
+        headers={
+            "accept": "application/json",
+            "x-device-id": "48e0c8468226f089",
+            "x-app-version": "4.17.10+019ededb",
+            "authorization": "",
+            "user-agent": "okhttp/4.12.0",
+        },
         method="GET",
         is_active=True
     ),
