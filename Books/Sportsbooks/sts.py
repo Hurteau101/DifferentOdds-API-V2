@@ -451,8 +451,18 @@ class STS(PPHBookBase):
                 continue
 
             game_time = line.get("dateandtime", "")
-            formatted_time = datetime.strptime(game_time, "%I:%M%p").time()
-            combined_date = datetime.combine(date_month.date(), formatted_time, tzinfo=ZoneInfo("America/Chicago"))
+
+            try:
+                formatted_time = datetime.strptime(game_time, "%I:%M%p").time()
+                game_date = date_month.date()
+            except ValueError:
+                full_dt = datetime.strptime(game_time, "%b%d-%I:%M%p")
+                full_dt = full_dt.replace(year=datetime.now().year)
+                formatted_time = full_dt.time()
+                game_date = full_dt.date()
+
+            combined_date = datetime.combine(game_date, formatted_time, tzinfo=ZoneInfo("America/Chicago"))
+
             utc_time = combined_date.astimezone(timezone.utc).replace(tzinfo=None)  # Remove timezone info after conversion
             start_date = utc_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -741,33 +751,35 @@ class STS(PPHBookBase):
             # market_results = await asyncio.gather(*market_tasks)
             cleaned_markets = [self.clean_return(result) for result in market_results]
 
+
             event_data = {}
 
-            for cleaned in cleaned_markets:
-                # First index contains some game information, where the rest of the indexes don't.
-                first_index_line = cleaned.get("lines", [])[0] if cleaned.get("lines") else None
+            for group in cleaned_markets:
+                for cleaned in group.get("groups", []):
+                    # First index contains some game information, where the rest of the indexes don't.
+                    first_index_line = cleaned.get("lines", [])[0] if cleaned.get("lines") else None
 
-                if not first_index_line:
-                    continue
+                    if not first_index_line:
+                        continue
 
-                date_month = first_index_line.get("dateandtime", "")
+                    date_month = first_index_line.get("dateandtime", "")
 
-                # 2nd half markets, will only have a time. So we need to handle that case. All other markets are in mm/dd format.
-                try:
-                    datetime.strptime(date_month, "%m/%d")
-                except ValueError:
-                    date_month = datetime.today().date().strftime("%m/%d")
+                    # 2nd half markets, will only have a time. So we need to handle that case. All other markets are in mm/dd format.
+                    try:
+                        datetime.strptime(date_month, "%m/%d")
+                    except ValueError:
+                        date_month = datetime.today().date().strftime("%m/%d")
 
-                current_year = datetime.now().year # There is no year in there API data, so use this year.
-                date_month_dt = datetime.strptime(f"{date_month}-{current_year}", "%m/%d-%Y")
-                backup_period = first_index_line.get("periodname", 'N/A')
+                    current_year = datetime.now().year # There is no year in there API data, so use this year.
+                    date_month_dt = datetime.strptime(f"{date_month}-{current_year}", "%m/%d-%Y")
+                    backup_period = first_index_line.get("periodname", 'N/A')
 
-                game_data = self.build_markets(market=cleaned, league_map=league_map, date_month=date_month_dt, backup_period=backup_period)
-                if not game_data:
-                    continue
+                    game_data = self.build_markets(market=cleaned, league_map=league_map, date_month=date_month_dt, backup_period=backup_period)
+                    if not game_data:
+                        continue
 
-                for game in game_data:
-                    self.add_to_events(event_data, game, GameData)
+                    for game in game_data:
+                        self.add_to_events(event_data, game, GameData)
 
             sts_data = list(event_data.values())
 
