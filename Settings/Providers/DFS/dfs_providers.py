@@ -144,7 +144,7 @@ DFS_PROVIDERS = [
             "main_url": "https://m2efyeevmf.us-east-2.awsapprunner.com/available_picks/get-player-picks/"
         },
         method="POST",
-        is_active=True
+        is_active=False
     ),
     BaseProvider(
         title="DraftKings Pick 6",
