@@ -2,7 +2,7 @@ from External_Book_Mapping.SGP.fliff_mapper import FliffMapper
 from Monitoring.monitoring import init_sentry
 init_sentry()
 from Authentication.buckeye1_auth import Buckeye1Auth
-from Authentication.fliff_auth import FliffAuth
+# from Authentication.fliff_auth import FliffAuth
 from External_Book_Mapping.SGP.bovada_mapper import BovadaMapper
 import os
 import random
@@ -57,16 +57,16 @@ class RedisSelector(Enum):
 
 
 AUTH_JOBS = [
-    {
-        "book_name": "fliff",
-        "class": FliffAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 180,  # 3 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "fliff_auth_token",
-    },
+    # {
+    #     "book_name": "fliff",
+    #     "class": FliffAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 180,  # 3 minutes
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "fliff_auth_token",
+    # },
     {
         "book_name": "fourcx",
         "class": FourcxAuth,
