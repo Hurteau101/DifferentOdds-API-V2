@@ -132,7 +132,7 @@ SGP_PROVIDERS = [
             'x-api-features': '{EnableFullSGPDrivenFlow:true}'
         },
         method="POST",
-        is_active=True,
+        is_active=False,
     ),
     SGPProvider(
         title="HardRock",
