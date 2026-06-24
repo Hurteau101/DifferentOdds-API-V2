@@ -32,7 +32,7 @@ async def main():
             headless=False,
             channel="chrome",
             proxy=PROXY,
-            args=[f"--remote-debugging-port={CDP_PORT}"],
+            args=[f"--remote-debugging-port={CDP_PORT}", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"],
             no_viewport=True,
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         )
