@@ -65,15 +65,19 @@ class DraftkingsSGP(SGPBookBase):
         #     },
         # )
 
-        api_data = await self.post_odds(payload={
+        raw_api_data = await self.post_odds(payload={
             "oddsStyle": "american",
-            "selections": selections
+            "selections": [],
+            "selectionsForYourBet": selections
         })
 
-        if not api_data:
+        if not raw_api_data:
             return None
 
-        if api_data and isinstance(api_data, dict):
+        if all([raw_api_data, isinstance(raw_api_data, dict), raw_api_data.get('status') == "ok"]):
+        # if api_data and isinstance(api_data, dict):
+            api_data = json.loads(raw_api_data.get("body", {}))
+
             if not api_data.get("combinabilityRestrictions"):
                 sgp_odds_list = api_data.get("bets", [])
 
@@ -90,7 +94,8 @@ class DraftkingsSGP(SGPBookBase):
 if __name__ == "__main__":
     async def main():
         async with CurlAsyncSession(impersonate="chrome_android") as session:
-            sgp_data = {'book_name': 'draftkings', 'links': ['https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83722837O11950_1', 'https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83681931O23450_1']}
+            sgp_data = {'book_name': 'draftkings', 'links': ["https://sportsbook.draftkings.com/event/34311610?outcomes=0QA345634501%232191749635_13L84240Q11079725557Q20",
+"https://sportsbook.draftkings.com/event/34311610?outcomes=0QA345634693#2191750057_13L84240Q11079725557Q20"]}
 
             book = DraftkingsSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)
