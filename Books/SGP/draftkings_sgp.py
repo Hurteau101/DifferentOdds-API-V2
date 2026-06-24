@@ -1,15 +1,14 @@
 import asyncio
-import json
-import time
-
 from curl_cffi import AsyncSession as CurlAsyncSession
 from Books.Bases.sgp_book_base import SGPBookBase
 from Utils.request_caller import SportbookRequestType
 from seleniumbase.undetected.cdp_driver import cdp_util
+import json
 
 class DraftkingsSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(request_type=SportbookRequestType.SPOOF, category="SGP", book_name="draftkings", sgp_data=sgp_data, **kwargs)
+
 
     async def post_odds(self, payload: dict, retry=3):
         """POST via the persistent browser's session over CDP, with retries for refresh/restart timing."""
@@ -65,12 +64,13 @@ class DraftkingsSGP(SGPBookBase):
         #     },
         # )
 
+
         raw_api_data = await self.post_odds(payload={
             "oddsStyle": "american",
             "selections": [],
             "selectionsForYourBet": selections
         })
-
+        print(raw_api_data)
         if not raw_api_data:
             return None
 
