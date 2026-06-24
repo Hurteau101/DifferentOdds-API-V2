@@ -123,7 +123,7 @@ SGP_PROVIDERS = [
         title="DraftKings",
         name="draftkings",
         url={
-            "main_url": "https://gaming-ca-on.draftkings.com/api/wager/v1/calculateBets"
+            "main_url": "https://gaming-us-va.draftkings.com/api/wager/v1/calculateBets"
         },
         regex={
             "outcome_id": r"outcomes=([^\s]+)",
@@ -132,7 +132,7 @@ SGP_PROVIDERS = [
             'x-api-features': '{EnableFullSGPDrivenFlow:true}'
         },
         method="POST",
-        is_active=False,
+        is_active=True,
     ),
     SGPProvider(
         title="HardRock",
