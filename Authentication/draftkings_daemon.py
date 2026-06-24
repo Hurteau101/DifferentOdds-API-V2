@@ -38,7 +38,7 @@ async def main():
             headless=False,
             channel="chrome",
             proxy=PROXY,
-            args=[f"--remote-debugging-port={CDP_PORT}"],
+            args=[f"--remote-debugging-port={CDP_PORT}", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"],
             no_viewport=True,
         )
 
