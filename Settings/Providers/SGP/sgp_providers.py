@@ -129,7 +129,11 @@ SGP_PROVIDERS = [
             "outcome_id": r"outcomes=([^\s]+)",
         },
         headers={
-            'x-api-features': '{EnableFullSGPDrivenFlow:true}'
+              'User-Agent': 'dksb/5.47.0 (iOS; iPad7,6; iOS17.7.11)',
+              'X-Client-Name': 'DraftKings',
+              'X-Api-Features': '{ "EnableFullSGPDrivenFlow": true }',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
         },
         method="POST",
         is_active=True,
