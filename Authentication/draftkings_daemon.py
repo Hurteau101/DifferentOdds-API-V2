@@ -34,6 +34,7 @@ async def main():
             proxy=PROXY,
             args=[f"--remote-debugging-port={CDP_PORT}"],
             no_viewport=True,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         )
 
         page = context.pages[0] if context.pages else await context.new_page()
