@@ -123,7 +123,7 @@ SGP_PROVIDERS = [
         title="DraftKings",
         name="draftkings",
         url={
-            "main_url": "https://gaming-ca-ab.draftkings.com/api/wager/v1/calculateBets?format=json&appname=DraftKings&version=5.47.0"
+            "main_url": "https://gaming-us-va.draftkings.com/api/wager/v1/calculateBets"
         },
         regex={
             "outcome_id": r"outcomes=([^\s]+)",
