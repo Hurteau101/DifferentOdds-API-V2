@@ -64,7 +64,6 @@ class ProxyManager:
                 #     return api_data
 
             except Exception as e:
-                print(e)
                 if attempt < max_retries - 1:
                     await asyncio.sleep(0.5)
                     continue

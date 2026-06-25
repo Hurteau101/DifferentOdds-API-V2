@@ -96,7 +96,6 @@ class APICaller:
             try:
                 if parse_json:
                     text = await response.text()
-                    print(text)
                     return json.loads(text)
 
                 return await response.json()

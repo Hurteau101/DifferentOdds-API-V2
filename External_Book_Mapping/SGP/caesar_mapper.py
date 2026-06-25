@@ -6,14 +6,19 @@ from Database.database import Database
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
-
+import os
 
 class CaesarMapper(BaseMapper):
     VALID_SPORTS = ["basketball", "baseball", "icehockey"]
+    PROXY_URL = os.getenv("CAESAR_PROXY")
+
+    if not PROXY_URL:
+        raise ValueError("CAESAR_PROXY environment variable is not set.")
 
     def __init__(self):
-        super().__init__(book_name="caesars", category="sgp", request_type=SportbookRequestType.SPOOF)
+        super().__init__(book_name="caesars", category="sgp", request_type=SportbookRequestType.ASYNC)
 
     async def _get_waf_token(self):
         redis_instance = RedisAsyncManager(database=5)
@@ -23,11 +28,12 @@ class CaesarMapper(BaseMapper):
         cache = await redis_instance.get_data("caesar_path_cache")
         if not cache:
             return False, {}
+
         return True, cache
 
-    async def _extract_cache(self,session, waf_token: str, redis_instance: RedisAsyncManager):
+    async def _extract_cache(self, proxy_manager, session, waf_token: str, redis_instance: RedisAsyncManager):
         raw_events = [
-            self.api_caller(
+            proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("event_url").format(sport=sport),
@@ -58,7 +64,7 @@ class CaesarMapper(BaseMapper):
             return set()
 
         game_url_tasks = [
-            self.api_caller(
+            proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("game_url").format(event_id=event),
@@ -115,15 +121,17 @@ class CaesarMapper(BaseMapper):
 
     async def run_scheduler(self, session, redis_instance: RedisAsyncManager) -> bool:
         waf_token = await self._get_waf_token()
+
         if not waf_token:
             print("No WAF token found")
             return False
 
         had_cache, cache_data = await self._get_path_cache(redis_instance)
+        proxy_manager = ProxyManager(self.api_caller, proxies=[CaesarMapper.PROXY_URL])
 
         if not had_cache:
             print("No cache found, extracting paths...")
-            cache_data = await self._extract_cache(session, waf_token, redis_instance)
+            cache_data = await self._extract_cache(proxy_manager, session, waf_token, redis_instance)
 
             if not cache_data:
                 return await self.run_scheduler(session, redis_instance)
@@ -134,9 +142,9 @@ class CaesarMapper(BaseMapper):
 
         semaphore = asyncio.Semaphore(10)
 
-        async def fetch_market(path):
+        async def fetch_market(path, proxy_manager):
             async with semaphore:
-                return await self.api_caller(
+                return await proxy_manager.proxy_caller(
                     book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.mapping.url.get("market_url").format(path=path),
@@ -146,7 +154,7 @@ class CaesarMapper(BaseMapper):
                     parse_json=True
                 )
 
-        market_url_results = await asyncio.gather(*[fetch_market(path) for path in cache_data])
+        market_url_results = await asyncio.gather(*[fetch_market(path, proxy_manager) for path in cache_data])
 
         mapping = {}
         for result in market_url_results:
@@ -164,14 +172,13 @@ class CaesarMapper(BaseMapper):
         return await self.run_scheduler(session, redis_instance)
 
 if __name__ == "__main__":
-    from curl_cffi import AsyncSession as CurlAsyncSession
 
     db = Database()
     redis_instance = RedisAsyncManager(database=2)
     mapper = CaesarMapper()
 
     async def main():
-        async with CurlAsyncSession(impersonate="chrome120") as session:
+        async with aiohttp.ClientSession() as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
 
     asyncio.run(main())

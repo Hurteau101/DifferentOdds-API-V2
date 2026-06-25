@@ -14,19 +14,34 @@ from Utils.request_caller import SportbookRequestType
 
 class CaesarAuth(BaseScheduler):
     load_dotenv()
-    MAX_RETRY = 2
-    RETRY_DELAY = 0.5
+
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
+
+    def parse_proxy(self, proxy_str: str) -> dict:
+        """Converts 'host:port:username:password' into Playwright's proxy dict."""
+        host, port, username, password = proxy_str.split(":")
+        return {
+            "server": f"http://{host}:{port}",
+            "username": username,
+            "password": password,
+        }
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager, proxy_index=None) -> bool:
         if os.name != 'nt':
             os.environ['DISPLAY'] = ':99'
 
+        proxy = os.getenv("CAESAR_PROXY")
+        if not proxy:
+            return False
+
+        proxy_dict = self.parse_proxy(proxy) if proxy else None
+
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False)
+            browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                proxy=proxy_dict
             )
 
             page = await context.new_page()
@@ -37,7 +52,7 @@ class CaesarAuth(BaseScheduler):
 
             await page.goto("https://sportsbook.caesars.com/us/az/bet/", wait_until="networkidle")
             await page.wait_for_timeout(5000) # Wait for any JS challenges to finish.
-
+            await page.screenshot(path="caesars_screenshot.png")
             cookies = await context.cookies()
 
             waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
