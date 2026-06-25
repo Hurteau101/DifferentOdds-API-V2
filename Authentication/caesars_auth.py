@@ -20,6 +20,9 @@ class CaesarAuth(BaseScheduler):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager, proxy_index=None) -> bool:
+        if os.name != 'nt':
+            os.environ['DISPLAY'] = ':99'
+
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=False)
             context = await browser.new_context(
