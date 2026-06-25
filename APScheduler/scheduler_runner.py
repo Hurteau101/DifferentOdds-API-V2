@@ -188,7 +188,7 @@ MAPPER_JOBS = [
         "is_active": True,
         "interval": 600,  # 10 minutes
         "redis_db": RedisSelector.MAPPER,
-        "session_type": "curl",
+        "session_type": "aiohttp",
         "requires_auth": True,
         "redis_key_checker_name": "caesar_mapped_ids",
         "redis_auth_checker_name": "caesars_waf_token"
