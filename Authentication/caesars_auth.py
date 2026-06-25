@@ -5,6 +5,8 @@ import time
 import aiohttp
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
+
 from APScheduler.base_scheduler import BaseScheduler
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
@@ -18,110 +20,35 @@ class CaesarAuth(BaseScheduler):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
     async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager, proxy_index=None) -> bool:
-
-        proxy = os.getenv("CAESAR_PROXIES")
-        if not proxy:
-            create_sentry_message(
-                tag_key="caesars",
-                tag_value="proxy_failure",
-                message="No proxy found",
-                level="error"
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=False)
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
             )
-            return False
 
-        # proxies = [proxy]
-        proxies = proxy.split(",")
+            page = await context.new_page()
 
-        async with async_playwright() as play:  # ← start once
-            for index, proxy in enumerate(proxies):
-                if proxy_index is not None and index <= proxy_index:
-                    print("Skipping index:", index)
-                    continue
+            await page.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            """)
 
-                ip, port, username, password = proxy.split(":")
+            await page.goto("https://sportsbook.caesars.com/us/az/bet/", wait_until="networkidle")
+            await page.wait_for_timeout(5000) # Wait for any JS challenges to finish.
 
-                browser = None
+            cookies = await context.cookies()
 
-                try:
-                    browser = await play.chromium.launch(
-                        headless=True,
-                        proxy={
-                            "server": f"http://{ip}:{port}",
-                            "username": username,
-                            "password": password,
-                        },
+            waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
+            await browser.close()
 
-                        args=[
-                            "--disable-blink-features=AutomationControlled",
-                            "--start-maximized"
-                        ]
-                    )
+            if not waf_token:
+                print("No token found")
+                return False
 
-                    context = await browser.new_context()
-
-                    await context.route(
-                        "**/*",
-                        lambda route: (
-                            route.abort()
-                            if route.request.resource_type in ["image", "media", "font"]
-                            else route.continue_()
-                        )
-                    )
-
-                    page = await context.new_page()
-
-                    await page.goto(
-                        "https://sportsbook.caesars.com/us/az/bet/",
-                        wait_until="networkidle",
-                        timeout=60_000
-                    )
-
-                    await page.locator(
-                        "//div[normalize-space()='Betslip']"
-                    ).wait_for(state="visible", timeout=60_000)
-
-                    cookies = await context.cookies()
-
-                    waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
-                    cookie_str = "; ".join(f"{c['name']}={c['value']}" for c in cookies)
-
-                    if waf_token and cookie_str:
-                        await redis_instance.store_data(
-                            key_name="caesars_waf_token",
-                            data_to_store={
-                                "waf_token": waf_token,
-                                "cookie_str": cookie_str,
-                                "proxy_index": index,
-                                "proxy_str": proxy
-                            },
-                            key_expiration=720
-                        )
-                        return True
-
-                except Exception as e:
-                    create_sentry_message(
-                        tag_key="caesars",
-                        tag_value="Exception",
-                        message=str(e),
-                        level="error"
-                    )
-
-                    print(e)
-
-                    continue
-
-                finally:
-                    if browser:
-                        await browser.close()
-
-
-
-        create_sentry_message(
-            tag_key="caesars",
-            tag_value="auth_failure",
-            message="WAF token not found after authentication attempts.",
-            level="error"
-        )
+            await redis_instance.store_data(
+                key_name="caesars_waf_token",
+                data_to_store=waf_token,
+                key_expiration=720
+            )
 
         return False
 

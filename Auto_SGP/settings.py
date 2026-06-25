@@ -70,7 +70,7 @@ BOOKS = {
     },
     "caesars": {
         "class": CaesarsSGP,
-        "active": False,
+        "active": True,
         "mapped_name": "caesars",
         "session": "curl"
     },

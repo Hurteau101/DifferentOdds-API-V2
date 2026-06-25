@@ -1,12 +1,9 @@
 import asyncio
-import os
 import re
-import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
-from Utils.proxy_manger import ProxyManager
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
@@ -80,25 +77,10 @@ class CaesarsSGP(SGPBookBase):
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
-        auth_token_data = await self.load_auth_token(key_name="caesars_waf_token")
+        waf_token = await self.load_auth_token(key_name="caesars_waf_token")
 
-        if not auth_token_data:
+        if not waf_token:
             return None
-
-        waf_token = auth_token_data.get("waf_token")
-        cookie_str = auth_token_data.get("cookie_str")
-        proxy_index = auth_token_data.get("proxy_index")
-        proxy_str = auth_token_data.get("proxy_str")
-
-
-        if not all([waf_token is not None, cookie_str is not None, proxy_index is not None, proxy_str is not None]):
-            create_sentry_message(
-                tag_key="caesars",
-                tag_value="no_auth",
-                message="Couldn't find WAF token in redis",
-                level="error"
-            )
-            return False
 
         line_data = self._lines_extraction(self.lines if self.lines else {})
 
@@ -128,45 +110,15 @@ class CaesarsSGP(SGPBookBase):
 
         payload = self._create_payload(mapped_data)
 
-        # proxy = os.getenv("CAESAR_PROXIES")
-        #
-        # if not proxy:
-        #     create_sentry_message(
-        #         tag_key="caesars",
-        #         tag_value="proxy_failure",
-        #         message="No proxy found",
-        #         level="error"
-        #     )
-        #     return
-
-        # proxies = proxy.split(",")
-        # proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
-        proxy_manager = ProxyManager(api_caller_func=self.api_caller)
-
-
-        # raw_api_data = await proxy_manager.proxy_caller(
-        #     book_name=self.book_data.name,
-        #     session=session,
-        #     url=self.book_data.url.get("main_url"),
-        #     method=self.book_data.method,
-        #     headers={**self.book_data.mapping.headers,
-        #              "x-aws-waf-token": waf_token,
-        #              "Cookie": cookie_str},
-        #     payload=payload,
-        #     parse_json=True
-        # )
-
-        raw_api_data = await proxy_manager.rotating_proxy_caller(
+        raw_api_data = await self.api_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("main_url"),
             method=self.book_data.method,
             headers={**self.book_data.mapping.headers,
-                     "x-aws-waf-token": waf_token,
-                     "Cookie": cookie_str},
+                     "x-aws-waf-token": waf_token},
             payload=payload,
             parse_json=True,
-            max_retries=10,
         )
 
         if not raw_api_data or not raw_api_data.get("parlays", []):
@@ -199,8 +151,8 @@ if __name__ == "__main__":
             sgp_data = {
                 "book_name": "caesars",
                 "links": [
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=f1a06cf7-57a7-3550-90f4-01b6b69ce94b",
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=935c7b73-6120-385a-adac-402b97a2876b",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=de216aa7-37a8-3f2e-9b0b-270bc001dda2",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=30e3d4b0-fea4-3957-98d0-e84a0a4c40f5",
                 ],
             }
 
