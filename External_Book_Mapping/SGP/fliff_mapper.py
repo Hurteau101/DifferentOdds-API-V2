@@ -178,7 +178,6 @@ class FliffMapper(BaseMapper):
         #     for map_key in mapped_conflict.keys()
         # )
 
-
         if mapped_ids:
             await redis_instance.store_data(
                 key_name="fliff_ids",
