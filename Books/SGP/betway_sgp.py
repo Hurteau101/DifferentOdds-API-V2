@@ -5,6 +5,7 @@ import aiohttp
 from aiohttp import payload
 
 from Books.Bases.sgp_book_base import SGPBookBase
+from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
 
@@ -111,12 +112,26 @@ class BetwaySGP(SGPBookBase):
 #### CHECK OTHER MAPPING TO ENSURE ERRORS ARE SENT
 
 if __name__ == "__main__":
-    # sgp_data = {'book_name': 'betway', 'links': ['https://{state}.betway.com/sports/event/16447462', 'https://{state}.betway.com/sports/event/16447462'], 'lines': {'https://{state}.betway.com/sports/event/16447462': 24.5}, 'event_data': [{'market_name': 'Player Assists', 'selection_name': 'Victor Wembanyama Over 3.5'}, {'market_name': 'Player Points', 'selection_name': 'Victor Wembanyama Over 24.5'}]}
-    sgp_data = {'book_name': 'betway', 'links': ['https://{state}.betway.com/sports/event/16447462', 'https://{state}.betway.com/sports/event/16447462'], 'lines': {'https://{state}.betway.com/sports/event/16447462': 15.5}, 'event_data': [{'market_name': 'Player Assists', 'selection_name': 'Stephon Castle Over 6.5'}, {'market_name': 'Player Points', 'selection_name': 'Stephon Castle Over 15.5'}]}
+    async def main():
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
+            sgp_data = {
+                'book_name': 'betway',
+                'links': [
+                    "https://{state}.betway.com/sports/event/16902972",
+                    "https://{state}.betway.com/sports/event/16902972",
+                ],
+                'event_data': [
+                    {'market_name': 'Moneyline', 'selection_name': 'Chicago Cubs'},
+                    {'market_name': 'Total Runs', 'selection_name': 'Over 7.5'}
+                ]
+            }
 
-    book = BetwaySGP(sgp_data=sgp_data)
-    data = asyncio.run(book.run_book())
-    print(data)
+            redis_mapped = RedisAsyncManager(database=2)
+            book = BetwaySGP(sgp_data=sgp_data, mapped_ids_redis_instance=redis_mapped)
+            data = await book.run_book(session=session)
+            print(data)
+
+    asyncio.run(main())
 
 
 

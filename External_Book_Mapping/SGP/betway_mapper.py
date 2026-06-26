@@ -251,10 +251,10 @@ class BetwayMapper(BaseMapper):
 
                     if any(team in market_name for team in ["team a", "team b", "home team", "away team"]):
                         market_name = (
-                            market_name.replace("team a", home_team)
-                            .replace("team b", away_team)
-                            .replace("home team", home_team)
-                            .replace("away team", away_team)
+                            market_name.replace("team a", home_team or "")
+                            .replace("team b", away_team or "")
+                            .replace("home team", home_team or "")
+                            .replace("away team", away_team or "")
                             .replace("full time", "")
                             .strip()
                         )
@@ -352,7 +352,7 @@ class BetwayMapper(BaseMapper):
             return False
 
         mapping = await self._get_mappings(session, event_ids)
-
+        print(mapping)
         if not mapping:
             create_sentry_message(
                 tag_key="betway",
