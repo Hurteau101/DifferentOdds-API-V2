@@ -28,6 +28,7 @@ class SGPBooks(BaseModel):
     links: list[str]
     lines: dict | None = None
     event_data: dict | list | None = None
+    is_sgp: bool = True
 
 DEFAULT_TIMEOUT = 15
 DEFAULT_SESSION = "aiohttp"
@@ -127,6 +128,7 @@ async def get_sgp_odds(books: List[SGPBooks], request: Request):
             "book_name": book.book_name.lower(),
             "links": book.links,
             "event_data": book.event_data or [],
+            "is_sgp": book.is_sgp
         }
 
 
@@ -165,6 +167,7 @@ async def get_sgp_odds(books: List[SGPBooks], request: Request):
         book_occurrence = Counter(
             book_name
             for result in results
+            if result
             for book_name, value in result.items()
         )
 
