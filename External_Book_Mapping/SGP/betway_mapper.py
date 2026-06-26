@@ -352,7 +352,7 @@ class BetwayMapper(BaseMapper):
             return False
 
         mapping = await self._get_mappings(session, event_ids)
-        print(mapping)
+
         if not mapping:
             create_sentry_message(
                 tag_key="betway",
