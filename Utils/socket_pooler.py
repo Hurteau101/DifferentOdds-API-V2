@@ -123,10 +123,16 @@ class SocketHelper:
 
 
     async def send(self, payload: dict):
-        attempts = len(self.proxies) if self.proxies else 1
+        # attempts = len(self.proxies) if self.proxies else 1
 
-        for _ in range(attempts):
-            proxy = self._next_proxy()
+        #http://yxzikPTfJzmuIO2:3yMP0A9WCACBAc3@204.252.85.110:48067
+        proxy = os.getenv("FLOPPYDATA_PROXY_URL")
+        if not proxy:
+            raise ValueError("FLOPPYDATA_PROXY_URL environment variable is not set.")
+
+        for _ in range(10):
+            # proxy = self._next_proxy()
+
             try:
                 async with cf_requests.AsyncSession(impersonate="safari15_5") as session:
                     ws = await session.ws_connect(self.url, headers=self.headers, proxy=proxy)
@@ -136,8 +142,8 @@ class SocketHelper:
                         received_msg, _ = received_msg
                     return json.loads(received_msg)
             except Exception as e:
-                print(f"Proxy failed ({proxy}): {e} — trying next")
+                # print(f"Proxy failed ({proxy}): {e} — trying next")
                 continue
 
-        print("All proxies failed")
+        print("All proxies failed [Websocket]")
         return {}
