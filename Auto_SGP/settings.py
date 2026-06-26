@@ -72,7 +72,7 @@ BOOKS = {
         "class": CaesarsSGP,
         "active": True,
         "mapped_name": "caesars",
-        "session": "curl"
+        "session": "aiohttp"
     },
     "thescore": {
         "class": ThescoreSGP,

@@ -1,19 +1,28 @@
 import asyncio
+import os
 import re
+
+import aiohttp
+
 from Books.Bases.sgp_book_base import SGPBookBase
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
+from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class CaesarsSGP(SGPBookBase):
+    PROXY_URL = os.getenv("CAESAR_PROXY")
+
+    if not PROXY_URL:
+        raise ValueError("CAESAR_PROXY environment variable is not set.")
+
     def __init__(self, sgp_data: dict, mapped_ids_redis_instance, auth_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.SPOOF, category="SGP", book_name="caesars",
+        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="caesars",
                          sgp_data=sgp_data, mapped_ids_redis_instance=mapped_ids_redis_instance,
                          auth_redis_instance=auth_redis_instance, **kwargs)
         self.lines = sgp_data.get("lines")
-
 
     def _create_payload(self, mapped_link_data: list) -> dict:
         return {
@@ -110,7 +119,9 @@ class CaesarsSGP(SGPBookBase):
 
         payload = self._create_payload(mapped_data)
 
-        raw_api_data = await self.api_caller(
+        proxy_manager = ProxyManager(self.api_caller, proxies=[CaesarsSGP.PROXY_URL])
+
+        raw_api_data = await proxy_manager.proxy_caller(
             book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("main_url"),
@@ -147,12 +158,12 @@ class CaesarsSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with CurlAsyncSession(impersonate="safari15_5") as session:
+        async with aiohttp.ClientSession() as session:
             sgp_data = {
                 "book_name": "caesars",
                 "links": [
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=de216aa7-37a8-3f2e-9b0b-270bc001dda2",
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=30e3d4b0-fea4-3957-98d0-e84a0a4c40f5",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=39adacd7-a55b-3d2b-af9c-8012f789458e",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=42bc8506-f5d2-38f3-ad0c-f9e6f4bc4618",
                 ],
             }
 
