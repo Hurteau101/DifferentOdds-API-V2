@@ -40,7 +40,7 @@ BOOKS = {
     },
     "hard rock": {
         "class": HardrockSGP,
-        "active": True,
+        "active": False,
         "mapped_name": "hardrock",
         "session": "aiohttp"
     },
