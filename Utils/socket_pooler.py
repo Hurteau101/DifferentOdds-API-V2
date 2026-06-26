@@ -128,7 +128,7 @@ class SocketHelper:
         for _ in range(attempts):
             proxy = self._next_proxy()
             try:
-                async with cf_requests.AsyncSession() as session:
+                async with cf_requests.AsyncSession(impersonate="safari15_5") as session:
                     ws = await session.ws_connect(self.url, headers=self.headers, proxy=proxy)
                     await ws.send_json(payload)
                     received_msg = await ws.recv()

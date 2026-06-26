@@ -36,6 +36,16 @@ class HardrockSGP(SGPBookBase):
             }
         )
 
+        # data = await socket_helper.send(payload={
+        #   "SportsbookLoginRequest": {
+        #     "sessionToken": None
+        #   }
+        # })
+        #
+        # if data.get("Response", {}).get("status") != "ok":
+        #     return None
+
+
         data = await socket_helper.send(payload)
 
         if not data:
@@ -82,8 +92,8 @@ if __name__ == "__main__":
     sgp_data = {
         "book_name": "hardrock",
         "links": [
-          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/4305239316516438262",
-          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/4653238206840570101",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/8181944312381178196",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/1795042579159581007",
         ]
       }
 
