@@ -48,12 +48,14 @@ class BovadaSGP(SGPBookBase):
                 continue
 
             line = outcome_found.get("line")
-
-            if line:
-                merged_line = float(merged.get("line", 0))
-
-                if float(merged.get("line")) != merged_line:
-                    continue
+            # print(line)
+            # print(merged)
+            # if line:
+            #     print(line)
+            #     merged_line = float(merged.get("line", 0))
+            #
+            #     if float(merged.get("line")) != merged_line:
+            #         continue
 
             outcome_id = outcome_found.get("outcome_id")
 
@@ -122,23 +124,12 @@ if __name__ == "__main__":
             sgp_data = {
                 "book_name": "bovada",
                 "links": [
-                    "https://www.bovada.lv/sports/basketball/nba/new-york-knicks-san-antonio-spurs-202606132030",
-                    "https://www.bovada.lv/sports/basketball/nba/new-york-knicks-san-antonio-spurs-202606132030"
+                    "https://www.bovada.lv/sports/baseball/mlb/seattle-mariners-cleveland-guardians-202606261910",
+                    "https://www.bovada.lv/sports/baseball/mlb/seattle-mariners-cleveland-guardians-202606261910",
                 ],
-                "lines": {
-                    "https://www.bovada.lv/sports/basketball/nba/new-york-knicks-san-antonio-spurs-202606132030": 18.5
-                },
-                "event_data": [
-                    {
-                        "market_name": "player total points",
-                        "selection_name": "og anunoby under 16.5",
-                        "line": "16.5"
-                    },
-                    {
-                        "market_name": "player points milestones",
-                        "selection_name": "de'aaron fox over 9.5",
-                        "line": "935"
-                    }
+                'event_data': [
+                    {'market_name': 'Moneyline', 'selection_name': 'Cleveland Guardians'},
+                    {'market_name': 'Total Runs', 'selection_name': 'Under 7.5'}
                 ]
             }
 
