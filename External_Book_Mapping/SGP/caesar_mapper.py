@@ -10,9 +10,12 @@ from Utils.proxy_manger import ProxyManager
 from Utils.request_caller import SportbookRequestType
 import os
 
+### CHECK MAPPING - MOENYLINE/RUNS AND OTHERS DON'T BE SHOWING ###
+
+
 class CaesarMapper(BaseMapper):
     VALID_SPORTS = ["basketball", "baseball", "icehockey"]
-    PROXY_URL = os.getenv("CAESAR_PROXY")
+    PROXY_URL = os.getenv("DECODO_PROXY")
 
     if not PROXY_URL:
         raise ValueError("CAESAR_PROXY environment variable is not set.")
