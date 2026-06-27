@@ -193,6 +193,21 @@ SGP_PROVIDERS = [
                 "game_ids_url": "https://api.onyxodds.com/api/odds/mainLines/{league_name}",
                 "market_url": "https://api.onyxodds.com/api/odds/gameMainLines/{game_id}",
             },
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br, zstd',
+                'Referer': 'https://app.onyxodds.com/',
+                'Content-type': 'application/json',
+                'traceparent': '00-0000000000000000b6dc9e1054659cdb-689b4decdb0e86b3-01',
+                'x-datadog-origin': 'rum',
+                'x-datadog-parent-id': '7537704081017439923',
+                'x-datadog-sampling-priority': '1',
+                'x-datadog-trace-id': '13176580402751839451',
+                'Origin': 'https://app.onyxodds.com',
+                'Connection': 'keep-alive',
+            },
             method="GET",
             is_active=True
         )

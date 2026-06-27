@@ -32,11 +32,11 @@ class OnyxMapper(BaseMapper):
                 session=session,
                 url=self.book_data.mapping.url.get("game_ids_url").format(league_name=league),
                 method=self.book_data.mapping.method,
-                headers={"Authorization": f"Bearer {auth_token}"}
+                headers={**self.book_data.mapping.headers,"Authorization": f"Bearer {auth_token}"}
             )
+
             results.append(result)
             await asyncio.sleep(0.5)
-
 
         if not results:
             return None
@@ -103,6 +103,7 @@ class OnyxMapper(BaseMapper):
             url=self.book_data.mapping.url.get("league_url"),
             method=self.book_data.mapping.method,
             headers={
+                **self.book_data.mapping.headers,
                 "Authorization": f"Bearer {auth_token}"
             }
         )
@@ -137,6 +138,7 @@ class OnyxMapper(BaseMapper):
                 url=self.book_data.mapping.url.get("market_url").format(game_id=game_id),
                 method=self.book_data.mapping.method,
                 headers={
+                    **self.book_data.mapping.headers,
                     "Authorization": f"Bearer {auth_token}"
                 }
             )
@@ -144,6 +146,7 @@ class OnyxMapper(BaseMapper):
         ]
 
         market_url_results = await asyncio.gather(*market_url_tasks)
+
 
         if not market_url_results:
             create_sentry_message(
@@ -162,6 +165,7 @@ class OnyxMapper(BaseMapper):
             if api_data:
                 mapped_ids = self._extract_mapped_ids(api_data, game_id)
                 all_mapped_ids.update(mapped_ids)
+
 
         if all_mapped_ids:
             await redis_instance.store_data(
