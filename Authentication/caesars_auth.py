@@ -31,44 +31,53 @@ class CaesarAuth(BaseScheduler):
         if os.name != 'nt':
             os.environ['DISPLAY'] = ':99'
 
-        proxy = os.getenv("CAESAR_PROXY")
+        proxy = os.getenv("DECODO_PROXY")
         if not proxy:
             return False
 
         proxy_dict = self.parse_proxy(proxy) if proxy else None
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                proxy=proxy_dict
-            )
+            for attempt in range(0, 5):
+                browser = await p.chromium.launch(headless=False)
 
-            page = await context.new_page()
+                try:
+                    context = await browser.new_context(
+                        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                        proxy=proxy_dict
+                    )
 
-            await page.add_init_script("""
-                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-            """)
+                    page = await context.new_page()
 
-            await page.goto("https://sportsbook.caesars.com/us/az/bet/", wait_until="networkidle")
-            await page.wait_for_timeout(5000) # Wait for any JS challenges to finish.
-            await page.screenshot(path="caesars_screenshot.png")
-            cookies = await context.cookies()
+                    await page.add_init_script("""
+                        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+                    """)
 
-            waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
-            await browser.close()
+                    await page.goto("https://sportsbook.caesars.com/us/az/bet/", wait_until="networkidle")
+                    await page.wait_for_timeout(5000) # Wait for any JS challenges to finish.
 
-            if not waf_token:
-                print("No token found")
-                return False
+                    for _ in range(30):
+                        cookies = await context.cookies()
+                        waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
 
-            await redis_instance.store_data(
-                key_name="caesars_waf_token",
-                data_to_store=waf_token,
-                key_expiration=720
-            )
+                        if waf_token:
+                            await redis_instance.store_data(
+                                key_name="caesars_waf_token",
+                                data_to_store=waf_token,
+                                key_expiration=720
+                            )
 
-        return False
+                            return True
+
+                        await page.wait_for_timeout(500)
+
+                except Exception as e:
+                    pass
+
+                finally:
+                    await browser.close()
+
+            return False
 
 if __name__ == "__main__":
     import asyncio

@@ -13,7 +13,7 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class CaesarsSGP(SGPBookBase):
-    PROXY_URL = os.getenv("CAESAR_PROXY")
+    PROXY_URL = os.getenv("DECODO_PROXY")
 
     if not PROXY_URL:
         raise ValueError("CAESAR_PROXY environment variable is not set.")
