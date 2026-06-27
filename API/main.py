@@ -2,6 +2,8 @@
 # init_sentry()
 
 from contextlib import asynccontextmanager
+
+from API.rfq_parlay import router as rfq_parlay
 from Redis.redis_manager import RedisAsyncManager
 from pathlib import Path
 from fastapi import FastAPI
@@ -58,4 +60,5 @@ async def custom_docs():
 app.include_router(dfs)
 app.include_router(sportsbooks)
 app.include_router(sgp)
+app.include_router(rfq_parlay)
 app.include_router(liquidity)
