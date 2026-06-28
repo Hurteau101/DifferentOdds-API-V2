@@ -47,7 +47,7 @@ class CaesarAuth(BaseScheduler):
 
         async with async_playwright() as p:
             for attempt in range(0, 10):
-                browser = await p.chromium.launch(headless=False)
+                browser = await p.chromium.launch(headless=True)
 
                 try:
                     context = await browser.new_context(
