@@ -1,5 +1,7 @@
 import asyncio
 from itertools import chain
+import random
+
 import aiohttp
 from Authentication.caesars_auth import CaesarAuth
 from Database.database import Database
@@ -23,10 +25,6 @@ class CaesarMapper(BaseMapper):
     def __init__(self):
         super().__init__(book_name="caesars", category="sgp", request_type=SportbookRequestType.ASYNC)
 
-    async def _get_waf_token(self):
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("caesars_waf_token")
-
     async def _get_path_cache(self, redis_instance: RedisAsyncManager):
         cache = await redis_instance.get_data("caesar_path_cache")
         if not cache:
@@ -34,7 +32,12 @@ class CaesarMapper(BaseMapper):
 
         return True, cache
 
-    async def _extract_cache(self, proxy_manager, session, waf_token: str, redis_instance: RedisAsyncManager):
+    async def _extract_cache(self, proxy_manager, session, caesar_auth_instance, redis_instance: RedisAsyncManager):
+        waf_token = await caesar_auth_instance.extract_token(use_session=False)
+
+        if not waf_token:
+            return None
+
         raw_events = [
             proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
@@ -123,29 +126,32 @@ class CaesarMapper(BaseMapper):
             return await caesar.run_scheduler(session, redis_instance, proxy_index=proxy_index)
 
     async def run_scheduler(self, session, redis_instance: RedisAsyncManager) -> bool:
-        waf_token = await self._get_waf_token()
-
-        if not waf_token:
-            print("No WAF token found")
-            return False
+        # waf_token = await self._get_waf_token()
+        redis_instance = RedisAsyncManager(database=5)
+        caesar = CaesarAuth()
+        # waf_token = await caesar.extract_token(use_session=False)
+        # if not waf_token:
+        #     print("No WAF token found")
+        #     return False
 
         had_cache, cache_data = await self._get_path_cache(redis_instance)
         proxy_manager = ProxyManager(self.api_caller, proxies=[CaesarMapper.PROXY_URL])
 
         if not had_cache:
             print("No cache found, extracting paths...")
-            cache_data = await self._extract_cache(proxy_manager, session, waf_token, redis_instance)
+            cache_data = await self._extract_cache(proxy_manager, session, caesar, redis_instance)
 
             if not cache_data:
-                return await self.run_scheduler(session, redis_instance)
+                return False
+                # return await self.run_scheduler(session, redis_instance)
 
             print(f"Extracted {len(cache_data)} paths and stored in cache.")
         else:
             print("Using cached paths for mapping.")
 
-        semaphore = asyncio.Semaphore(10)
+        semaphore = asyncio.Semaphore(3)
 
-        async def fetch_market(path, proxy_manager):
+        async def fetch_market(path, proxy_manager, waf_token):
             async with semaphore:
                 return await proxy_manager.proxy_caller(
                     book_name=self.book_data.name,
@@ -157,22 +163,31 @@ class CaesarMapper(BaseMapper):
                     parse_json=True
                 )
 
-        market_url_results = await asyncio.gather(*[fetch_market(path, proxy_manager) for path in cache_data])
+        for _ in range(3):
+            waf_token = await caesar.extract_token(use_session=False)
+            if not waf_token:
+                return False
 
-        mapping = {}
-        for result in market_url_results:
-            if result:
-                mapping.update(self._create_mapping(result))
+            market_url_results = await asyncio.gather(*[fetch_market(path, proxy_manager, waf_token) for path in cache_data])
 
-        if mapping:
-            await redis_instance.store_data(
-                key_name="caesar_mapped_ids",
-                data_to_store=mapping,
-                key_expiration=800
-            )
-            return True
+            mapping = {}
+            for result in market_url_results:
+                if result:
+                    mapping.update(self._create_mapping(result))
 
-        return await self.run_scheduler(session, redis_instance)
+            if mapping:
+                print(f"Found {len(mapping)} mappings.")
+                await redis_instance.store_data(
+                    key_name="caesar_mapped_ids",
+                    data_to_store=mapping,
+                    key_expiration=800
+                )
+                return True
+
+            print("No mapping found, retrying in 1-3 seconds...")
+            await asyncio.sleep(random.uniform(1, 3))
+
+        return False
 
 if __name__ == "__main__":
 
