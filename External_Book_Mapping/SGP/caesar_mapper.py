@@ -119,20 +119,10 @@ class CaesarMapper(BaseMapper):
 
         return results
 
-    async def _recall_auth(self, proxy_index):
-        redis_instance = RedisAsyncManager(database=5)
-        caesar = CaesarAuth()
-        async with aiohttp.ClientSession() as session:
-            return await caesar.run_scheduler(session, redis_instance, proxy_index=proxy_index)
 
     async def run_scheduler(self, session, redis_instance: RedisAsyncManager) -> bool:
-        # waf_token = await self._get_waf_token()
         redis_instance = RedisAsyncManager(database=5)
         caesar = CaesarAuth()
-        # waf_token = await caesar.extract_token(use_session=False)
-        # if not waf_token:
-        #     print("No WAF token found")
-        #     return False
 
         had_cache, cache_data = await self._get_path_cache(redis_instance)
         proxy_manager = ProxyManager(self.api_caller, proxies=[CaesarMapper.PROXY_URL])
