@@ -32,12 +32,7 @@ class CaesarMapper(BaseMapper):
 
         return True, cache
 
-    async def _extract_cache(self, proxy_manager, session, caesar_auth_instance, redis_instance: RedisAsyncManager):
-        waf_token = await caesar_auth_instance.extract_token(use_session=False)
-
-        if not waf_token:
-            return None
-
+    async def _extract_cache(self, proxy_manager, session, waf_token, redis_instance: RedisAsyncManager):
         raw_events = [
             proxy_manager.proxy_caller(
                 book_name=self.book_data.name,
@@ -69,20 +64,38 @@ class CaesarMapper(BaseMapper):
             )
             return set()
 
-        game_url_tasks = [
-            proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
-                url=self.book_data.mapping.url.get("game_url").format(event_id=event),
-                method=self.book_data.mapping.method,
-                headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
-                parse_json=True
-            )
-            for event in event_ids
-        ]
+        game_url_semaphore = asyncio.Semaphore(3)  # same cap as fetch_market
+
+        async def fetch_game_url(event):
+            async with game_url_semaphore:
+                result = await proxy_manager.proxy_caller(
+                    book_name=self.book_data.name,
+                    session=session,
+                    url=self.book_data.mapping.url.get("game_url").format(event_id=event),
+                    method=self.book_data.mapping.method,
+                    headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
+                    parse_json=True
+                )
+                await asyncio.sleep(random.uniform(0.05, 0.2))
+                return result
 
         paths = set()
-        game_url_results = await asyncio.gather(*game_url_tasks)
+        game_url_results = await asyncio.gather(*(fetch_game_url(event) for event in event_ids))
+
+        # game_url_tasks = [
+        #     proxy_manager.proxy_caller(
+        #         book_name=self.book_data.name,
+        #         session=session,
+        #         url=self.book_data.mapping.url.get("game_url").format(event_id=event),
+        #         method=self.book_data.mapping.method,
+        #         headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
+        #         parse_json=True
+        #     )
+        #     for event in event_ids
+        # ]
+        #
+        # paths = set()
+        # game_url_results = await asyncio.gather(*game_url_tasks)
 
         for result in game_url_results:
             if result and result.get("event", {}).get("id"):
@@ -120,15 +133,22 @@ class CaesarMapper(BaseMapper):
         return results
 
 
+    async def _get_waf_token(self):
+        redis_instance = RedisAsyncManager(database=5)
+        return await redis_instance.get_data("caesars_waf_token")
+
     async def run_scheduler(self, session, redis_instance: RedisAsyncManager) -> bool:
-        caesar = CaesarAuth()
+        # caesar = CaesarAuth()
+        waf_token = await self._get_waf_token()
+        if not waf_token:
+            return False
 
         had_cache, cache_data = await self._get_path_cache(redis_instance)
         proxy_manager = ProxyManager(self.api_caller, proxies=[CaesarMapper.PROXY_URL])
 
         if not had_cache:
             print("No cache found, extracting paths...")
-            cache_data = await self._extract_cache(proxy_manager, session, caesar, redis_instance)
+            cache_data = await self._extract_cache(proxy_manager, session, waf_token, redis_instance)
 
             if not cache_data:
                 return False
@@ -153,10 +173,6 @@ class CaesarMapper(BaseMapper):
                 )
 
         for _ in range(3):
-            waf_token = await caesar.extract_token(use_session=False)
-            if not waf_token:
-                return False
-
             market_url_results = await asyncio.gather(*[fetch_market(path, proxy_manager, waf_token) for path in cache_data])
 
             mapping = {}

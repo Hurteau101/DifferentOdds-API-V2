@@ -14,10 +14,24 @@ from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
 class CaesarAuth(BaseScheduler):
+    _BLOCKED_RESOURCE_TYPES = {"image", "media", "font", "stylesheet"}
     load_dotenv()
 
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
+
+    async def _block_heavy_resources(self, route):
+        request = route.request
+
+        if request.frame.parent_frame is not None:
+            await route.abort()
+            return
+
+        if request.resource_type in self._BLOCKED_RESOURCE_TYPES:
+            await route.abort()
+            return
+
+        await route.continue_()
 
     def parse_proxy(self, proxy_str: str, use_session: bool, session_length: int = None) -> dict:
         """Converts 'host:port:username:password' into Playwright's proxy dict."""
@@ -47,13 +61,15 @@ class CaesarAuth(BaseScheduler):
 
         async with async_playwright() as p:
             for attempt in range(0, 10):
-                browser = await p.chromium.launch(headless=True)
+                browser = await p.chromium.launch(headless=False)
 
                 try:
                     context = await browser.new_context(
                         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
                         proxy=proxy_dict
                     )
+
+                    await context.route("**/*", self._block_heavy_resources)
 
                     page = await context.new_page()
 
@@ -69,6 +85,7 @@ class CaesarAuth(BaseScheduler):
                         waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
 
                         if waf_token:
+                            print(waf_token)
                             return waf_token
 
                         await page.wait_for_timeout(500)
