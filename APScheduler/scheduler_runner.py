@@ -311,12 +311,12 @@ class BaseSchedulerRunner:
                     async with CurlAsyncSession(impersonate="safari15_5") as fresh_session:
                         success = await asyncio.wait_for(
                             instance.run_scheduler(session=fresh_session, redis_instance=redis_instance_mapper),
-                            timeout=300
+                            timeout=600
                         )
                 else:
                     success = await asyncio.wait_for(
                         instance.run_scheduler(session=session, redis_instance=redis_instance_mapper),
-                        timeout=300
+                        timeout=600
                     )
 
                 if success:
