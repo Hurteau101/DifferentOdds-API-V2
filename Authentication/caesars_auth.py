@@ -1,12 +1,11 @@
 import asyncio
 import os
 import time
-from random import randint
+
 import aiohttp
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
-from sqlalchemy.sql.functions import random
 
 from APScheduler.base_scheduler import BaseScheduler
 from Monitoring.monitoring import create_sentry_message
@@ -19,34 +18,27 @@ class CaesarAuth(BaseScheduler):
     def __init__(self):
         super().__init__(request_type=SportbookRequestType.ASYNC)
 
-    def parse_proxy(self, proxy_str: str, use_session: bool, session_length: int = None) -> dict:
+    def parse_proxy(self, proxy_str: str) -> dict:
         """Converts 'host:port:username:password' into Playwright's proxy dict."""
         host, port, username, password = proxy_str.split(":")
-
-        random_port = randint(0, 100)
-        port = int(port) + random_port
-
-        if use_session:
-            username = f"{username}-sessionduration-{session_length}"
-
-        # -sessionduration-13
-        # gate.decodo.com:10000:spelnk00d9:aCeipvYjB75hk_2l6N
-
         return {
             "server": f"http://{host}:{port}",
             "username": username,
             "password": password,
         }
 
-    async def extract_token(self, use_session: bool=True, session_length:int=13) -> str | None:
+    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager, proxy_index=None) -> bool:
+        if os.name != 'nt':
+            os.environ['DISPLAY'] = ':99'
+
         proxy = os.getenv("DECODO_PROXY")
         if not proxy:
-            return None
+            return False
 
-        proxy_dict = self.parse_proxy(proxy, use_session=use_session, session_length=session_length) if proxy else None
+        proxy_dict = self.parse_proxy(proxy) if proxy else None
 
         async with async_playwright() as p:
-            for attempt in range(0, 10):
+            for attempt in range(0, 5):
                 browser = await p.chromium.launch(headless=False)
 
                 try:
@@ -64,12 +56,18 @@ class CaesarAuth(BaseScheduler):
                     await page.goto("https://sportsbook.caesars.com/us/az/bet/", wait_until="networkidle")
                     await page.wait_for_timeout(5000) # Wait for any JS challenges to finish.
 
-                    for _ in range(10):
+                    for _ in range(30):
                         cookies = await context.cookies()
                         waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
 
                         if waf_token:
-                            return waf_token
+                            await redis_instance.store_data(
+                                key_name="caesars_waf_token",
+                                data_to_store=waf_token,
+                                key_expiration=720
+                            )
+
+                            return True
 
                         await page.wait_for_timeout(500)
 
@@ -79,24 +77,7 @@ class CaesarAuth(BaseScheduler):
                 finally:
                     await browser.close()
 
-            return None
-
-
-
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager, proxy_index=None) -> bool:
-        if os.name != 'nt':
-            os.environ['DISPLAY'] = ':99'
-
-        waf_token = await self.extract_token()
-
-        if waf_token:
-            await redis_instance.store_data(
-                key_name="caesars_waf_token",
-                data_to_store=waf_token,
-                key_expiration=720
-            )
-
-
+            return False
 
 if __name__ == "__main__":
     import asyncio
@@ -110,5 +91,4 @@ if __name__ == "__main__":
             await caesar.run_scheduler(session, redis_instance)
 
     asyncio.run(main())
-
 
