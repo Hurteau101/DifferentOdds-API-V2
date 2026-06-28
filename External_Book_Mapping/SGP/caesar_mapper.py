@@ -121,7 +121,6 @@ class CaesarMapper(BaseMapper):
 
 
     async def run_scheduler(self, session, redis_instance: RedisAsyncManager) -> bool:
-        redis_instance = RedisAsyncManager(database=5)
         caesar = CaesarAuth()
 
         had_cache, cache_data = await self._get_path_cache(redis_instance)
