@@ -82,7 +82,7 @@ AUTH_JOBS = [
         "book_name": "caesars",
         "class": CaesarAuth,
         "job_type": "auth",
-        "is_active": True,
+        "is_active": False,
         "interval": 600, # 10 minutes
         "redis_db": RedisSelector.AUTH,
         "session_type": "aiohttp",
@@ -186,7 +186,7 @@ MAPPER_JOBS = [
         "book_name": "caesars",
         "class": CaesarMapper,
         "job_type": "mapper",
-        "is_active": True,
+        "is_active": False,
         "interval": 600,  # 10 minutes
         "redis_db": RedisSelector.MAPPER,
         "session_type": "aiohttp",
