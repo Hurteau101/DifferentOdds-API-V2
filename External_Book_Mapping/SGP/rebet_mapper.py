@@ -48,9 +48,6 @@ from Utils.helpers import clean_structure
 from Utils.request_caller import SportbookRequestType
 
 
-def get_static_mapping():
-    return static_mapping_service.get()
-
 class RebetMapper(BaseMapper):
     def __init__(self):
         super().__init__(book_name="rebet", category="sgp", request_type=SportbookRequestType.ASYNC)

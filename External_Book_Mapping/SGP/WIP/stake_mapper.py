@@ -8,9 +8,6 @@ from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession
 
 ### MOVE GET STATIC METHOD TO BASE CLASS AFTER TESTING FURTHER
-def get_static_mapping():
-    return static_mapping_service.get()
-
 ADDITIONAL_MARKET_MAPPING = {
     "NHL": {
         "spread": "Puck Line"

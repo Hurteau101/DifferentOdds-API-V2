@@ -10,9 +10,6 @@ from Redis.redis_manager import RedisAsyncManager
 from Utils.helpers import clean_structure
 from Utils.request_caller import SportbookRequestType
 
-def get_static_mapping():
-    return static_mapping_service.get()
-
 class BovadaMapper(BaseMapper):
     SPORT_PATHS = [
         "baseball/mlb",
@@ -209,7 +206,7 @@ class BovadaMapper(BaseMapper):
                                 # If there is no line, we can just display it as "over" with 0.5. (Ex. player to hit a homerun)
                                 selection = f"{player_name} over 0.5"
 
-                        market_name = get_static_mapping().get("stats", {}).get(cleaned_market_name,
+                        market_name = self.get_static_mapping().get("stats", {}).get(cleaned_market_name,
                                                                                 cleaned_market_name).lower()
                         mapped_ids.setdefault(custom_id, {}).setdefault(market_name, {}).setdefault(selection, {
                             "outcome_id": outcome_id,

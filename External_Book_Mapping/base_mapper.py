@@ -1,5 +1,5 @@
 from APScheduler.base_scheduler import BaseScheduler
-from Redis.redis_manager import RedisAsyncManager
+from Redis.redis_manager import RedisAsyncManager, static_mapping_service
 from Settings.book_configurations import BookConfiguration
 from Utils.request_caller import SportbookRequestType
 
@@ -10,3 +10,7 @@ class BaseMapper(BaseScheduler):
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         super().__init__(request_type=request_type)
         self.default_key_expiration = default_key_expiration
+
+    @staticmethod
+    def get_static_mapping():
+        return static_mapping_service.get()

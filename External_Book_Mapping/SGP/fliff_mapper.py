@@ -7,9 +7,6 @@ from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import SportbookRequestType
 
-def get_static_mapping():
-    return static_mapping_service.get()
-
 class FliffMapper(BaseMapper):
     def __init__(self):
         super().__init__(book_name="fliff", category="sgp", request_type=SportbookRequestType.ASYNC)
@@ -87,7 +84,7 @@ class FliffMapper(BaseMapper):
 
         results = await asyncio.gather(*tasks)
 
-        mapping = get_static_mapping()
+        mapping = self.get_static_mapping()
         stat_mapping = mapping.get("stats", {})
 
         con_keys = {}
