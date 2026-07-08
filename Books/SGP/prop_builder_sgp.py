@@ -12,6 +12,27 @@ class PropBuilderSGP(SGPBookBase):
     def __init__(self, mapped_ids_redis_instance, **kwargs):
         super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="prop_builder",
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
+        self.not_found = []
+
+
+    def _check_key(self, selection_parts: list, found_game_mapping: dict):
+        key_name = "_".join(selection_parts).lower().replace(" ", "_").replace("_team_total", "")
+        found = found_game_mapping.get(key_name)
+
+        if not found:
+            self.not_found.append(key_name)
+        else:
+            self.not_found.clear()
+        return found
+
+    def _find_key(self, parts: list, found_game_mapping: dict):
+        for candidate in (parts, parts[::-1]):
+            key = self._check_key(selection_parts=candidate, found_game_mapping=found_game_mapping)
+
+            if key:
+                return key
+        return None
+
 
     def _build_payload(self, mapped_ids: dict, additional_data: dict) -> dict:
         event_name_count = Counter(item.get("event_name") for item in additional_data if item.get("event_name"))
@@ -42,18 +63,17 @@ class PropBuilderSGP(SGPBookBase):
         }
 
         for additonal in additional_data:
-            selection_name = additonal.get("selection_name")
+            selection_name = additonal.get("selection_name", '').replace("+", '')
             market_name = additonal.get("market_name", '')
 
             parts = [selection_name, market_name]
-            if market_name.lower() == "moneyline":
-                parts.reverse()
 
-            key_name = "_".join(parts).lower().replace(" ", "_").replace("_team_total", "")
-            found_key = found_game_mapping.get(key_name)
+            found_key = self._find_key(parts, found_game_mapping)
 
             if not found_key:
-                break
+                # print(self.not_found)
+                return {}
+
 
             payload["events"].append({
                 "player1": found_key.get("player1"),
@@ -72,7 +92,6 @@ class PropBuilderSGP(SGPBookBase):
 
     @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
-        print("RUNNING PROPBUILDER")
         mapped_ids = await self.load_mapped_ids(key_name="prop_builder_mapped_ids")
         additional_data = self.sgp_data.get("event_data", [])
 
@@ -92,6 +111,7 @@ class PropBuilderSGP(SGPBookBase):
             headers=self.book_data.headers,
             payload=payload
         )
+
 
         if not api_data:
             return None
@@ -120,20 +140,20 @@ if __name__ == "__main__":
                     "https://{state}.betway.com/sports/event/16902972",
                 ],
                 "event_data": [
-                    {
-                        "event_name": "Los Angeles Sparks vs Indiana Fever",
-                        "date": "2026-07-09 02:00:00Z",
-                        "market_name": "Player Points",
-                        "selection_name": "Erica Wheeler Over 8.5",
-                        "line": "8.5"
-                    },
-                    {
-                        "event_name": "Los Angeles Sparks vs Indiana Fever",
-                        "date": "2026-07-09 02:00:00Z",
-                        "market_name": "Player Points + Rebounds + Assists",
-                        "selection_name": "Dearica Hamby Under 26.5",
-                        "line": "26.5"
-                    }
+                  {
+                    "event_name": "Los Angeles Dodgers vs Colorado Rockies",
+                    "date": "2026-07-09 02:10:00Z",
+                    "market_name": "Player Outs",
+                    "selection_name": "Roki Sasaki Over 16.5",
+                    "line": "16.5"
+                  },
+                  {
+                    "event_name": "Los Angeles Dodgers vs Colorado Rockies",
+                    "date": "2026-07-09 02:10:00Z",
+                    "market_name": "Player Hits + Runs + RBIs",
+                    "selection_name": "Kyle Tucker Over 1.5",
+                    "line": "1.5"
+                  }
                 ]
             }
 
@@ -141,7 +161,5 @@ if __name__ == "__main__":
             book = PropBuilderSGP(sgp_data=sgp_data, mapped_ids_redis_instance=redis_mapped)
             data = await book.run_book(session=session)
             print(data)
-
-            ## Looks to be working for player props.  Will have to test on Auto SGP and fix game markets.
 
     asyncio.run(main())

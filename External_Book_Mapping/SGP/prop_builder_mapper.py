@@ -12,7 +12,11 @@ class PropBuilderMapper(BaseMapper):
     def __init__(self):
         super().__init__(book_name="prop_builder", category="sgp", request_type=SportbookRequestType.ASYNC)
         self.ignore_stats = ["ppd", "specials", "all markets", "acca", "field", "h2h", "h2h", "pops"]
-        self.test_stats = set()
+        self.spread_types = ["spread", "run line", "puck line", "point spread"]
+        self.special_team_mapping = {
+            "athletics": "oakland athletics",
+        }
+
 
 
     async def _get_gfm(self, **kwargs):
@@ -122,7 +126,9 @@ class PropBuilderMapper(BaseMapper):
     def _special_spread_mapper(self, stat_name: str, league: str):
         mapper = {
             "mlb": "run line",
-            "nhl": "puck line"
+            "nhl": "puck line",
+            "nba": "point spread",
+            "wnba": "point spread",
         }
 
         if "spread" in stat_name.lower():
@@ -133,27 +139,29 @@ class PropBuilderMapper(BaseMapper):
         return stat_name
 
 
-    def _handle_game_markets(self, market: dict, mapping: dict, league: str, stat_name: str, raw_stat_name: str, stat_mapping: dict):
-        def handle_key_name(team_1_name: str, team_2_name: str, team_1_abbrv: str, team_2_abbrv: str, g_type: dict, current_stat: str):
+    def _handle_game_markets(self, market: dict, mapping: dict, league: str, stat_name: str, raw_stat_name: str):
+        def handle_key_name(team_1_name: str, team_2_name: str, team_1_abbrv: str, team_2_abbrv: str, g_type: dict, current_stat: str, game_line: str):
             game_type = g_type.get("type")
 
             if game_type in ["1", "2", "x", "none", "yes", "no"]:
                 inner_mapper = {
-                    "1": team_1_name if current_stat not in ["spread", "run line", "puck line"] else team_1_abbrv,
-                    "2": team_2_name if current_stat not in ["spread", "run line", "puck line"] else team_2_abbrv,
+                    "1": team_1_abbrv if any(stat in current_stat for stat in self.spread_types) else team_1_name,
+                    "2": team_2_abbrv if any(stat in current_stat for stat in self.spread_types) else team_2_name,
+                    # "1": team_1_name if current_stat not in self.spread_types else team_1_abbrv,
+                    # "2": team_2_name if current_stat not in self.spread_types else team_2_abbrv,
                     "x": "draw",
                     "none": "none",
                     "yes": "over 0.5",
                     "no": "under 0.5",
                 }
 
-                team = inner_mapper.get(game_type)
 
-                key = f"{team}_{line}" if line is not None else team
+                team = inner_mapper.get(game_type)
+                key = f"{team}_{game_line}" if line is not None else team
                 return key.lower().replace(" ", "_")
 
             if game_type in ["over", "under"]:
-                return f"{game_type}_{line}"
+                return f"{game_type}_{game_line}"
 
             return current_stat
 
@@ -196,7 +204,7 @@ class PropBuilderMapper(BaseMapper):
                 current_stat_name = has_special_team_mapping
 
 
-            raw_gfm_game_key = handle_key_name(team_1_name, team_2_name, team_1_abbrv, team_2_abbrv, game_type, current_stat_name)
+            raw_gfm_game_key = handle_key_name(team_1_name, team_2_name, team_1_abbrv, team_2_abbrv, game_type, current_stat_name, line)
 
             gfm_game_key = f"{current_stat_name}_{raw_gfm_game_key}".lower().replace(" ", "_")
 
@@ -319,7 +327,7 @@ class PropBuilderMapper(BaseMapper):
                     )
                 # Games
                 else:
-                    self._handle_game_markets(market=market, mapping=mapping, league=league, stat_name=stat_name, raw_stat_name=raw_stat_name, stat_mapping=static_mapping)
+                    self._handle_game_markets(market=market, mapping=mapping, league=league, stat_name=stat_name, raw_stat_name=raw_stat_name)
 
         return mapping
 
@@ -367,7 +375,7 @@ class PropBuilderMapper(BaseMapper):
     def _get_team_data(self, team_key: str, game_detail: dict):
         return next((
             {
-                "team_name": team.get("title"),
+                "team_name": self.special_team_mapping.get(team.get("title"), team.get("title")),
                 "team_abbrv": team.get("abbreviation"),
             }
             for team in game_detail.get(team_key, [])
@@ -500,17 +508,6 @@ class PropBuilderMapper(BaseMapper):
             return True
 
         return False
-
-        # stat_set = set()
-        #
-        # for game_key, game_data in mapped_ids.items():
-        #     for stat_name in game_data.keys():
-        #         stat_set.add(stat_name)
-
-        # print(self.test_stats)
-        #
-
-
 
 
 
