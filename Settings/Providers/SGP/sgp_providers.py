@@ -475,10 +475,35 @@ SGP_PROVIDERS = [
         )
     ),
     SGPProvider(
-            title="Bovada Sportsbook",
-            name="bovada",
+        title="Bovada Sportsbook",
+        name="bovada",
+        url={
+            "sgp_url": "https://services.ozoon.eu/services/sports/bet/betslip"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Referer': 'https://services.ozoon.eu/',
+            'content-type': 'application/json',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'same-origin',
+            'Sec-Fetch-Site': 'same-origin',
+            'Priority': 'u=4',
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache',
+            'TE': 'trailers',
+        },
+        regex={
+            "event_id": r"sports\/(.+)"
+        },
+        method="GET",
+        is_active=True,
+        mapping=SGPMapper(
             url={
-                "sgp_url": "https://services.ozoon.eu/services/sports/bet/betslip"
+                "main_url": "https://www.bovada.lv/services/sports/event/coupon/events/A/description/",
             },
             headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
@@ -496,68 +521,11 @@ SGP_PROVIDERS = [
                 'Cache-Control': 'no-cache',
                 'TE': 'trailers',
             },
-            regex={
-                "event_id": r"sports\/(.+)"
-            },
             method="GET",
-            is_active=True,
-            mapping=SGPMapper(
-                url={
-                    "main_url": "https://www.bovada.lv/services/sports/event/coupon/events/A/description/",
-                },
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
-                    'Accept': 'application/json, text/plain, */*',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br, zstd',
-                    'Referer': 'https://services.ozoon.eu/',
-                    'content-type': 'application/json',
-                    'Connection': 'keep-alive',
-                    'Sec-Fetch-Dest': 'empty',
-                    'Sec-Fetch-Mode': 'same-origin',
-                    'Sec-Fetch-Site': 'same-origin',
-                    'Priority': 'u=4',
-                    'Pragma': 'no-cache',
-                    'Cache-Control': 'no-cache',
-                    'TE': 'trailers',
-                },
-                method="GET",
-                is_active=True
-            )
-        ),
-    SGPProvider(
-        title="Prop Builder",
-        name="prop_builder",
-        url={
-            "sgp_url": ""
-        },
-        headers={},
-        regex={
-        },
-        method="GET",
-        is_active=False,
-        mapping=SGPMapper(
-            url={
-                "league_url": "https://bv2-us.digitalsportstech.com/api/sgmLeagues",
-                "events_url": "https://bv2-us.digitalsportstech.com/api/gfm/gamesByGfm",
-                "mapping_url": "https://bv2-us.digitalsportstech.com/api/grouped-markets/v2/map"
-            },
-            headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Origin': 'https://troya.xyz',
-                'Connection': 'keep-alive',
-                'Referer': 'https://troya.xyz/',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'cross-site',
-                'If-None-Match': 'W/"2d2-yZkLcqaWtM9Pw8m1xi71kptbtvc"',
-            },
-            method="GET",
-            is_active=False
+            is_active=True
         )
     ),
+
     SGPProvider(
         title="Rebet",
         name="rebet",
@@ -587,6 +555,42 @@ SGP_PROVIDERS = [
                 'Sec-Fetch-Dest': 'empty',
                 'Sec-Fetch-Mode': 'cors',
                 'Sec-Fetch-Site': 'cross-site'
+            },
+            method="GET",
+            is_active=True
+        )
+    ),
+    SGPProvider(
+        title="Prop Builder",
+        name="prop_builder",
+        url={
+            "sgp_url": "https://bv2-us.digitalsportstech.com/api/v2/odds/acca"
+        },
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, zstd',
+            'Origin': 'https://troya.xyz',
+            'Connection': 'keep-alive',
+            'Referer': 'https://troya.xyz/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site'
+        },
+        regex={
+        },
+        method="POST",
+        is_active=True,
+        mapping=SGPMapper(
+            url={
+                "league_url": "https://bv2-us.digitalsportstech.com/api/sgmLeagues?sb=betus&user=undefined&legacy=1",
+                "game_url": "https://bv2-us.digitalsportstech.com/api/sgmGames?sb=betus",
+                "market_url": "https://bv2-us.digitalsportstech.com/api/grouped-markets/v2/map?sb=betus&legacy=1",
+                "props_base": "https://bv2-us.digitalsportstech.com/api/",
+                "game_details_url": "https://bv2-us.digitalsportstech.com/api/gfm/gamesByGfm"
+            },
+            headers={
             },
             method="GET",
             is_active=True

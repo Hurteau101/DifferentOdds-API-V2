@@ -142,25 +142,49 @@ SPORTSBOOKS_PROVIDERS = [
         method="POST",
         is_active=True
     ),
-BaseProvider(
-        title="Buckeye 1",
-        name="buckeye1",
-        url={
-            "market_url": "https://playnow365.com/Qubic/PlayerGameSelection.php"
-        },
-        headers={
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Connection': 'keep-alive',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Host': 'playnow365.com',
-            'Origin': 'https://playnow365.com',
-            'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0'
-        },
-        method="POST",
-        is_active=True
-    )
+    BaseProvider(
+            title="Buckeye 1",
+            name="buckeye1",
+            url={
+                "market_url": "https://playnow365.com/Qubic/PlayerGameSelection.php"
+            },
+            headers={
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Encoding': 'gzip, deflate',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Connection': 'keep-alive',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Host': 'playnow365.com',
+                'Origin': 'https://playnow365.com',
+                'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0'
+            },
+            method="POST",
+            is_active=True
+        ),
+        # BaseProvider(
+        #     title="Prop Builder",
+        #     name="prop_builder",
+        #     url={
+        #         "league_url": "https://bv2-us.digitalsportstech.com/api/sgmLeagues?sb=betus&user=undefined&legacy=1",
+        #         "game_url": "https://bv2-us.digitalsportstech.com/api/sgmGames?sb=betus",
+        #         "market_url": "https://bv2-us.digitalsportstech.com/api/grouped-markets/v2/map?sb=betus&legacy=1",
+        #         "props_base": "https://bv2-us.digitalsportstech.com/api/",
+        #     },
+        #     headers={
+        #         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
+        #         'Accept': 'application/json, text/plain, */*',
+        #         'Accept-Language': 'en-US,en;q=0.9',
+        #         'Accept-Encoding': 'gzip, deflate, zstd',
+        #         'Origin': 'https://troya.xyz',
+        #         'Connection': 'keep-alive',
+        #         'Referer': 'https://troya.xyz/',
+        #         'Sec-Fetch-Dest': 'empty',
+        #         'Sec-Fetch-Mode': 'cors',
+        #         'Sec-Fetch-Site': 'cross-site'
+        #     },
+        #     method="GET",
+        #     is_active=True
+        # )
 ]
