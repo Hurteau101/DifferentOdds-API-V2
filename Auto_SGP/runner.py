@@ -747,6 +747,10 @@ class AutoSGP(APICaller):
            An example usage is Prop Builder where it mimics Betonline, Bovada. So we want to check if any of those books are in there
            and add it, this way we get more mapping.
         """
+        if not bettorodds_data:
+            print("No Bettorodds Data Found. Skipping..")
+            return bettorodds_data
+
         for game_key, data in bettorodds_data.items():
             book_feed = data.get("book_feed", {})
             to_add = {}
