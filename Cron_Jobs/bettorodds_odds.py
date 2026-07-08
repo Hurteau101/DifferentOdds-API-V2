@@ -30,7 +30,7 @@ def load_bettorodds(limit: str="all", retry_amount: int = 3):
             if response.status_code == 200:
                 redis_instance = RedisSyncManager(database=8)
                 redis_instance.store_data(
-                    key_name="bettoroddds_odds",
+                    key_name="bettorodds_odds",
                     data_to_store=response.json(),
                     key_expiration=120
                 )

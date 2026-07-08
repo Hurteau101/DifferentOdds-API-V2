@@ -9,7 +9,7 @@ RETRY = 0
 def run(matches: bool, player: bool, stat_type: bool, leagues: bool, save_json: bool = True):
     global RETRY
     redis_instance = RedisSyncManager(database=8)
-    bettorodds_data = redis_instance.get_data("bettoroddds_odds")
+    bettorodds_data = redis_instance.get_data("bettorodds_odds")
 
     if RETRY > 1:
         raise Exception("Exceeded maximum retry attempts to load BettorOdds data from Redis.")
