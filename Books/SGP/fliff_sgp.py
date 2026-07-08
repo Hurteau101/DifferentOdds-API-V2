@@ -72,6 +72,9 @@ class FliffSGP(SGPBookBase):
     @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
         tokens = await self.load_auth_token(key_name="fliff_auth_token")
+        if not tokens:
+            return None
+
         access_token = tokens.get("access_token")
 
         location_token = tokens.get("location_token")
