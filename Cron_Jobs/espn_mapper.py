@@ -13,7 +13,12 @@ class ESPNMapper(APICaller):
         {"espn_league": "nhl", "sport": "hockey"},
         {"espn_league": "mlb", "sport": "baseball"},
         {"espn_league": "nfl", "sport": "football"},
+        {"espn_league": "fiba", "sport": "basketball"},
+        {"espn_league": "mens-college-basketball", "sport": "basketball"},
+        {"espn_league": "wnba", "sport": "basketball"},
     ]
+
+    ### PULL FROM DATABASE LATER ON.
 
     def __init__(self, session: aiohttp.ClientSession):
         super().__init__(SportbookRequestType.ASYNC)
@@ -42,6 +47,12 @@ class ESPNMapper(APICaller):
                 for team in league.get("teams", [])
             }
 
+            abbreviations = {
+                self._normalize_team_name(team.get("team", {}).get("displayName")): team.get("team", {}).get(
+                    "abbreviation")
+                for team in league.get("teams", [])
+            }
+
             sport = results[index]["sports"][0]["slug"]
             schedules = await self._get_schedule(team_ids=list(teams.values()), sport=sport, league=league_name)
             players = await self._get_players(team_ids=list(teams.values()), sport=sport, league=league_name)
@@ -49,6 +60,7 @@ class ESPNMapper(APICaller):
             for team_name, team_id in teams.items():
                 mapping.setdefault(league_name, {})[team_name] = {
                     "id": team_id,
+                    "abbreviation": abbreviations.get(team_name),
                     "players": players.get(team_id, []),
                     "schedule": schedules.get(team_id, [])
                 }
