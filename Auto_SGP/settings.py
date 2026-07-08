@@ -10,6 +10,7 @@ from Books.SGP.hardrock_sgp import HardrockSGP
 from Books.SGP.kambi_sgp import KambiSGP
 from Books.SGP.novig_sgp import NovigSGP
 from Books.SGP.onyx_sgp import OnyxSGP
+from Books.SGP.prop_builder_sgp import PropBuilderSGP
 from Books.SGP.prophetx_sgp import ProphetxSGP
 from Books.SGP.thescore_sgp import ThescoreSGP
 
@@ -97,7 +98,13 @@ BOOKS = {
         "active": True,
         "mapped_name": "bovada",
         "session": "aiohttp"
-    }
+    },
+    "special_prop_builder": {
+        "class": PropBuilderSGP,
+        "active": True,
+        "mapped_name": "prop builder",
+        "session": "aiohttp"
+    },
 }
 
 

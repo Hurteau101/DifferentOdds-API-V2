@@ -97,8 +97,6 @@ class PropBuilderMapper(BaseMapper):
                         league_tracker.append(league)
 
         response = await asyncio.gather(*tasks)
-        with open("market_response.json", "w") as f:
-            json.dump(response, f, indent=2)
 
         return self._build_market_data(response=zip(league_tracker, response), team_mapper=team_mapper)
 
@@ -494,9 +492,6 @@ class PropBuilderMapper(BaseMapper):
         market_mapper = await self._market_mapper(session=session, league_data=leagues)
 
         mapped_ids = await self._market_extractor(session=session, game_ids=game_ids, market_mapper=market_mapper, team_mapper=game_details)
-
-        with open("new_mapping_NEW.json", "w") as f:
-            json.dump(mapped_ids, f, indent=2)
 
         if mapped_ids:
             await redis_instance.store_data(

@@ -93,7 +93,7 @@ class AutoSGP(APICaller):
             with open("bettorodds_data.json", "r") as f:
                 return json.load(f)
 
-        sports_data = self.bettorodds_redis_instance.get_data(key_name="bettoroddds_odds")
+        sports_data = self.bettorodds_redis_instance.get_data(key_name="bettorodds_odds")
 
         if not sports_data:
             return
@@ -150,6 +150,8 @@ class AutoSGP(APICaller):
                         "line": {betlink: float(line)} if line else None,
                         "event_data": {
                             "market_name": markets.get("Prop", None),
+                            "date": markets.get("Date", None),
+                            "event_name": markets.get("Match", None),
                             "selection_name": selection_name,
                             "line": line
                         }
@@ -740,6 +742,25 @@ class AutoSGP(APICaller):
             pipeline=self.previously_stored_redis_instance.redis_client.pipeline()
         )
 
+    def special_book_adder(self, bettorodds_data, special_key_name: str,  duplicated_book_names: list):
+        """Adds a special mapping to the book feed to add books if they are in the list of duplicated book names.
+           An example usage is Prop Builder where it mimics Betonline, Bovada. So we want to check if any of those books are in there
+           and add it, this way we get more mapping.
+        """
+        for game_key, data in bettorodds_data.items():
+            book_feed = data.get("book_feed", {})
+            to_add = {}
+            for book_name, odds in book_feed.items():
+                if book_name.lower() in duplicated_book_names:
+                    to_add[special_key_name] = odds
+                    break
+            book_feed.update(to_add)
+
+        return bettorodds_data
+
+
+
+
     async def runner(self):
         timeout = aiohttp.ClientTimeout(total=40)
         async with CurlAsyncSession(timeout=timeout, impersonate="safari15_5") as curl_session, aiohttp.ClientSession(timeout=timeout) as aiohttp_session:
@@ -769,6 +790,7 @@ class AutoSGP(APICaller):
                     continue
 
                 sportsbook_data = self.load_sportsbook_data(used_stored_json=False, store_json=False)
+                sportsbook_data = self.special_book_adder(sportsbook_data, special_key_name="special_prop_builder", duplicated_book_names=["betonline", "prop builder", "bovada", "bodog"])
 
                 if not sportsbook_data:
                     create_sentry_message(
