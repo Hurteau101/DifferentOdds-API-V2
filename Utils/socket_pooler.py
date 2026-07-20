@@ -125,8 +125,8 @@ class SocketHelper:
     async def send(self, payload: dict):
         # attempts = len(self.proxies) if self.proxies else 1
 
-        #http://yxzikPTfJzmuIO2:3yMP0A9WCACBAc3@204.252.85.110:48067
-        proxy = os.getenv("FLOPPYDATA_PROXY_URL")
+        # proxy = os.getenv("FLOPPYDATA_PROXY_URL")
+        proxy = os.getenv("RESIDENTIAL_PROXIES")
         if not proxy:
             raise ValueError("FLOPPYDATA_PROXY_URL environment variable is not set.")
 
