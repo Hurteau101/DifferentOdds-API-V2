@@ -122,16 +122,49 @@ class SocketHelper:
         return f"http://{username}:{password}@{ip}:{port}"
 
 
-    async def send(self, payload: dict):
-        # attempts = len(self.proxies) if self.proxies else 1
+    #
+    # async def send(self, payload: dict, use_proxy: bool = True):
+    #     # attempts = len(self.proxies) if self.proxies else 1
+    #
+    #     # proxy = os.getenv("FLOPPYDATA_PROXY_URL")
+    #     proxy = os.getenv("RESIDENTIAL_PROXIES")
+    #
+    #     if not proxy:
+    #         raise ValueError("FLOPPYDATA_PROXY_URL environment variable is not set.")
+    #
+    #     for _ in range(10):
+    #         # proxy = self._next_proxy()
+    #
+    #         try:
+    #             async with cf_requests.AsyncSession(impersonate="safari15_5") as session:
+    #                 ws = await session.ws_connect(self.url, headers=self.headers, proxy=proxy)
+    #                 await ws.send_json(payload)
+    #                 received_msg = await ws.recv()
+    #                 if isinstance(received_msg, tuple):
+    #                     received_msg, _ = received_msg
+    #                 return json.loads(received_msg)
+    #         except Exception as e:
+    #             # print(f"Proxy failed ({proxy}): {e} — trying next")
+    #             continue
+    #
+    #     print("All proxies failed [Websocket]")
+    #     return {}
 
-        # proxy = os.getenv("FLOPPYDATA_PROXY_URL")
-        proxy = os.getenv("RESIDENTIAL_PROXIES")
-        if not proxy:
-            raise ValueError("FLOPPYDATA_PROXY_URL environment variable is not set.")
+    async def send(self, payload: dict, use_proxy: bool = True):
+        proxy_list = []
+        if use_proxy:
+            proxy_list = [p for p in os.getenv("RESIDENTIAL_PROXIES", "").split(",") if p]
+            if not proxy_list:
+                raise ValueError("RESIDENTIAL_PROXIES environment variable is not set.")
 
-        for _ in range(10):
-            # proxy = self._next_proxy()
+        attempts = proxy_list if use_proxy else [None]
+
+        for raw_proxy in attempts:
+            proxy = None
+            if raw_proxy:
+                ip, port, username, password = raw_proxy.split(":")
+                proxy = f"http://{username}:{password}@{ip}:{port}"
+                print(proxy)
 
             try:
                 async with cf_requests.AsyncSession(impersonate="safari15_5") as session:
@@ -142,8 +175,8 @@ class SocketHelper:
                         received_msg, _ = received_msg
                     return json.loads(received_msg)
             except Exception as e:
-                # print(f"Proxy failed ({proxy}): {e} — trying next")
+                print(f"Connection failed (proxy={proxy}): {e} — trying next")
                 continue
 
-        print("All proxies failed [Websocket]")
+        print("All attempts failed [Websocket]")
         return {}
