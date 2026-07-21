@@ -284,6 +284,7 @@ class Ace(PPHBookBase):
         :param description_name: The description name of the section
         :param games: The game data dict
         """
+
         raw_date = games.get("gmdt")
         raw_time = games.get("gmtm")
         start_date = self._build_start_date(raw_date=raw_date, raw_time=raw_time)
@@ -331,7 +332,8 @@ class Ace(PPHBookBase):
 
 
         special_conditions = ['yes/no']
-        game_description = games.get("gdesc", '').lower()
+
+        game_description = (games.get("gdesc") or '').lower()
 
         for main_lines in games.get("GameLines", []):
             home_odds_name = "hoddst" if main_lines.get("hoddst") else "hspoddst"
@@ -415,6 +417,9 @@ class Ace(PPHBookBase):
                 is_player_prop = True if "player prop" in description_name.lower() else False
 
                 for games in market.get("Games", []):
+                    if not games:
+                        continue
+
                     if not is_player_prop:
                         markets = await self.build_mainline_market(description_name=description_name, games=games)
                     else:
