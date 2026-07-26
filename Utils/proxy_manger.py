@@ -31,8 +31,8 @@ class ProxyManager:
             params: dict | None = None,
             max_retries: int = 5,
     ):
-        # connection_url = os.getenv("FLOPPYDATA_PROXY_URL")
-        connection_url = self._cycle_proxies()
+        connection_url = os.getenv("FLOPPYDATA_PROXY_URL")
+        # connection_url = self._cycle_proxies()
 
         if not connection_url:
             create_sentry_message(
@@ -56,7 +56,8 @@ class ProxyManager:
                             proxy=connection_url,
                             params=params,
                             payload=payload,
-                            parse_json=parse_json
+                            parse_json=parse_json,
+                            ssl=False
                         )
 
 

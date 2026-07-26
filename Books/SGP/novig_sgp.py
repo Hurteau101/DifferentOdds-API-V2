@@ -68,15 +68,6 @@ class NovigSGP(SGPBookBase):
                 method="POST",
                 payload=payload
             )
-        else:
-            api_data = await proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
-                headers=self.book_data.headers,
-                url=self.book_data.url.get("main_url"),
-                method="POST",
-                payload=payload
-            )
 
 
         # api_data = await self.api_caller(
