@@ -47,6 +47,8 @@ class NovigSGP(SGPBookBase):
             "outcomes": ids
         }
 
+        is_sgp = self.sgp_data.get("is_sgp", True)
+
         proxy_1 = os.getenv("RESIDENTIAL_PROXIES")
         proxy_2 = os.getenv("PROXIES")
         proxies = [
@@ -57,6 +59,26 @@ class NovigSGP(SGPBookBase):
 
         proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
 
+        if not is_sgp:
+            api_data = await proxy_manager.rotating_proxy_caller(
+                book_name=self.book_data.name,
+                session=session,
+                headers=self.book_data.headers,
+                url=self.book_data.url.get("main_url"),
+                method="POST",
+                payload=payload
+            )
+        else:
+            api_data = await proxy_manager.proxy_caller(
+                book_name=self.book_data.name,
+                session=session,
+                headers=self.book_data.headers,
+                url=self.book_data.url.get("main_url"),
+                method="POST",
+                payload=payload
+            )
+
+
         # api_data = await self.api_caller(
         #     book_name=self.book_data.name,
         #     headers=self.book_data.headers,
@@ -66,16 +88,7 @@ class NovigSGP(SGPBookBase):
         #     payload=payload
         # )
 
-        api_data = await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
-            headers=self.book_data.headers,
-            url=self.book_data.url.get("main_url"),
-            method="POST",
-            payload=payload
-        )
-
-        # api_data = await proxy_manager.rotating_proxy_caller(
+        # api_data = await proxy_manager.proxy_caller(
         #     book_name=self.book_data.name,
         #     session=session,
         #     headers=self.book_data.headers,
@@ -84,10 +97,10 @@ class NovigSGP(SGPBookBase):
         #     payload=payload
         # )
 
+
+
         if not api_data:
             return None
-
-        is_sgp = self.sgp_data.get("is_sgp", True)
 
         if api_data:
             american_odds = self._extract_odds(api_data, is_sgp=is_sgp)
@@ -102,10 +115,8 @@ if __name__ == "__main__":
         async with aiohttp.ClientSession() as session:
             sgp_data = {
                 "book_name": "novig",
-                "links": [
-                    "https://novig.com/events/019f9a82-fee0-7351-a224-f5d935f4455f/null",
-                    "https://novig.com/events/019f9aa7-787a-7c40-b983-cb7dea72a932/null"
-                ],
+                "links": ["https://novig.com/events/019f9c03-665e-7380-96b8-5cf45707f310/null",
+                          "https://novig.com/events/019f9ec8-4fa3-71a0-a76b-48407921ef9e/null"],
                 "is_sgp": False
             }
             novig_sgp = NovigSGP(sgp_data=sgp_data)
