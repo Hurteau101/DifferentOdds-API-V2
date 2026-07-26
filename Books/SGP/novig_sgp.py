@@ -66,16 +66,7 @@ class NovigSGP(SGPBookBase):
         #     payload=payload
         # )
 
-        # api_data = await proxy_manager.proxy_caller(
-        #     book_name=self.book_data.name,
-        #     session=session,
-        #     headers=self.book_data.headers,
-        #     url=self.book_data.url.get("main_url"),
-        #     method="POST",
-        #     payload=payload
-        # )
-
-        api_data = await proxy_manager.rotating_proxy_caller(
+        api_data = await proxy_manager.proxy_caller(
             book_name=self.book_data.name,
             session=session,
             headers=self.book_data.headers,
@@ -83,6 +74,15 @@ class NovigSGP(SGPBookBase):
             method="POST",
             payload=payload
         )
+
+        # api_data = await proxy_manager.rotating_proxy_caller(
+        #     book_name=self.book_data.name,
+        #     session=session,
+        #     headers=self.book_data.headers,
+        #     url=self.book_data.url.get("main_url"),
+        #     method="POST",
+        #     payload=payload
+        # )
 
         if not api_data:
             return None
@@ -101,11 +101,10 @@ if __name__ == "__main__":
     async def main():
         async with aiohttp.ClientSession() as session:
             sgp_data = {
-                'book_name': 'novig',
-                'links': [
-                    "https://novig.com/events/019f0260-4a7b-7ca1-ac9d-823e3e64d045/null",
-                    "https://novig.com/events/019f0042-9372-7440-8271-5e4f53d64fc0/null"
-
+                "book_name": "novig",
+                "links": [
+                    "https://novig.com/events/019f9a82-fee0-7351-a224-f5d935f4455f/null",
+                    "https://novig.com/events/019f9aa7-787a-7c40-b983-cb7dea72a932/null"
                 ],
                 "is_sgp": False
             }
