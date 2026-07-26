@@ -28,7 +28,7 @@ async def get_sgp_odds(books: List[SGPBooks], request: Request):
         request=request
     )
 
-async def get_auto_sgp_data(request: Request):
+async def get_auto_sgp_data(request: Request, include_ev_data=False):
     redis_instance = request.app.state.redis.get("auto_sgp")
     sgp_data = await redis_instance.get_all_key_values()
 
@@ -63,6 +63,10 @@ async def get_auto_sgp_data(request: Request):
             "highest_ev": highest_ev,
             "best_book": best_book,
             "book_list": book_list,
+            **(
+                {"ev_data": sgp.get("ev_results", {}).get("weighted_book_data", {})}
+                if include_ev_data else {}),
+            # "ev_data": sgp.get("ev_results", {}).get("weighted_book_data", {}),
             "legs": []
         }
 
@@ -137,6 +141,26 @@ def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=No
 
     return True
 
+
+
+@router.get("/sgp/auto_sgp/boost_book",
+            summary="Get Auto SGP by book",
+            description="Fetch Auto SGP odds based on a specific book.",
+            dependencies=[Depends(get_api_key)]
+            )
+async def get_auto_sgp_by_book(
+        request: Request,
+        book: str = Query(..., description="Book to check Auto SGP's")
+):
+    sgp_data = await get_auto_sgp_data(request, include_ev_data=True)
+    return [
+        {
+            **sgp,
+            "book_ev": sgp.get("ev_data", {}).get(book.lower(), {}).get("ev")
+        }
+        for sgp in sgp_data
+        if book.lower() in sgp["book_list"]
+    ]
 
 @router.get("/auto_sgp",
             summary="Get the Auto SGP Odds",
