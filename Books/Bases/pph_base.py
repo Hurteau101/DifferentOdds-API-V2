@@ -13,13 +13,12 @@ from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import TeamData, OddsFormat, GameData
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.request_caller import SportbookRequestType
 from Books.Bases.sportsbook_base import SportsbooksBookBase
 
 
 class PPHBookBase(SportsbooksBookBase):
-    def __init__(self, book_name: str, request_type: SportbookRequestType):
-        super().__init__(book_name=book_name, request_type=request_type)
+    def __init__(self, book_name: str):
+        super().__init__(book_name=book_name)
 
     def spread_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
                        home_spread_odds_name:str, away_spread_odds_name: str,

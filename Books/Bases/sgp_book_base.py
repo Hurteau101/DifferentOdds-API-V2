@@ -7,12 +7,12 @@ from abc import abstractmethod, ABC
 from tenacity import AsyncRetrying, retry_if_result, wait_fixed, stop_after_attempt
 from functools import wraps
 from Settings.book_configurations import BookConfiguration
-from Utils.request_caller import APICaller, SportbookRequestType
+from Utils.request_caller import APICaller
 from Redis.redis_manager import RedisAsyncManager
 
 
 class SGPBookBase(APICaller, ABC):
-    def __init__(self, request_type: SportbookRequestType, category: str,
+    def __init__(self, category: str,
                  book_name: str, sgp_data: dict, retry_amount: int = 3,
                  retry_wait_interval: int = 1, regex_keys: list = None, mapped_ids_redis_instance=None, auth_redis_instance=None,
                  **kwargs):
@@ -25,8 +25,7 @@ class SGPBookBase(APICaller, ABC):
         self.retry_wait_interval = retry_wait_interval
         self.mapped_ids_redis_instance = mapped_ids_redis_instance
         self.auth_redis_instance = auth_redis_instance
-
-        super().__init__(request_type=request_type)
+        super().__init__()
 
     @abstractmethod
     async def run_book(self, session=None):

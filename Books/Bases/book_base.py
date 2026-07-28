@@ -1,23 +1,23 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Optional, Callable
-
 import aiohttp
-
 from Internal_Mapping.bettorodds_mapping import BettoroddsMapping
 from Internal_Mapping.find_mapping import FindMapper
 from Settings.book_configurations import BookConfiguration
-from Utils.request_caller import SportbookRequestType, APICaller
+from Utils.request_caller import APICaller
 from Redis.redis_manager import RedisAsyncManager
 
 class BookBase(APICaller, ABC):
-    def __init__(self, category: str, book_name: str, request_type: SportbookRequestType, redis_database: int,
-                 payload_batch: int, async_batch: int, expiration_time: int = 600):
+    def __init__(self, category: str, book_name: str, redis_database: int, payload_batch: int, async_batch: int,
+                 impersonate: str = "chrome", expiration_time: int = 600):
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self.expiration_time = expiration_time # Used for Redis data expiration
         self.redis_database = redis_database # Used for Redis database selection
-        self.bettorodds_mapping = BettoroddsMapping(payload_batch=payload_batch, async_batch=async_batch, book_name=book_name, request_type=request_type)
-        super().__init__(request_type=request_type)
+        self.bettorodds_mapping = BettoroddsMapping(payload_batch=payload_batch, async_batch=async_batch, book_name=book_name)
+        self.impersonate = impersonate
+
+        super().__init__()
 
     @staticmethod
     def generate_key(key_data) -> str | None:

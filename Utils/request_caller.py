@@ -1,119 +1,74 @@
 import json
-from enum import Enum
-from typing import Union
-import aiohttp
-from aiohttp import ClientResponse
-from curl_cffi.requests import Response as CurlResponse
 from curl_cffi import AsyncSession as CurlAsyncSession
-from aiohttp import ClientSession as AiohttpClientSession
+import logging
+from random import shuffle
 
-from dotenv import load_dotenv
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.getLogger("asyncio").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
 
-
-load_dotenv()
-
-class SportbookRequestType(Enum):
-    ASYNC = "async"
-    SPOOF = "spoof"
 
 class APICaller:
-    """Class to handle outbound API requests for sportsbooks and handle there responses"""
-    def __init__(self, request_type: SportbookRequestType, valid_status_codes: list[int] | None = None):
-        self.valid_status_codes = valid_status_codes or [200, 201]
-        self.request_type = request_type
+    def __init__(self):
+        self.default_codes = [200]
 
-    async def api_caller(self,
-                    book_name: str,
-                    session: Union[CurlAsyncSession, AiohttpClientSession],
-                    url: str,
-                    method: str,
-                    headers: dict | None = None,
-                    proxy: dict | None = None,
-                    payload: dict | str | list | None = None,
-                    parse_json: bool = False,
-                    params: dict | list | None =None,
-                    ssl: bool = True,
-                    ) -> dict | list | None:
-        """Fetch data from the API based on request type."""
+    async def _caller(self, session: CurlAsyncSession, url: str, valid_codes:list|None, method: str, **kwargs):
+        request = await session.request(method=method, url=url, **kwargs)
+        if not valid_codes:
+            valid_codes = self.default_codes
 
-        method = method.lower()
-        if method not in ["get", "post"]:
-            raise ValueError("Method must be 'get' or 'post'.")
-
-        if self.request_type == SportbookRequestType.ASYNC:
-            # Use the method type [POST or GET]
-            async with getattr(session, method)(
-                    url, headers=headers, proxy=proxy, params=params if method == "get" else None,
-                    data=payload if isinstance(payload, str) else None,
-                    json=payload if isinstance(payload, dict) or isinstance(payload, list) else None,
-                    ssl=ssl
-            ) as response:
-                return await self.handle_async_response(response, parse_json, book_name)
-
-        # Use the method type [POST or GET]
-        response = await getattr(session, method)(
-            url, headers=headers, proxy=proxy, params=params if method == "get" else None,
-            data=payload if isinstance(payload, str) else None,
-            json=payload if isinstance(payload, dict) or isinstance(payload, list) else None,
-        )
-
-        return self.handle_sync_response(response, parse_json, book_name)
-
-    def handle_sync_response(self, response: CurlResponse, parse_json: bool, book_name: str) -> dict | None:
-        """Handle a curl_cffi (non-async) response."""
-        if response.status_code not in self.valid_status_codes:
-            print(f"\n******* Failed {book_name} | Text: {response.text} *************\n", response.status_code)
-
-        if response.status_code in [403, 407]:
-            raise Exception(f"Proxy error {response.status_code} for {book_name}")
-
-        if response.status_code in self.valid_status_codes:
+        if request.status_code in valid_codes:
             try:
-                response_data = response.json()
+                return request.json()
+            except json.decoder.JSONDecodeError:
+                logger.error(f"Failed to parse JSON: {request.text}")
+                return {}
 
-                if isinstance(response_data, dict) or isinstance(response_data, list):
-                    return response_data
-                else:
-                    return response.text
+        logger.warning(f"Request failed with status code: {request.status_code}")
+        return {}
 
-            except json.JSONDecodeError:
-                self._capture_error(book_name, "Failed to parse JSON")
+    async def api_caller(self, session: CurlAsyncSession, url: str, valid_codes:list|None = None, method: str = "GET",
+                         use_proxy:bool = False, proxy_list: list = None, **kwargs):
+        """
+        Helper function to make API calls.
+        :param session: The session to use
+        :param url: The URL to be called.
+        :param valid_codes: List of valid status codes. If response isn't in valid_codes, will return {}. Default: 200
+        :param method: The HTTP method to use. Default: GET
+        :param use_proxy: Whether to use proxy or not. Default: False
+        :param proxy_list: List of connection strings. Default: None
+        :param kwargs: Additional parameters to be passed to the API call.
+        :return: The response from the API OR an empty dict.
+        """
+        if use_proxy and not proxy_list:
+            raise ValueError("Proxy list is empty. Please provide a list of connection strings")
 
-            # self.check_403(response.status_code, book_name)
-            # self._capture_error(book_name, f"Invalid status code {response.status_code}")
+        if not use_proxy:
+            return await self._caller(session=session, url=url, valid_codes=valid_codes, method=method, **kwargs)
 
-        return None
+        # Shuffle to avoid the same order of proxies.
+        shuffle(proxy_list)
+        print("Hitting Proxies")
 
-    async def handle_async_response(self, response: ClientResponse, parse_json: bool, book_name: str) -> dict | None:
-        """Handle aiohttp async response."""
-        if response.status not in self.valid_status_codes:
-            print(f"\n******* Failed {book_name} | Text: {await response.text()} *************\n", response.status)
+        for conn in range(0, len(proxy_list)):
+            kwargs["proxy"] = {"http": conn}
 
-        if response.status in [403, 407]:
-            raise Exception(f"Proxy error {response.status} for {book_name}")
+            response = await self._caller(
+                session=session,
+                url=url,
+                valid_codes=valid_codes,
+                method=method,
+                **kwargs
+            )
 
-        if response.status in self.valid_status_codes:
-            try:
-                if parse_json:
-                    text = await response.text()
-                    return json.loads(text)
+            if response:
+                return response
 
-                return await response.json()
+        logger.info("Failed all proxies")
 
-            except json.JSONDecodeError:
-                self._capture_error(book_name, "Failed to parse JSON")
-            except aiohttp.client_exceptions.ContentTypeError:
-                return await response.json(content_type=None)
-
-            # self.check_403(response.status, book_name)
-            # self._capture_error(book_name, f"Invalid status code {response.status}")
-
-        return None
+        return {}
 
 
-    def _capture_error(self, book_name: str, reason: str):
-        pass
-        # with sentry_sdk.new_scope() as scope:
-        #     scope.set_tag("book_name", book_name)
-        #     scope.set_tag("reason", reason)
-        #     sentry_sdk.capture_message(f"Error for {book_name}: {reason}", level="error")
+
+
+

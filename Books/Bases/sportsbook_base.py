@@ -1,11 +1,10 @@
 import aiohttp
 from Books.Bases.book_base import BookBase
-from Utils.request_caller import SportbookRequestType
 from Settings.Models.sportsbooks_models import SportsbookStats
 
 class SportsbooksBookBase(BookBase):
-    def __init__(self, book_name: str, request_type: SportbookRequestType):
-        super().__init__(category="sportsbooks", book_name=book_name, request_type=request_type, redis_database=6,
+    def __init__(self, book_name: str):
+        super().__init__(category="sportsbooks", book_name=book_name, redis_database=6,
                          payload_batch=10, async_batch=20)
 
     async def map_runner(self, sportsbook_data: list, session: aiohttp.ClientSession = None):

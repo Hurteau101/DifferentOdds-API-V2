@@ -2,16 +2,15 @@ import asyncio
 import re
 from collections import defaultdict
 import aiohttp
-from Utils.request_caller import SportbookRequestType
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Underdog(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="underdog", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="underdog")
 
     def _mapper(self, api_data: dict) -> dict:
         """Map the different sections of the API data to their respective dictionaries."""
@@ -280,9 +279,8 @@ class Underdog(DFSBookBase):
         return grouped_stats
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method
