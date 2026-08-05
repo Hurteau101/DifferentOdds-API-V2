@@ -283,7 +283,8 @@ class Underdog(DFSBookBase):
             api_data = await self.api_caller(
                 session=session,
                 url=self.book_data.url.get("main_url"),
-                method=self.book_data.method
+                method=self.book_data.method,
+                headers=self.book_data.headers,
             )
 
             if not api_data:
