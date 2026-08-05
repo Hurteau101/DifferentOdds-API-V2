@@ -1,9 +1,7 @@
 import asyncio
 import re
 from collections import defaultdict
-import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -288,14 +286,7 @@ class Underdog(DFSBookBase):
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
-                )
-
-                return
+                return None
 
             mapped_data = self._mapper(api_data)
             stats_dict = self.regroup_stats(api_data)

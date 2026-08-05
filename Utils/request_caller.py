@@ -18,6 +18,32 @@ class CallResult:
 
 
 class APICaller:
+    FINGERPRINT_HEADERS = [
+        "user-agent",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "sec-fetch-user",
+        "accept",
+        "accept-language",
+        "accept-encoding",
+        "upgrade-insecure-requests",
+        "priority",
+    ]
+
+    def _header_conflict_check(self, additional_headers: dict, default_headers: bool):
+        if default_headers and additional_headers:
+            conflicting = [k for k in additional_headers if k.lower() in self.FINGERPRINT_HEADERS]
+
+            if conflicting:
+                raise ValueError(
+                    f"Headers '{','.join(conflicting)}' conflict with impersonate's fingerprint-consistent defaults "
+                    f"and would cause detection mismatches. Remove them or pass default_headers=False."
+                )
+
     async def _caller(self, session: CurlAsyncSession, url: str, valid_codes: list | None, method: str,
                       **kwargs) -> CallResult:
         if not valid_codes:
@@ -51,6 +77,7 @@ class APICaller:
             default_headers, allow_redirects, multipart, etc.): https://curl-cffi.readthedocs.io/en/latest/quick_start.html
         :return: The response from the API OR an empty dict.
         """
+        self._header_conflict_check(additional_headers=kwargs.get("headers"), default_headers=kwargs.get("default_headers", True))
 
         if not use_proxy:
             if not session:

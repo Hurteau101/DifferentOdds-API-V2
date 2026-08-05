@@ -1,7 +1,5 @@
 import asyncio
 import re
-import aiohttp
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, Discounts, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData, get_static_mapping
 from Books.Bases.dfs_book_base import DFSBookBase
@@ -167,13 +165,7 @@ class Prizepicks(DFSBookBase):
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
-                )
-                return
+                return None
 
             player_info_map, team_info_map = self._map_info(api_data)
             static_mapping = get_static_mapping().get("leagues", {}) or {}
