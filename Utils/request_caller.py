@@ -36,7 +36,7 @@ class APICaller:
 
     def _header_conflict_check(self, additional_headers: dict, default_headers: bool):
         if default_headers and additional_headers:
-            conflicting = [k for k in additional_headers if k.lower() in self.FINGERPRINT_HEADERS]
+            conflicting = [key for key in additional_headers if key.lower() in self.FINGERPRINT_HEADERS]
 
             if conflicting:
                 raise ValueError(
