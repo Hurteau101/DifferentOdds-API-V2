@@ -1,16 +1,14 @@
 import os
-
 from dotenv import load_dotenv
 from APScheduler.base_scheduler import BaseScheduler
-from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
-from bs4 import BeautifulSoup
+
 
 class Buckeye1Auth(BaseScheduler):
     load_dotenv()
 
     def __init__(self):
-        super().__init__(request_type=SportbookRequestType.SPOOF)
+        super().__init__()
 
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance) -> bool:

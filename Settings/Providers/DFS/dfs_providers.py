@@ -33,10 +33,6 @@ DFS_PROVIDERS = [
         },
         method="POST",
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
-            'Accept': 'application/graphql-response+json, application/graphql+json, application/json, text/event-stream, multipart/mixed',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Referer': 'https://picks.betr.app/',
             'fantasy-api-version': '11.0',
             'fantasy-application-version': '3.26.6',
@@ -46,10 +42,6 @@ DFS_PROVIDERS = [
             'content-type': 'application/json',
             'Origin': 'https://picks.betr.app',
             'Connection': 'keep-alive',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-site',
-            'Priority': 'u=4',
             'TE': 'trailers'
         },
         is_active=True
@@ -62,8 +54,7 @@ DFS_PROVIDERS = [
             "alternate_url": "https://api.drafters.com/games/list/draft_user?page_type=props"
         },
         headers={
-            "Authorization": os.getenv("drafters_auth_token"),
-            "Accept": "application/json",
+            "Authorization": os.getenv("drafters_auth_token")
         },
         method="GET",
         is_active=False
@@ -75,7 +66,6 @@ DFS_PROVIDERS = [
             "main_url": "https://production-boom-dfs-backend-api.boomfantasy.com/api/v1/contests/multiLine/99708fb7-167a-4314-b69d-e38dc782a63a?questionStatus=available&renderType=multiLine"
         },
         headers={
-            'accept': 'application/json, text/plain, */*',
               'x-app-name': 'Boom',
               'x-app-version': '41',
               'x-product-id': 'boom_dfs',
@@ -84,7 +74,6 @@ DFS_PROVIDERS = [
               'x-platform': 'android',
               'access-control-allow-origin': '*',
               'authorization': os.getenv("boom_auth_token"),
-              'user-agent': 'okhttp/4.12.0',
               'if-none-match': 'W/"118d-Ko20dOxZMQt3uUUiTsEJZ5sZZDs"'
         },
         method="GET",
@@ -107,7 +96,6 @@ DFS_PROVIDERS = [
             "main_url": "https://api.splashsports.com/props-service/api/props?limit=1000&offset=0"
         },
         headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Authorization": os.getenv("splash_auth_token"),
         },
         method="GET",
@@ -155,11 +143,6 @@ DFS_PROVIDERS = [
             "main_market_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/category/pickcards?appname=psxandroid&version=260861600&format=json",
             "individual_market_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/category/pickcards?pickCategoryId={category_id}&appname=psxandroid&version=260861600&format=json"
         },
-        headers={
-            'accept': 'application/json',
-            'user-agent': 'psxandroid/3.0.253542100 null',
-            'accept-encoding': 'gzip',
-        },
         method="GET",
         is_active=True
     ),
@@ -185,11 +168,9 @@ DFS_PROVIDERS = [
             "alternate_url_2": "https://api.dabble.com/sportfixtures/details/{game_id}?filter=dfs-enabled",
         },
         headers={
-            "accept": "application/json",
             "x-device-id": "48e0c8468226f089",
             "x-app-version": "4.17.10+019ededb",
             "authorization": "",
-            "user-agent": "okhttp/4.12.0",
         },
         method="GET",
         is_active=True

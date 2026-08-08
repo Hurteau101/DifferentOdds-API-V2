@@ -44,7 +44,7 @@ class APICaller:
                     f"and would cause detection mismatches. Remove them or pass default_headers=False."
                 )
 
-    async def _caller(self, session: CurlAsyncSession, url: str, valid_codes: list | None, method: str,
+    async def _caller(self, session: CurlAsyncSession, url: str, valid_codes: list | None, method: str, parse_text:bool,
                       **kwargs) -> CallResult:
         if not valid_codes:
             valid_codes = [200]
@@ -55,14 +55,17 @@ class APICaller:
             if request.status_code not in valid_codes:
                 return CallResult(ok=False, data={}, status_code=request.status_code, text=request.text)
 
-            return CallResult(ok=True, data=request.json(), status_code=request.status_code, text=request.text)
+            data = json.loads(request.text) if parse_text else request.json()
+
+            return CallResult(ok=True, data=data, status_code=request.status_code, text=request.text)
 
         except Exception as e:
+
             return CallResult(ok=False, data={}, status_code=None, text=repr(e))
 
 
     async def api_caller(self, url: str, session: CurlAsyncSession|None = None, valid_codes:list|None = None, method: str = "GET",
-                         use_proxy:bool = False, proxy_list: list|None = None, proxy_impersonate: str="chrome", **kwargs):
+                         use_proxy:bool = False, proxy_list: list|None = None, proxy_impersonate: str="chrome", parse_text:bool = False, **kwargs):
         """
         Helper function to make API calls using curl_cffi.
         :param url: The URL to be called.
@@ -83,7 +86,7 @@ class APICaller:
             if not session:
                 raise ValueError("session is required if use_proxy is False")
 
-            result = await self._caller(session=session, url=url, valid_codes=valid_codes, method=method, **kwargs)
+            result = await self._caller(session=session, url=url, valid_codes=valid_codes, method=method, parse_text=parse_text, **kwargs)
 
             if not result.ok:
                 logger.error(f"Request failed | Status: {result.status_code} | Body: {result.text}")
@@ -111,15 +114,20 @@ class APICaller:
                     valid_codes=valid_codes,
                     method=method,
                     proxy=proxy,
+                    parse_text=parse_text,
                     **kwargs
                 )
 
             if result.ok:
                 return result.data
 
-            errors.append(f"Proxy: {proxy} | Status: {result.status_code} | Body: {result.text}")
+            errors.append({
+                "Proxy": proxy,
+                "Status": result.status_code,
+                "Body": result.text,
+            })
 
-        logger.error(f"All proxies failed | Errors: {errors}")
+        logger.error(f"All proxies failed | Errors: {json.dumps(errors, indent=2)})")
 
         return {}
 

@@ -5,7 +5,6 @@ from Redis.redis_manager import static_mapping_service
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 #### WILL NEED TO MAP MLB ####
@@ -51,7 +50,7 @@ class BetwayMapper(BaseMapper):
     ALLOWED_LEAGUES = ["ice-hockey", "basketball", "american-football", "baseball", "soccer", "ufc---martial-arts", "tennis"]
 
     def __init__(self):
-        super().__init__(book_name="betway", category="sgp", request_type=SportbookRequestType.SPOOF)
+        super().__init__(book_name="betway", category="sgp")
 
     async def _get_categories(self, category_names: set, session: CurlAsyncSession) -> list:
         raw_categories = await asyncio.gather(

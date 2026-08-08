@@ -3,14 +3,12 @@ import re
 import urllib.parse
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-
 from bs4 import BeautifulSoup
 from rapidfuzz import process, fuzz
 from Books.Bases.pph_base import PPHBookBase
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 from urllib.parse import urlencode
 
@@ -45,7 +43,7 @@ VALID_PATHS = {
 
 class Buckeye1(PPHBookBase):
     def __init__(self):
-        super().__init__(book_name="buckeye1", request_type=SportbookRequestType.SPOOF)
+        super().__init__(book_name="buckeye1")
         self.team_dict = {}
 
     async def load_cookies(self) -> dict | None:
@@ -355,7 +353,7 @@ class Buckeye1(PPHBookBase):
                     self.add_to_events(event_data, game, GameData)
 
             buckeye_data = list(event_data.values())
-            print(buckeye_data)
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_data)
 
             await self.store_data(

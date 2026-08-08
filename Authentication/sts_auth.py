@@ -1,14 +1,13 @@
 import os
 from dotenv import load_dotenv
 from APScheduler.base_scheduler import BaseScheduler
-from Utils.request_caller import SportbookRequestType
 from camoufox.async_api import AsyncCamoufox
 
 class STSAuth(BaseScheduler):
     load_dotenv()
 
     def __init__(self):
-        super().__init__(request_type=SportbookRequestType.SPOOF)
+        super().__init__()
 
     async def run_scheduler(self, redis_instance, **kwargs) -> bool:
         username = os.getenv("STS_USERNAME")
@@ -19,8 +18,10 @@ class STSAuth(BaseScheduler):
             raise ValueError("STS_USERNAME and STS_PASSWORD must be set.")
 
         for proxy in proxy_list:
-            parts = proxy.strip().split(":")
-            ip, port, user, pw = parts[0], parts[1], parts[2], parts[3]
+            parts = proxy.strip().split("@")
+            user, pw = parts[0].split(":")
+            ip, port = parts[1].split(":")
+            # ip, port, user, pw = parts[0], parts[1], parts[2], parts[3]
 
             try:
                 async with AsyncCamoufox(

@@ -1,17 +1,16 @@
 import asyncio
 import aiohttp
 from Utils.helpers import clean_and_normalize
-from Utils.request_caller import APICaller, SportbookRequestType
-
+from Utils.request_caller import APICaller
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class MLBStats(APICaller):
-    def __init__(self, session: aiohttp.ClientSession):
-        super().__init__(SportbookRequestType.ASYNC)
+    def __init__(self, session: CurlAsyncSession):
+        super().__init__()
         self.session = session
 
     async def _get_teams(self):
         teams = await self.api_caller(
-            book_name="MLBMapper",
             session=self.session,
             url=f"https://statsapi.mlb.com/api/v1/teams?sportId=1&activeStatus=Y&fields=teams,id,name",
             method="GET",
@@ -31,7 +30,6 @@ class MLBStats(APICaller):
     async def _get_players(self, team_ids: list):
         tasks = [
             self.api_caller(
-                book_name="ESPNMapper",
                 session=self.session,
                 url=f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=active&fields=roster,person,fullName",
                 method="GET",
@@ -69,7 +67,7 @@ class MLBStats(APICaller):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             mlb = MLBStats(session=session)
             await mlb.run_mapping()
 

@@ -1,17 +1,14 @@
 import asyncio
 import re
-import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Dabble(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="dabble", request_type=SportbookRequestType.SPOOF)
+        super().__init__(book_name="dabble")
 
     def _extract_teams(self, game_data: dict, player_data: dict, start_time: str) -> dict | None:
         def team_splitter(team_name):
@@ -120,24 +117,15 @@ class Dabble(DFSBookBase):
 
     async def run_book(self):
         async with CurlAsyncSession(impersonate="chrome") as session:
-            proxy_manager = ProxyManager(self.api_caller)
-
-            league_data = await proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+            league_data = await self.api_caller(
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
-                headers=self.book_data.headers
+                headers=self.book_data.headers,
+                use_proxy=True
             )
 
             if not league_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league data returned from main_url",
-                    level="error"
-                )
-                return
+                return None
 
             league_ids = [
                 league.get("id")
@@ -145,9 +133,8 @@ class Dabble(DFSBookBase):
             ]
 
             tasks = [
-                proxy_manager.proxy_caller(
-                    book_name=self.book_data.name,
-                    session=session,
+                self.api_caller(
+                    use_proxy=True,
                     url=self.book_data.url.get("alternate_url").format(league_id=league_id),
                     method=self.book_data.method,
                     headers=self.book_data.headers
@@ -158,13 +145,7 @@ class Dabble(DFSBookBase):
             results = await asyncio.gather(*tasks)
 
             if not results:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league data returned",
-                    level="error"
-                )
-                return
+                return None
 
             game_ids = set(
                 game.get("id")
@@ -174,12 +155,11 @@ class Dabble(DFSBookBase):
             )
 
             tasks = [
-                proxy_manager.proxy_caller(
-                    book_name=self.book_data.name,
-                    session=session,
+                self.api_caller(
                     url=self.book_data.url.get("alternate_url_2").format(game_id=game_id),
                     method=self.book_data.method,
-                    headers=self.book_data.headers
+                    headers=self.book_data.headers,
+                    use_proxy=True
                 )
                 for game_id in game_ids
             ]
@@ -187,13 +167,7 @@ class Dabble(DFSBookBase):
             results = await asyncio.gather(*tasks)
 
             if not results:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No game ids returned",
-                    level="error"
-                )
-                return
+                return None
 
             # Flatten and filter out None results
             game_data_list = [

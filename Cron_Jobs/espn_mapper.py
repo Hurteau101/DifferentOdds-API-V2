@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from itertools import chain
 import aiohttp
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import APICaller, SportbookRequestType
-
+from Utils.request_caller import APICaller
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class ESPNMapper(APICaller):
     ESPN_LEAGUES = [
@@ -20,8 +20,8 @@ class ESPNMapper(APICaller):
 
     ### PULL FROM DATABASE LATER ON.
 
-    def __init__(self, session: aiohttp.ClientSession):
-        super().__init__(SportbookRequestType.ASYNC)
+    def __init__(self, session: CurlAsyncSession):
+        super().__init__()
         self.session = session
 
     def _normalize_team_name(self, name: str) -> str:
@@ -76,7 +76,6 @@ class ESPNMapper(APICaller):
     async def _get_players(self, team_ids: list, sport: str, league: str):
         tasks = [
             self.api_caller(
-                book_name="ESPNMapper",
                 session=self.session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams/{team_id}/roster?limit=5000",
                 method="GET",
@@ -108,7 +107,6 @@ class ESPNMapper(APICaller):
     async def _get_schedule(self, team_ids: list, sport: str, league: str) -> dict:
         tasks = [
             self.api_caller(
-                book_name="ESPNMapper",
                 session=self.session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams/{team_id}/schedule",
                 method="GET",
@@ -157,7 +155,6 @@ class ESPNMapper(APICaller):
 
         raw_teams = [
             self.api_caller(
-                book_name="ESPNMapper",
                 session=self.session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{teams['sport']}/{teams['espn_league']}/teams?limit=5000",
                 method="GET",
@@ -180,7 +177,7 @@ class ESPNMapper(APICaller):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             espn = ESPNMapper(session=session)
             await espn.run_mapping()
 

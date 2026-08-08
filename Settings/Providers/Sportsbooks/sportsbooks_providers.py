@@ -18,9 +18,6 @@ SPORTSBOOKS_PROVIDERS = [
             "markets": "https://api.kibl.io/sports/get/info/markets",
         },
         method="GET",
-        headers={
-            "Accept": "application/json",
-        },
         is_active=True
     ),
     BaseProvider(
@@ -32,18 +29,10 @@ SPORTSBOOKS_PROVIDERS = [
             "market_url": "https://bettheguys.com/Player/app/services/linesAJX.aspx/GetLines"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Content-Type': 'application/json; charset=utf-8',
             'X-Requested-With': 'XMLHttpRequest',
             'Origin': 'https://bettheguys.com',
             'Connection': 'keep-alive',
             'Referer': 'https://bettheguys.com/Player/main.aspx',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
             'TE': 'trailers'
         },
         method="POST",
@@ -57,7 +46,7 @@ SPORTSBOOKS_PROVIDERS = [
             "market_url": "https://backend.betvegas23.com/wager/NewScheduleHelper.aspx"
         },
         headers={
-            "User-Agent": "Mozilla/5.0",
+            # "User-Agent": "Mozilla/5.0",
             "Referer": "https://betvegas23.com/",
             "Origin": "https://betvegas23.com",
         },
@@ -74,15 +63,9 @@ SPORTSBOOKS_PROVIDERS = [
             "event_url": "https://everygame247.com/Actions/api/Event/GetEvent"
         },
         headers={
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Content-Type': 'application/x-www-form-urlencoded',
             'Origin': 'https://everygame247.com',
             'Referer': 'https://everygame247.com/',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
         },
         method="GET",
         is_active=True
@@ -95,18 +78,9 @@ SPORTSBOOKS_PROVIDERS = [
             "market_url": "https://black34.com/player-api/api/wager/schedules/S/0"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Content-Type': 'application/json',
             'Origin': 'https://black34.com',
             'Connection': 'keep-alive',
             'Referer': 'https://black34.com/v2/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'Priority': 'u=0',
         },
         method="POST",
         is_active=True
@@ -123,20 +97,20 @@ SPORTSBOOKS_PROVIDERS = [
             "point_group_url": "https://www.247bettor.com/cloud/api/Lines/getBuyPointsGroup"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            # 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
+            # 'Accept': '*/*',
+            # 'Accept-Encoding': 'gzip, deflate',
+            # 'Accept-Language': 'en-US,en;q=0.9',
+            # 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'X-Requested-With': 'XMLHttpRequest',
             # 'Origin': 'https://wwcd.me',
             'Origin': 'https://www.247bettor.com',
             'Connection': 'keep-alive',
             # 'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
             'Referer': 'https://www.247bettor.com/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
+            # 'Sec-Fetch-Dest': 'empty',
+            # 'Sec-Fetch-Mode': 'cors',
+            # 'Sec-Fetch-Site': 'same-origin',
             'TE': 'trailers'
         },
         method="POST",
@@ -149,16 +123,10 @@ SPORTSBOOKS_PROVIDERS = [
                 "market_url": "https://playnow365.com/Qubic/PlayerGameSelection.php"
             },
             headers={
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Encoding': 'gzip, deflate',
-                'Accept-Language': 'en-US,en;q=0.9',
                 'Connection': 'keep-alive',
-                'Content-Type': 'application/x-www-form-urlencoded',
                 'Host': 'playnow365.com',
                 'Origin': 'https://playnow365.com',
                 'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
-                'Upgrade-Insecure-Requests': '1',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0'
             },
             method="POST",
             is_active=True
