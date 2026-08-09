@@ -1,14 +1,11 @@
 import asyncio
-import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class FanduelSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="fanduel", sgp_data=sgp_data,
+        super().__init__(category="SGP", book_name="fanduel", sgp_data=sgp_data,
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     @SGPBookBase.ensure_link_data
@@ -23,16 +20,15 @@ class FanduelSGP(SGPBookBase):
         payload = self._create_payload(mapped_data)
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("sgp_url"),
             method="POST",
             headers=self.book_data.headers,
-            payload=payload
+            json=payload
         )
 
         if not api_data:
-            return
+            return None
 
         number_of_legs = len(mapped_data)
 
@@ -62,13 +58,6 @@ class FanduelSGP(SGPBookBase):
         mapped_ids = await self.load_mapped_ids(key_name="fanduel_ids")
 
         if not mapped_ids:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="mapping_failure",
-                message="No mapped IDs were found.",
-                level="error"
-            )
-
             return None
 
         return [
@@ -101,7 +90,7 @@ class FanduelSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {'book_name': 'fanduel', 'links': [
                 'https://sportsbook.fanduel.com/addToBetslip?marketId=42.562499828&selectionId=38225623',
                 'https://sportsbook.fanduel.com/addToBetslip?marketId=42.562497363&selectionId=15552474']}

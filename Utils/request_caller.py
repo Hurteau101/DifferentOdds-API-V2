@@ -75,6 +75,7 @@ class APICaller:
         :param use_proxy: Whether to use proxy or not. Default: False
         :param proxy_list: List of connection strings. Proxy format USERNAME:PASSWORD@HOST:PORT Default: RESIDENTIAL_PROXIES environment variable
         :param proxy_impersonate: The browser to impersonate. Default: chrome
+        :param parse_text: Whether to parse the response as text or json. Default: False
         :param kwargs: Additional parameters passed through to curl_cffi's session.request(). See the
             curl_cffi docs for all supported options (headers, params, json, data, auth, cookies, timeout,
             default_headers, allow_redirects, multipart, etc.): https://curl-cffi.readthedocs.io/en/latest/quick_start.html

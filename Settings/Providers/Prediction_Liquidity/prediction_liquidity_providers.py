@@ -13,10 +13,6 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
             "orders": "https://api.4cx.io/exchange/getOrderbook"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Origin': 'https://4cx.io',
             'Connection': 'keep-alive',
             'Referer': 'https://4cx.io/',
@@ -44,9 +40,7 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
             "events_url": "https://cash.api.prophetx.co/partner/affiliate/get_sport_events",
             "markets_url": "https://cash.api.prophetx.co/partner/v3/affiliate/get_multiple_markets"
         },
-        headers={
-            'accept': 'application/json',
-        },
+
         method="GET",
         is_active=True
     ),

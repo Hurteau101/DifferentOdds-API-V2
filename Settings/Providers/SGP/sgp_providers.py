@@ -43,9 +43,6 @@ SGP_PROVIDERS = [
                 "additional_id_url": "https://api.sportsbook.fanduel.com/sbapi/content-managed-page?_ak=FhMFpcPWXMeyZxOx&page=SPORT&eventTypeId={event_type}"
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0',
-                'Accept': 'application/json',
-                'Accept-Language': 'en-US,en;q=0.5',
                 'X-Sportsbook-Region': 'AZ',
             },
             method="GET",
@@ -59,7 +56,6 @@ SGP_PROVIDERS = [
             "sgp_url": "https://www.on.betmgm.ca/cds-api/bettingoffer/picks?x-bwin-accessid=MzViOTU5Y2EtNzgyMy00ZTBmLThkNDctYjRlYjgwNjMwZDQy&lang=en-us&country=CA&userCountry=CA&subdivision=CA-Alberta"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0',
             'Referer': 'https://www.on.betmgm.ca/en/sports',
             'Content-Type': 'application/json',
             'Origin': 'https://www.on.betmgm.ca',
@@ -79,7 +75,6 @@ SGP_PROVIDERS = [
                 "market_id_url": "https://www.on.betmgm.ca/cds-api/bettingoffer/fixtures?x-bwin-accessid=MzViOTU5Y2EtNzgyMy00ZTBmLThkNDctYjRlYjgwNjMwZDQy&lang=en-us&country=CA&userCountry=CA&subdivision=CA-Alberta&fixtureTypes=Standard&state=Latest&offerMapping=All&offerCategories=Gridable&fixtureCategories=Gridable,NonGridable,Other&sportIds={league_id}&regionIds=&competitionIds=&conferenceIds=",
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0',
                 'Referer': 'https://www.on.betmgm.ca/en/sports',
                 'Content-Type': 'application/json',
                 'Origin': 'https://www.on.betmgm.ca',
@@ -95,10 +90,7 @@ SGP_PROVIDERS = [
             "main_url": "wss://sportsbook.1.betfanatics.com/sportsbook-streaming-ws"
         },
         headers={
-            "Accept-Encoding": "gzip,deflate",
             "Accept-Charset": "UTF-8",
-            "Accept": "*/*",
-            "User-Agent": "ktor-client",
         },
         regex={
             "selection_id": r'"selectionId":"(\d+)"',
@@ -161,17 +153,10 @@ SGP_PROVIDERS = [
         },
         method="POST",
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Content-Type': 'application/json',
             'Origin': 'https://novig.com',
             'Connection': 'keep-alive',
             'Referer': 'https://novig.com/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'cross-site',
             'TE': 'trailers'
         },
         is_active=True,
@@ -194,10 +179,6 @@ SGP_PROVIDERS = [
                 "market_url": "https://api.onyxodds.com/api/odds/gameMainLines/{game_id}",
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Referer': 'https://app.onyxodds.com/',
                 'Content-type': 'application/json',
                 'traceparent': '00-0000000000000000b6dc9e1054659cdb-689b4decdb0e86b3-01',
@@ -238,10 +219,6 @@ SGP_PROVIDERS = [
             "sgp_url": "https://sportsbook.us-default.thescore.bet/graphql/persisted_queries/11b043d75b61c332daff19bff740fb035a524d6d0fe9d12debc729c667633b61"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-CA,en-US;q=0.9,en;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Referer': 'https://sportsbook.thescore.bet/',
             'content-type': 'application/json',
             'apollographql-client-name': 'espnbet-espnbet-web',
@@ -253,9 +230,6 @@ SGP_PROVIDERS = [
             'x-datadog-origin': 'rum',
             'Origin': 'https://sportsbook.thescore.bet',
             'Connection': 'keep-alive',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-site',
         },
         method="POST",
         is_active=True,
@@ -278,12 +252,9 @@ SGP_PROVIDERS = [
             'Host': 'api.americanwagering.com',
             'X-AppBranding': 'Liberty',
             'tracestate': '2185826@nr=0-2-2619101-594413108-a602d6bf08fe0181---1782352408140',
-            'Accept': 'application/json',
             'x-njd-sportsbook-app-env': 'SAXpvdRTmGTB',
             'newrelic': 'ewoiZCI6IHsKImFjIjogIjI2MTkxMDEiLAoiYXAiOiAiNTk0NDEzMTA4IiwKImlkIjogImE2MDJkNmJmMDhmZTAxODEiLAoidGkiOiAxNzgyMzUyNDA4MTQwLAoidGsiOiAiMjE4NTgyNiIsCiJ0ciI6ICI3Y2MzOGFhNTNkNmUyNjkzOTQ1NTZjZmQxZjUyYTNhZCIsCiJ0eSI6ICJNb2JpbGUiCn0sCiJ2IjogWwowLAoyCl0KfQ==',
             'X-App-GUID': '82A3A0BB-A934-4631-A729-68BDDD1318FC',
-            'Accept-Language': 'en-gb',
-            'User-Agent': 'us.williamhill.nj.sports/7.49.2',
             'Connection': 'keep-alive',
             'X-Unique-Device-Id': 'D3CCE48A-FAEB-429E-95FD-00F1F82C026F',
             'X-App-Version': '7.49.2.4017',
@@ -303,10 +274,6 @@ SGP_PROVIDERS = [
                 "market_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb{path}",
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0',
-                'Accept': 'application/json',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Referer': 'https://sportsbook.caesars.com/',
                 'content-type': 'application/json',
                 'x-app-version': '7.41.0',
@@ -314,9 +281,6 @@ SGP_PROVIDERS = [
                 'x-unique-device-id': '53c26028-d052-4871-83e7-a6cbf3686f57',
                 'Origin': 'https://sportsbook.caesars.com',
                 'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'cross-site',
             },
             method="GET",
             is_active=True
@@ -343,10 +307,6 @@ SGP_PROVIDERS = [
                 # "mapping_url": "https://public-prod-gen2.sportcastlive.com/public/getmarketsV2/"
             },
             headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0",
-                "Accept": "application/json",
-                "Accept-Language": "en-US,en;q=0.9",
-                'Accept-Encoding': 'gzip, deflate',
                 "Referer": "https://www.betonline.ag/",
                 "Content-Type": "application/json",
                 "gsetting": "bolnasite",
@@ -364,9 +324,6 @@ SGP_PROVIDERS = [
             "sgp_url": "https://betway.com/g/api/betting/betedge/row/betfactory/api/generatebets"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
             'Content-Type': 'application/json',
             'x-correlation-id': 'f56ef3e5-8cbe-4b8d-b1e1-83db6f1f798b',
             'Origin': 'https://betway.com',
@@ -382,16 +339,9 @@ SGP_PROVIDERS = [
                 "event_details": "https://betway.com/g/services/api/events/v2/GetEventDetails"
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
                 'Content-Type': 'application/json',
                 'Origin': 'https://betway.com',
                 'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin',
-                'Priority': 'u=0',
                 'TE': 'trailers'
             },
             method="POST",
@@ -414,10 +364,6 @@ SGP_PROVIDERS = [
                 "general_url": "https://stake.com/_api/graphql",
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0)',
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip',
                 'Referer': 'https://stake.com/sports/home',
                 'access-control-allow-origin': '*',
                 'content-type': 'application/json',
@@ -426,9 +372,6 @@ SGP_PROVIDERS = [
                 'x-operation-type': 'query',
                 'Origin': 'https://stake.com',
                 'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin',
                 'Priority': 'u=4',
                 'TE': 'trailers',
             },
@@ -443,10 +386,8 @@ SGP_PROVIDERS = [
             "sgp_url": "https://m-c811.app.getfliff.com/fc_mobile_api_private"
         },
         headers={
-            'accept': 'application/json, text/plain, */*',
             'x-dd-request-code': 'access_token_auth',
             'content-type': 'application/json',
-            'user-agent': 'okhttp/4.10.0'
         },
         regex={
             "event_id": r"eventId=([^&]+)",
@@ -458,17 +399,10 @@ SGP_PROVIDERS = [
                 "main_url": "https://herald-2.app.getfliff.com/fc_mobile_api_public",
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Content-Type': 'application/json',
                 'Origin': 'https://sports.getfliff.com',
                 'Connection': 'keep-alive',
                 'Referer': 'https://sports.getfliff.com/',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-site'
             },
             method="POST",
             is_active=True
@@ -481,16 +415,9 @@ SGP_PROVIDERS = [
             "sgp_url": "https://services.ozoon.eu/services/sports/bet/betslip"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Referer': 'https://services.ozoon.eu/',
             'content-type': 'application/json',
             'Connection': 'keep-alive',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'same-origin',
-            'Sec-Fetch-Site': 'same-origin',
             'Priority': 'u=4',
             'Pragma': 'no-cache',
             'Cache-Control': 'no-cache',
@@ -506,16 +433,9 @@ SGP_PROVIDERS = [
                 "main_url": "https://www.bovada.lv/services/sports/event/coupon/events/A/description/",
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Referer': 'https://services.ozoon.eu/',
                 'content-type': 'application/json',
                 'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'same-origin',
-                'Sec-Fetch-Site': 'same-origin',
                 'Priority': 'u=4',
                 'Pragma': 'no-cache',
                 'Cache-Control': 'no-cache',
@@ -544,17 +464,10 @@ SGP_PROVIDERS = [
                 "market_urls": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v3/events/{event_id}"
             },
             headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'x-api-key': 'J9xowBQZM980G97zv9VoB9Ylady1pVtS5Ix9tuL1', # Public API key, fine if exposed.
                 'Origin': 'https://play.rebet.app',
                 'Connection': 'keep-alive',
                 'Referer': 'https://play.rebet.app/',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'cross-site'
             },
             method="GET",
             is_active=True
@@ -567,16 +480,9 @@ SGP_PROVIDERS = [
             "sgp_url": "https://bv2-us.digitalsportstech.com/api/v2/odds/acca"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, zstd',
             'Origin': 'https://troya.xyz',
             'Connection': 'keep-alive',
             'Referer': 'https://troya.xyz/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'cross-site'
         },
         regex={
         },

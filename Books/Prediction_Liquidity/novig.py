@@ -6,17 +6,16 @@ from itertools import chain
 from typing import Iterable
 
 from Books.Prediction_Liquidity.Helper.novig_api_helper import NovigApiHelper
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 import aiohttp
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
 from Books.Bases.prediction_liquidity_base import PredictionLiquidityBase
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class Novig(PredictionLiquidityBase):
     def __init__(self):
-        super().__init__(book_name="novig", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="novig")
 
     @staticmethod
     def price_to_american(price: float) -> int:
@@ -36,7 +35,7 @@ class Novig(PredictionLiquidityBase):
         """Calculate the liquidity left based on quantity and price."""
         return (1 - price) * (qty / 100)
 
-    async def get_leagues(self, session: aiohttp.ClientSession, include_leagues_without_liquidity: bool = False,
+    async def get_leagues(self, session: CurlAsyncSession, include_leagues_without_liquidity: bool = False,
                           include_sub_markets: bool = True, excluded_leagues: list = None) -> set | None:
         """
         Extract all leagues from the Novig API.
@@ -47,7 +46,6 @@ class Novig(PredictionLiquidityBase):
         :return: Set of league IDs.
         """
         api_league_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("league_url"),
             params={
@@ -58,13 +56,6 @@ class Novig(PredictionLiquidityBase):
         )
 
         if not api_league_data:
-            create_sentry_message(
-                tag_key="novig",
-                tag_value="league_failure",
-                message="No leagues found",
-                level="error"
-            )
-
             return None
 
         league_data = api_league_data.get("rankings", [])
@@ -302,7 +293,7 @@ class Novig(PredictionLiquidityBase):
         return list(merged.values())
 
 
-    async def _fetch_and_filter_markets(self, session: aiohttp.ClientSession, novig_api_helper: NovigApiHelper,
+    async def _fetch_and_filter_markets(self, session: CurlAsyncSession, novig_api_helper: NovigApiHelper,
                                         event_id: str, league_name: str) -> Iterable[GameData] | None:
         """
         Fetches and filters market data from Novig API.
@@ -312,10 +303,9 @@ class Novig(PredictionLiquidityBase):
         :param league_name: Name of the league.
         """
         markets = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("base_url"),
-            payload=novig_api_helper.query_caller(
+            json=novig_api_helper.query_caller(
                 query_parameter="market",
                 event_id=event_id
             ),
@@ -325,13 +315,6 @@ class Novig(PredictionLiquidityBase):
 
 
         if not markets:
-            create_sentry_message(
-                tag_key="novig",
-                tag_value="market_failure",
-                message="No markets found",
-                level="error"
-            )
-
             return None
 
         event_data = markets.get("data", {}).get("event", [])
@@ -386,7 +369,7 @@ class Novig(PredictionLiquidityBase):
 
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             leagues = await self.get_leagues(session=session,
                                              excluded_leagues=["ENTERTAINMENT", "HOT", "CUSTOM", "LIVE"])
 
@@ -398,10 +381,9 @@ class Novig(PredictionLiquidityBase):
             raw_league_data = await asyncio.gather(
                 *(
                     self.api_caller(
-                        book_name=self.book_data.name,
                         session=session,
                         url=self.book_data.url.get("base_url"),
-                        payload=novig_api_helper.query_caller(
+                        json=novig_api_helper.query_caller(
                             query_parameter="league",
                             league=league
                         ),

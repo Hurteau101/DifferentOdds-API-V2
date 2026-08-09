@@ -1,12 +1,10 @@
 import asyncio
 from curl_cffi import AsyncSession as CurlAsyncSession
 from Books.Bases.sgp_book_base import SGPBookBase
-from Utils.request_caller import SportbookRequestType
-
 
 class DraftkingsSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.SPOOF, category="SGP", book_name="draftkings", sgp_data=sgp_data, **kwargs)
+        super().__init__(category="SGP", book_name="draftkings", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)
@@ -19,12 +17,12 @@ class DraftkingsSGP(SGPBookBase):
         length_of_bet = len(self.link_data)
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
+            default_headers=False,
             url=self.book_data.url.get("main_url"),
             method="POST",
             headers=self.book_data.headers,
-            payload={
+            json={
                 "oddsStyle": "american",
                 "selections": selections
             },

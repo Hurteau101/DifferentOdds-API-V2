@@ -1,15 +1,12 @@
 import asyncio
 import re
-
-import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class BovadaSGP(SGPBookBase):
     def __init__(self, mapped_ids_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="bovada",
+        super().__init__(category="SGP", book_name="bovada",
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     def _verify_line(self, selection_list: list, current_entries: dict):
@@ -79,7 +76,6 @@ class BovadaSGP(SGPBookBase):
             return None
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("sgp_url"),
             method=self.book_data.method,
@@ -120,7 +116,7 @@ class BovadaSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {
                 "book_name": "bovada",
                 "links": [

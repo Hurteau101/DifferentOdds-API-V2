@@ -1,14 +1,8 @@
 import asyncio
 import os
 import re
-
-import aiohttp
-
 from Books.Bases.sgp_book_base import SGPBookBase
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
@@ -19,7 +13,7 @@ class CaesarsSGP(SGPBookBase):
         raise ValueError("CAESAR_PROXY environment variable is not set.")
 
     def __init__(self, sgp_data: dict, mapped_ids_redis_instance, auth_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="caesars",
+        super().__init__(category="SGP", book_name="caesars",
                          sgp_data=sgp_data, mapped_ids_redis_instance=mapped_ids_redis_instance,
                          auth_redis_instance=auth_redis_instance, **kwargs)
         self.lines = sgp_data.get("lines")
@@ -96,12 +90,6 @@ class CaesarsSGP(SGPBookBase):
         mapped_ids = await self.load_mapped_ids(key_name="caesar_mapped_ids")
 
         if not mapped_ids:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="mapping_failure",
-                message="No mapped IDs were found.",
-                level="error"
-            )
             return None
 
         mapped_data = [
@@ -119,17 +107,13 @@ class CaesarsSGP(SGPBookBase):
 
         payload = self._create_payload(mapped_data)
 
-        proxy_manager = ProxyManager(self.api_caller, proxies=[CaesarsSGP.PROXY_URL])
-
-        raw_api_data = await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+        raw_api_data = await self.api_caller(
+            use_proxy=True,
             url=self.book_data.url.get("main_url"),
             method=self.book_data.method,
             headers={**self.book_data.mapping.headers,
                      "x-aws-waf-token": waf_token},
-            payload=payload,
-            parse_json=True,
+            json=payload,
         )
 
         if not raw_api_data or not raw_api_data.get("parlays", []):
@@ -158,7 +142,7 @@ class CaesarsSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {
                 "book_name": "caesars",
                 "links": [

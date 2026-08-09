@@ -1,9 +1,7 @@
 import asyncio
 import re
-import aiohttp
 from Redis.redis_manager import static_mapping_service
 from External_Book_Mapping.base_mapper import BaseMapper
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -56,13 +54,11 @@ class BetwayMapper(BaseMapper):
         raw_categories = await asyncio.gather(
             *[
                 self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.mapping.url.get("category_url"),
                     method=self.book_data.mapping.method,
                     headers=self.book_data.mapping.headers,
-                    parse_json=True,
-                    payload={
+                    json={
                         "BrandId": 3,
                         "LanguageId": 25,
                         "ClientTypeId": 2,
@@ -93,13 +89,11 @@ class BetwayMapper(BaseMapper):
         raw_ids = await asyncio.gather(
             *[
                 self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.mapping.url.get("events_url"),
                     method=self.book_data.mapping.method,
                     headers=self.book_data.mapping.headers,
-                    parse_json=True,
-                    payload={
+                    json={
                         "BrandId": 3,
                         "LanguageId": 25,
                         "ClientTypeId": 2,
@@ -179,13 +173,11 @@ class BetwayMapper(BaseMapper):
         async def process_mapping(event_id, semaphore: asyncio.Semaphore):
             async with semaphore:
                 results = await self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.mapping.url.get("event_details"),
                     method=self.book_data.mapping.method,
                     headers=self.book_data.mapping.headers,
-                    parse_json=True,
-                    payload={
+                    json={
                         "BrandId": 3,
                         "LanguageId": 25,
                         "ClientTypeId": 2,
@@ -282,12 +274,11 @@ class BetwayMapper(BaseMapper):
             return has_cache
 
         raw_categories = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.mapping.url.get("category_names"),
             method=self.book_data.mapping.method,
             headers=self.book_data.mapping.headers,
-            payload={
+            json={
                 "BrandId": 3,
                 "LanguageId": 25,
                 "TerritoryId": 38,
@@ -307,23 +298,10 @@ class BetwayMapper(BaseMapper):
             if menu.get("ClientLink", {}).get("ClientLinkValue") in self.ALLOWED_LEAGUES
         )
 
-        if not category_names:
-            create_sentry_message(
-                tag_key="betway",
-                tag_value="mapping_failure",
-                message="No category names found",
-                level="error"
-            )
-
         categories = await self._get_categories(category_names, session)
 
         if not categories:
-            create_sentry_message(
-                tag_key="betway",
-                tag_value="mapping_failure",
-                message="No category details found",
-                level="error"
-            )
+            return None
 
         await redis_instance.store_data(
             key_name="betway_categories",
@@ -342,24 +320,12 @@ class BetwayMapper(BaseMapper):
         event_ids = await self._get_event_ids(session, categories)
 
         if not event_ids:
-            create_sentry_message(
-                tag_key="betway",
-                tag_value="mapping_failure",
-                message="No event details found",
-            )
-
             return False
 
         mapping = await self._get_mappings(session, event_ids)
 
-        if not mapping:
-            create_sentry_message(
-                tag_key="betway",
-                tag_value="mapping_failure",
-                message="No mapping details found",
-                level="error"
-            )
 
+        if not mapping:
             return False
 
         await redis_instance.store_data(
@@ -375,6 +341,6 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = BetwayMapper()
     async def main():
-        async with CurlAsyncSession(impersonate="safari15_5") as session:
+        async with CurlAsyncSession(impersonate=None) as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
     asyncio.run(main())
