@@ -1,20 +1,16 @@
 import asyncio
 import re
-import aiohttp
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, Discounts, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData, get_static_mapping
 from Books.Bases.dfs_book_base import DFSBookBase
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Prizepicks(DFSBookBase):
     SOLO_GAMES = [
         "MMA", "TENNIS"
     ]
     def __init__(self):
-        super().__init__(book_name="prizepicks", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="prizepicks")
 
     def _map_info(self, api_data: dict) -> tuple:
         """Map the player and team information"""
@@ -160,28 +156,16 @@ class Prizepicks(DFSBookBase):
         )
 
     async def run_book(self):
-        timeout = aiohttp.ClientTimeout(
-            total=300,
-            connect=20,
-        )
-
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            proxy_manger = ProxyManager(self.api_caller)
-            api_data = await proxy_manger.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            api_data = await self.api_caller(
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
+                use_proxy=True,
+                headers=self.book_data.headers,
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
-                )
-                return
+                return None
 
             player_info_map, team_info_map = self._map_info(api_data)
             static_mapping = get_static_mapping().get("leagues", {}) or {}

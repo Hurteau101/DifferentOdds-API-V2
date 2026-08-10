@@ -1,9 +1,8 @@
 from datetime import datetime, timezone
-
 import aiohttp
 from Books.Bases.book_base import BookBase
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
+
 
 class PredictionLiquidityBase(BookBase):
     LEAGUE_STAT_OVERRIDES = {
@@ -17,8 +16,8 @@ class PredictionLiquidityBase(BookBase):
         },
     }
 
-    def __init__(self, book_name: str, request_type: SportbookRequestType):
-        super().__init__(category="prediction_liquidity", book_name=book_name, request_type=request_type, redis_database=1,
+    def __init__(self, book_name: str):
+        super().__init__(category="prediction_liquidity", book_name=book_name, redis_database=1,
                          payload_batch=10, async_batch=20, expiration_time=600)
 
     async def _store_chunk_data(self, data_to_store: dict | list, book_name: str, timestamp_data: bool):

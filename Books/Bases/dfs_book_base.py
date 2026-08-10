@@ -1,14 +1,13 @@
 import aiohttp
 from dotenv import load_dotenv
 from Books.Bases.book_base import BookBase
-from Utils.request_caller import SportbookRequestType
 from Settings.Models.dfs_models import DFSStats
 from Settings.Models.base_models import GameData
 
 class DFSBookBase(BookBase):
     load_dotenv()
-    def __init__(self, book_name: str, request_type: SportbookRequestType):
-        super().__init__(category="DFS", book_name=book_name, request_type=request_type, redis_database=0, payload_batch=10, async_batch=20)
+    def __init__(self, book_name: str):
+        super().__init__(category="DFS", book_name=book_name, redis_database=0, payload_batch=10, async_batch=20)
         self.esport_leagues = ["LOL", "CS2", "DOTA2", "VAL", "COD", "APEX", "R6"]
 
     # def player_team_mapper(self, stats: DFSStats, mapped_teams: dict):

@@ -7,17 +7,17 @@ from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager, RedisSyncManager, static_mapping_service
 from Utils.helpers import ordinal_formatter
 
-from Utils.request_caller import APICaller, SportbookRequestType
+from Utils.request_caller import APICaller
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class BettoroddsMapping(APICaller):
-    def __init__(self, payload_batch: int, async_batch: int, book_name: str, request_type: SportbookRequestType = SportbookRequestType.ASYNC):
+    def __init__(self, payload_batch: int, async_batch: int, book_name: str):
         self.payload_batch = payload_batch # Used for batching the payload.
         self.async_batch = async_batch # Used for BettorOdds API batching
         self.book_name = book_name
         self.redis_instance = RedisAsyncManager(database=4)
         self.league_mapping = static_mapping_service.get().get("leagues", {})
-        super().__init__(request_type=request_type)
+        super().__init__()
 
 
 
@@ -199,14 +199,13 @@ class BettoroddsMapping(APICaller):
             return None
 
         api_data = await self.api_caller(
-            book_name=self.book_name,
             session=session,
             url="https://cache-api.eternitylabs.co/cache/batch",
             method="POST",
             headers={
                 "Authorization": f"Bearer {api_key}",
             },
-            payload=payload
+            json=payload
         )
 
         return self.map_bettorodds(bettorodds_data=api_data, league=league)

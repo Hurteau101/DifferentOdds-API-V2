@@ -1,119 +1,129 @@
 import json
-from enum import Enum
-from typing import Union
-import aiohttp
-from aiohttp import ClientResponse
-from curl_cffi.requests import Response as CurlResponse
+import os
+from dataclasses import dataclass
 from curl_cffi import AsyncSession as CurlAsyncSession
-from aiohttp import ClientSession as AiohttpClientSession
+import logging
+from random import shuffle
 
-from dotenv import load_dotenv
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.getLogger("asyncio").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
 
+@dataclass
+class CallResult:
+    ok: bool
+    data: dict
+    status_code: int | None
+    text: str | None = None
 
-load_dotenv()
-
-class SportbookRequestType(Enum):
-    ASYNC = "async"
-    SPOOF = "spoof"
 
 class APICaller:
-    """Class to handle outbound API requests for sportsbooks and handle there responses"""
-    def __init__(self, request_type: SportbookRequestType, valid_status_codes: list[int] | None = None):
-        self.valid_status_codes = valid_status_codes or [200, 201]
-        self.request_type = request_type
+    FINGERPRINT_HEADERS = [
+        "user-agent",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "sec-fetch-user",
+        "accept",
+        "accept-language",
+        "accept-encoding",
+        "upgrade-insecure-requests",
+        "priority",
+    ]
 
-    async def api_caller(self,
-                    book_name: str,
-                    session: Union[CurlAsyncSession, AiohttpClientSession],
-                    url: str,
-                    method: str,
-                    headers: dict | None = None,
-                    proxy: dict | None = None,
-                    payload: dict | str | list | None = None,
-                    parse_json: bool = False,
-                    params: dict | list | None =None,
-                    ssl: bool = True,
-                    ) -> dict | list | None:
-        """Fetch data from the API based on request type."""
+    def _header_conflict_check(self, additional_headers: dict, default_headers: bool):
+        if default_headers and additional_headers:
+            conflicting = [key for key in additional_headers if key.lower() in self.FINGERPRINT_HEADERS]
 
-        method = method.lower()
-        if method not in ["get", "post"]:
-            raise ValueError("Method must be 'get' or 'post'.")
+            if conflicting:
+                raise ValueError(
+                    f"Headers '{','.join(conflicting)}' conflict with impersonate's fingerprint-consistent defaults "
+                    f"and would cause detection mismatches. Remove them or pass default_headers=False."
+                )
 
-        if self.request_type == SportbookRequestType.ASYNC:
-            # Use the method type [POST or GET]
-            async with getattr(session, method)(
-                    url, headers=headers, proxy=proxy, params=params if method == "get" else None,
-                    data=payload if isinstance(payload, str) else None,
-                    json=payload if isinstance(payload, dict) or isinstance(payload, list) else None,
-                    ssl=ssl
-            ) as response:
-                return await self.handle_async_response(response, parse_json, book_name)
+    async def _caller(self, session: CurlAsyncSession, url: str, valid_codes: list | None, method: str,
+                      **kwargs) -> CallResult:
+        if not valid_codes:
+            valid_codes = [200]
 
-        # Use the method type [POST or GET]
-        response = await getattr(session, method)(
-            url, headers=headers, proxy=proxy, params=params if method == "get" else None,
-            data=payload if isinstance(payload, str) else None,
-            json=payload if isinstance(payload, dict) or isinstance(payload, list) else None,
-        )
+        try:
+            request = await session.request(method=method, url=url, **kwargs)
 
-        return self.handle_sync_response(response, parse_json, book_name)
+            if request.status_code not in valid_codes:
+                return CallResult(ok=False, data={}, status_code=request.status_code, text=request.text)
 
-    def handle_sync_response(self, response: CurlResponse, parse_json: bool, book_name: str) -> dict | None:
-        """Handle a curl_cffi (non-async) response."""
-        if response.status_code not in self.valid_status_codes:
-            print(f"\n******* Failed {book_name} | Text: {response.text} *************\n", response.status_code)
+            return CallResult(ok=True, data=request.json(), status_code=request.status_code, text=request.text)
 
-        if response.status_code in [403, 407]:
-            raise Exception(f"Proxy error {response.status_code} for {book_name}")
-
-        if response.status_code in self.valid_status_codes:
-            try:
-                response_data = response.json()
-
-                if isinstance(response_data, dict) or isinstance(response_data, list):
-                    return response_data
-                else:
-                    return response.text
-
-            except json.JSONDecodeError:
-                self._capture_error(book_name, "Failed to parse JSON")
-
-            # self.check_403(response.status_code, book_name)
-            # self._capture_error(book_name, f"Invalid status code {response.status_code}")
-
-        return None
-
-    async def handle_async_response(self, response: ClientResponse, parse_json: bool, book_name: str) -> dict | None:
-        """Handle aiohttp async response."""
-        if response.status not in self.valid_status_codes:
-            print(f"\n******* Failed {book_name} | Text: {await response.text()} *************\n", response.status)
-
-        if response.status in [403, 407]:
-            raise Exception(f"Proxy error {response.status} for {book_name}")
-
-        if response.status in self.valid_status_codes:
-            try:
-                if parse_json:
-                    text = await response.text()
-                    return json.loads(text)
-
-                return await response.json()
-
-            except json.JSONDecodeError:
-                self._capture_error(book_name, "Failed to parse JSON")
-            except aiohttp.client_exceptions.ContentTypeError:
-                return await response.json(content_type=None)
-
-            # self.check_403(response.status, book_name)
-            # self._capture_error(book_name, f"Invalid status code {response.status}")
-
-        return None
+        except Exception as e:
+            return CallResult(ok=False, data={}, status_code=None, text=repr(e))
 
 
-    def _capture_error(self, book_name: str, reason: str):
-        pass
-        # with sentry_sdk.new_scope() as scope:
-        #     scope.set_tag("book_name", book_name)
-        #     scope.set_tag("reason", reason)
-        #     sentry_sdk.capture_message(f"Error for {book_name}: {reason}", level="error")
+    async def api_caller(self, url: str, session: CurlAsyncSession|None = None, valid_codes:list|None = None, method: str = "GET",
+                         use_proxy:bool = False, proxy_list: list|None = None, proxy_impersonate: str="chrome", **kwargs):
+        """
+        Helper function to make API calls using curl_cffi.
+        :param url: The URL to be called.
+        :param session: The session to use. Required if not using proxy. Default: None
+        :param valid_codes: List of valid status codes. If the response isn't in valid_codes, it will return {}. Default: 200
+        :param method: The HTTP method to use. Default: GET
+        :param use_proxy: Whether to use proxy or not. Default: False
+        :param proxy_list: List of connection strings. Proxy format USERNAME:PASSWORD@HOST:PORT Default: RESIDENTIAL_PROXIES environment variable
+        :param proxy_impersonate: The browser to impersonate. Default: chrome
+        :param kwargs: Additional parameters passed through to curl_cffi's session.request(). See the
+            curl_cffi docs for all supported options (headers, params, json, data, auth, cookies, timeout,
+            default_headers, allow_redirects, multipart, etc.): https://curl-cffi.readthedocs.io/en/latest/quick_start.html
+        :return: The response from the API OR an empty dict.
+        """
+        self._header_conflict_check(additional_headers=kwargs.get("headers"), default_headers=kwargs.get("default_headers", True))
+
+        if not use_proxy:
+            if not session:
+                raise ValueError("session is required if use_proxy is False")
+
+            result = await self._caller(session=session, url=url, valid_codes=valid_codes, method=method, **kwargs)
+
+            if not result.ok:
+                logger.error(f"Request failed | Status: {result.status_code} | Body: {result.text}")
+
+            return result.data
+
+        if not proxy_list:
+            # Use default proxy list if not provided.
+            proxy_list = os.getenv("RESIDENTIAL_PROXIES", "").split(",") if os.getenv("RESIDENTIAL_PROXIES") else []
+            if not proxy_list:
+                raise ValueError("RESIDENTIAL_PROXIES environment variable is not set.")
+
+        # Shuffle to avoid the same order of proxies.
+        shuffled_proxies = list(proxy_list)
+        shuffle(shuffled_proxies)
+
+        errors = []
+
+        for proxy in shuffled_proxies:
+            # Create a new session for each proxy.
+            async with CurlAsyncSession(impersonate=proxy_impersonate) as proxy_session:
+                result = await self._caller(
+                    session=proxy_session,
+                    url=url,
+                    valid_codes=valid_codes,
+                    method=method,
+                    proxy=proxy,
+                    **kwargs
+                )
+
+            if result.ok:
+                return result.data
+
+            errors.append(f"Proxy: {proxy} | Status: {result.status_code} | Body: {result.text}")
+
+        logger.error(f"All proxies failed | Errors: {errors}")
+
+        return {}
+
+
+
+
+
