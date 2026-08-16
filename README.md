@@ -2,6 +2,8 @@
 
 A Python-based API and backend system for collecting, normalizing, and comparing sports betting odds across multiple sportsbooks in near real time.
 
+https://api.differentodds.com/
+
 ## Overview
 
 DifferentOdds API V2 aggregates and compares odds/pricing data across a wide range of markets and sources, maps it to a consistent internal format, and exposes it through an API. It's built to handle scheduled data collection, background processing, and persistent storage, with monitoring and alerting built in.
