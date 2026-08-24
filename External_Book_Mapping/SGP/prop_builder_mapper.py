@@ -1,16 +1,14 @@
 import asyncio
-
-import aiohttp
 import json
 from External_Book_Mapping.base_mapper import BaseMapper
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
 from Utils.helpers import clean_structure, cache_time
 import re
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class PropBuilderMapper(BaseMapper):
     def __init__(self):
-        super().__init__(book_name="prop_builder", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="prop_builder", category="sgp")
         self.ignore_stats = ["ppd", "specials", "all markets", "acca", "field", "h2h", "h2h", "pops"]
         self.spread_types = ["spread", "run line", "puck line", "point spread"]
         self.special_team_mapping = {
@@ -86,7 +84,6 @@ class PropBuilderMapper(BaseMapper):
 
                         tasks.append(
                             self.api_caller(
-                                book_name=self.book_data.name,
                                 session=session,
                                 url=endpoint_data.get("url"),
                                 method=self.book_data.mapping.method,
@@ -330,19 +327,17 @@ class PropBuilderMapper(BaseMapper):
         return mapping
 
 
-    async def _get_leagues(self, session: aiohttp.ClientSession) -> dict | list | None:
+    async def _get_leagues(self, session: CurlAsyncSession) -> dict | list | None:
         return await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.mapping.url.get("league_url"),
             method=self.book_data.mapping.method,
             headers=self.book_data.headers,
         )
 
-    async def _get_game_ids(self, session: aiohttp.ClientSession, league_data: dict):
+    async def _get_game_ids(self, session: CurlAsyncSession, league_data: dict):
         tasks = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("game_url"),
                 params={"league": league, "sport": sport},
@@ -379,10 +374,9 @@ class PropBuilderMapper(BaseMapper):
             for team in game_detail.get(team_key, [])
         ), None)
 
-    async def _get_game_details(self, session: aiohttp.ClientSession):
+    async def _get_game_details(self, session: CurlAsyncSession):
         tasks = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("game_details_url"),
                 method=self.book_data.mapping.method,
@@ -430,10 +424,9 @@ class PropBuilderMapper(BaseMapper):
         return game_details
 
 
-    async def _market_mapper(self, session: aiohttp.ClientSession, league_data: dict):
+    async def _market_mapper(self, session: CurlAsyncSession, league_data: dict):
         tasks = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("market_url"),
                 params={"league": league},
@@ -478,7 +471,7 @@ class PropBuilderMapper(BaseMapper):
 
         return market_data
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         raw_leagues = await self._get_leagues(session=session)
 
         leagues = {
@@ -510,6 +503,6 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = PropBuilderMapper()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
     asyncio.run(main())

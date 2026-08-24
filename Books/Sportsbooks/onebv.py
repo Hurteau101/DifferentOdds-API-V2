@@ -1,8 +1,6 @@
 import os
 import re
 from itertools import chain
-
-import aiohttp
 import pytz
 from rapidfuzz import process, fuzz
 from datetime import datetime, timezone
@@ -10,11 +8,8 @@ from Books.Bases.pph_base import PPHBookBase
 from External_Book_Mapping.SGP.betway_mapper import get_static_mapping
 from Settings.Models.base_models import TeamData, GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.proxy_manger import ProxyManager
-
-from Utils.request_caller import SportbookRequestType
 import asyncio
-import json
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class OneBv(PPHBookBase):
@@ -33,9 +28,7 @@ class OneBv(PPHBookBase):
     }
 
     def __init__(self):
-        super().__init__(book_name="1bv", request_type=SportbookRequestType.ASYNC)
-        self.proxy_manger = ProxyManager(self.api_caller)
-
+        super().__init__(book_name="1bv")
         self.stat_mapping = get_static_mapping()
         # Contains the proper team names, as game lines section is the only section
         # that will have the proper team names, so we want to store here, so they can be referenced for the other sections,
@@ -43,10 +36,9 @@ class OneBv(PPHBookBase):
         self.league_dict = {}
 
 
-    async def get_app_token(self, session: aiohttp.ClientSession):
-        token_data = await self.proxy_manger.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+    async def get_app_token(self):
+        token_data = await self.api_caller(
+            use_proxy=True,
             url=self.book_data.url.get("app_token_url"),
             method=self.book_data.method,
             headers=self.book_data.headers
@@ -56,7 +48,7 @@ class OneBv(PPHBookBase):
 
         return token_data.get("AppToken", None) if isinstance(token_data, dict) else None
 
-    async def get_player_token(self, session: aiohttp.ClientSession, app_token: str):
+    async def get_player_token(self, app_token: str):
         username = os.getenv("1BV_USERNAME")
         password = os.getenv("1BV_PASSWORD")
 
@@ -68,10 +60,9 @@ class OneBv(PPHBookBase):
             'appToken': app_token,
         }
 
-        token_data = await self.proxy_manger.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+        token_data = await self.api_caller(
             url=self.book_data.url.get("player_token_url").format(username=username, password=password),
+            use_proxy=True,
             method="POST",
             headers=headers,
         )
@@ -295,21 +286,20 @@ class OneBv(PPHBookBase):
 
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
-            app_token: str | None = await self.get_app_token(session=session)
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            app_token: str | None = await self.get_app_token()
 
             if not app_token:
                 return
 
-            player_token = await self.get_player_token(session=session, app_token=app_token)
+            player_token = await self.get_player_token(app_token=app_token)
 
             if not player_token:
                 return
 
-            raw_league_data = await self.proxy_manger.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+            raw_league_data = await self.api_caller(
                 url=self.book_data.url.get("leagues_url"),
+                use_proxy=True,
                 method=self.book_data.method,
                 headers={
                     **self.book_data.headers,
@@ -322,9 +312,8 @@ class OneBv(PPHBookBase):
 
             tasks = await asyncio.gather(
                 *[
-                    self.proxy_manger.proxy_caller(
-                        book_name=self.book_data.name,
-                        session=session,
+                    self.api_caller(
+                        use_proxy=True,
                         url=self.book_data.url.get("event_url"),
                         method=self.book_data.method,
                         headers={
@@ -353,6 +342,7 @@ class OneBv(PPHBookBase):
             events = list(chain.from_iterable(
                 league["EVENTS"]
                 for item in events
+                if item.get("Events", {}).get("LEAGUES")
                 for league in item["Events"]["LEAGUES"]
             ))
 

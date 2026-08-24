@@ -1,16 +1,14 @@
 import asyncio
-import aiohttp
 from datetime import datetime
 from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class Sleeper(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="sleeper", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="sleeper")
 
     @staticmethod
     def _map_games(games: list) -> dict:
@@ -93,16 +91,16 @@ class Sleeper(DFSBookBase):
         return response
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             tasks = [
-                self.api_caller(book_name=self.book_data.name,session=session, url=self.book_data.url.get("main_url"), method=self.book_data.method),
-                self.api_caller(book_name=self.book_data.name,session=session, url=self.book_data.url.get("alternate_url"),
+                self.api_caller(session=session, url=self.book_data.url.get("main_url"), method=self.book_data.method),
+                self.api_caller(session=session, url=self.book_data.url.get("alternate_url"),
                                 method=self.book_data.method),
-                self.api_caller(book_name=self.book_data.name,session=session, url=self.book_data.url.get("alternate_url_2"),
+                self.api_caller(session=session, url=self.book_data.url.get("alternate_url_2"),
                                 method=self.book_data.method),
-                self.api_caller(book_name=self.book_data.name,session=session, url=self.book_data.url.get("alternate_url_3"),
+                self.api_caller(session=session, url=self.book_data.url.get("alternate_url_3"),
                                 method=self.book_data.method),
-                self.api_caller(book_name=self.book_data.name,session=session, url=self.book_data.url.get("alternate_url_4"),
+                self.api_caller(session=session, url=self.book_data.url.get("alternate_url_4"),
                                 method=self.book_data.method),
             ]
 
@@ -128,14 +126,7 @@ class Sleeper(DFSBookBase):
             combined_lines = self.extract_data(main_lines) + self.extract_data(alternate_lines)
 
             if not combined_lines:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
-                )
-
-                return
+                return None
 
             combined_game_data = self.extract_data(game_data) + self.extract_data(season_data)
             team_data = self._map_games(combined_game_data)
@@ -150,6 +141,7 @@ class Sleeper(DFSBookBase):
 
 
             sleeper_data = list(events.values())
+
             mapped_data = await self.map_runner(session=session, sportsbook_data=sleeper_data)
 
             await self.store_data(
@@ -159,3 +151,7 @@ class Sleeper(DFSBookBase):
             )
 
             return mapped_data
+
+if __name__ == "__main__":
+    sleeper = Sleeper()
+    asyncio.run(sleeper.run_book())

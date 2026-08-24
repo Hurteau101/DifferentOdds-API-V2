@@ -162,9 +162,10 @@ class SocketHelper:
         for raw_proxy in attempts:
             proxy = None
             if raw_proxy:
-                ip, port, username, password = raw_proxy.split(":")
+                proxy_separation = raw_proxy.split("@")
+                username, password = proxy_separation[0].split(":")
+                ip, port = proxy_separation[1].split(":")
                 proxy = f"http://{username}:{password}@{ip}:{port}"
-                print(proxy)
 
             try:
                 async with cf_requests.AsyncSession(impersonate="safari15_5") as session:

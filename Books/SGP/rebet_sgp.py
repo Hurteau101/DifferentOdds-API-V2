@@ -1,15 +1,13 @@
 import asyncio
 
-import aiohttp
 from aiohttp import payload
-
 from Books.Bases.sgp_book_base import SGPBookBase
-from Utils.request_caller import SportbookRequestType
+
 
 
 class RebetSGP(SGPBookBase):
     def __init__(self, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="rebet", sgp_data={}, **kwargs)
+        super().__init__(category="SGP", book_name="rebet", sgp_data={}, **kwargs)
 
     def _build_payload(self, mapped_ids: dict, additional_data: dict) -> dict:
         payload = {
@@ -74,16 +72,15 @@ class RebetSGP(SGPBookBase):
             return
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("sgp_url"),
             method="POST",
             headers=self.book_data.headers,
-            payload=payload
+            json=payload
         )
 
         if not all([api_data, api_data.get("success"), api_data.get("data", {}).get("combined_odds")]):
-            return
+            return None
 
         decimal_odds = float(api_data.get("data", {}).get("combined_odds"))
         print(decimal_odds)

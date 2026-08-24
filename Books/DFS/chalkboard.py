@@ -1,18 +1,16 @@
 import os
 from typing import Dict
-import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 import asyncio
-
 from Monitoring.monitoring import create_sentry_message
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Redis.redis_manager import RedisAsyncManager
 
 class Chalkboard(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="chalkboard", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="chalkboard")
         self.league_data = {
             "CS2": ["Map 1-2 Headshots", "Map 1-2 Kills"],
             "LOL": ["Map 1-3 Kills", "Map 1-2 Kills"]
@@ -166,12 +164,11 @@ class Chalkboard(DFSBookBase):
         return round(ui_value, 2)
 
 
-    async def _get_margin_odds_cutoff(self, session: aiohttp.ClientSession, headers: dict) -> Dict[str, dict]:
+    async def _get_margin_odds_cutoff(self, session: CurlAsyncSession, headers: dict) -> Dict[str, dict]:
         """Retrieve margin and odds cutoff information from Chalkboard API"""
         margin_url = os.getenv("CHALKBOARD_MARGIN_URL")
 
         margin_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=margin_url,
             headers=headers,
@@ -213,19 +210,18 @@ class Chalkboard(DFSBookBase):
 
             return
 
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             headers = {
                 'Authorization': f'Bearer {access_token}'
             }
 
             tasks = [
                 self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("main_url"),
                     headers=headers,
                     method=self.book_data.method,
-                    payload=self._generate_payload(league_name=league_name.lower(), stat_list=stat_list)
+                    json=self._generate_payload(league_name=league_name.lower(), stat_list=stat_list)
                 )
 
                 for league_name, stat_list in self.league_data.items()
@@ -237,13 +233,7 @@ class Chalkboard(DFSBookBase):
             merged_data = [result for result in results if result]
 
             if not merged_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No data retrieved from Chalkboard API.",
-                    level="warning"
-                )
-                return
+                return None
 
             events = {}
 

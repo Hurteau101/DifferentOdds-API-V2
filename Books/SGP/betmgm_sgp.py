@@ -1,13 +1,11 @@
 import asyncio
-import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
-from Monitoring.monitoring import create_sentry_message
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class BetmgmSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="betmgm",
+        super().__init__(category="SGP", book_name="betmgm",
                          sgp_data=sgp_data, mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
 
@@ -17,27 +15,20 @@ class BetmgmSGP(SGPBookBase):
         mapped_ids = await self.load_mapped_ids(key_name="betmgm_ids")
 
         if not mapped_ids:
-            create_sentry_message(
-                tag_key="betmgm",
-                tag_value="no_mapping",
-                message="No mapped IDs were found in SGP",
-                level="error"
-            )
             return None
 
         payload = self._create_payload(mapped_ids)
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("sgp_url"),
             method="POST",
             headers=self.book_data.headers,
-            payload=payload
+            json=payload
         )
 
         if not api_data:
-            return
+            return None
 
         return self._extract_odds(api_data)
 
@@ -111,11 +102,12 @@ class BetmgmSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {'book_name': 'betmgm', 'links': [
                 # "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=6:36475-2689474-4040918&type=Single",
-                "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=6:36475-2689474-4040935&type=Single",
-                "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=19025410-1474076463--155984492&type=Single"]}
+                "https://sports.{state}.betmgm.com/en/sports/events/19830358?options=19830358-1545685425-2261318407&type=Single",
+                "https://sports.{state}.betmgm.com/en/sports/events/19830358?options=19830358-1545685441-2261318439&type=Single",
+            ]}
 
             redis_mapped = RedisAsyncManager(database=2)
             book = BetmgmSGP(mapped_ids_redis_instance=redis_mapped, sgp_data=sgp_data)

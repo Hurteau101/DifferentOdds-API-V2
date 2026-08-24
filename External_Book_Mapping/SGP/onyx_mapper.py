@@ -1,35 +1,29 @@
 import asyncio
 import os
-
-import aiohttp
 from dotenv import load_dotenv
-
 from External_Book_Mapping.base_mapper import BaseMapper
-from Monitoring.monitoring import create_sentry_message
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
 from Redis.redis_manager import RedisAsyncManager
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class OnyxMapper(BaseMapper):
     load_dotenv()
     def __init__(self):
-        super().__init__(book_name="onyxodds", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="onyxodds", category="sgp")
 
     async def _get_auth(self) -> str | None:
         redis = RedisAsyncManager(database=5)
         auth_token = await redis.get_data("onyx_auth")
         return auth_token
 
-    async def _extract_game_ids(self, league_names: set, session: aiohttp.ClientSession, auth_token: str, proxy_manager: ProxyManager) -> set | None:
+    async def _extract_game_ids(self, league_names: set, auth_token: str) -> set | None:
         if not auth_token or not league_names:
             return None
 
         # Not ASYNC Tasks due to potential rate limit and missing leagues.
         results = []
         for league in league_names:
-            result = await proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+            result = await self.api_caller(
+                use_proxy=True,
                 url=self.book_data.mapping.url.get("game_ids_url").format(league_name=league),
                 method=self.book_data.mapping.method,
                 headers={**self.book_data.mapping.headers,"Authorization": f"Bearer {auth_token}"}
@@ -82,24 +76,25 @@ class OnyxMapper(BaseMapper):
             for league_data in raw_data.get("data", {}).values()
         )
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
-        auth_token = await self._get_auth()
-        if not auth_token:
-            create_sentry_message(
-                tag_key="onyxodds",
-                tag_value="no_auth",
-                message="Couldn't find auth token in redis",
-                level="error"
+    async def _fetch_market(self, semaphore: asyncio.Semaphore, game_id, auth_token: str):
+        async with semaphore:
+            return await self.api_caller(
+                use_proxy=True,
+                url=self.book_data.mapping.url.get("market_url").format(game_id=game_id),
+                method=self.book_data.mapping.method,
+                headers={
+                    **self.book_data.mapping.headers,
+                    "Authorization": f"Bearer {auth_token}"
+                }
             )
 
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
+        auth_token = await self._get_auth()
+        if not auth_token:
             return False
 
-        proxy_manager = ProxyManager(self.api_caller)
-        proxy_manager.proxies = os.getenv("ONYX_PROXIES").split(",") if os.getenv("ONYX_PROXIES") else ""
-
-        league_data = await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+        league_data = await self.api_caller(
+            use_proxy=True,
             url=self.book_data.mapping.url.get("league_url"),
             method=self.book_data.mapping.method,
             headers={
@@ -109,39 +104,18 @@ class OnyxMapper(BaseMapper):
         )
 
         if not league_data:
-            create_sentry_message(
-                tag_key="onyxodds",
-                tag_value="mapping_failure",
-                message="No league data found during Onyx mapping.",
-                level="error"
-            )
-
             return False
 
         leagues = self._extract_league_names(league_data)
-        game_ids = await self._extract_game_ids(league_names=leagues, session=session, auth_token=auth_token, proxy_manager=proxy_manager)
+        game_ids = await self._extract_game_ids(league_names=leagues, auth_token=auth_token)
 
         if not game_ids:
-            create_sentry_message(
-                tag_key="onyxodds",
-                tag_value="mapping_failure",
-                message="No game IDs found during Onyx mapping.",
-                level="error"
-            )
-
             return False
 
+        semaphore = asyncio.Semaphore(50)
+
         market_url_tasks = [
-            proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
-                url=self.book_data.mapping.url.get("market_url").format(game_id=game_id),
-                method=self.book_data.mapping.method,
-                headers={
-                    **self.book_data.mapping.headers,
-                    "Authorization": f"Bearer {auth_token}"
-                }
-            )
+            self._fetch_market(semaphore, game_id, auth_token)
             for game_id in game_ids
         ]
 
@@ -149,13 +123,6 @@ class OnyxMapper(BaseMapper):
 
 
         if not market_url_results:
-            create_sentry_message(
-                tag_key="onyxodds",
-                tag_value="mapping_failure",
-                message="No market data found during Onyx mapping.",
-                level="error"
-            )
-
             return False
 
 
@@ -182,6 +149,6 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = OnyxMapper()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
     asyncio.run(main())

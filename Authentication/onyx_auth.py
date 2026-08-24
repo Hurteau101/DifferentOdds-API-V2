@@ -132,13 +132,12 @@ from APScheduler.base_scheduler import BaseScheduler
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
 import aiohttp, re
 
 class OnyxAuth(BaseScheduler):
     load_dotenv()
     def __init__(self):
-        super().__init__(request_type=SportbookRequestType.ASYNC)
+        super().__init__()
 
     async def _extract_otp(self):
         email_client_base_url = "https://api.mail.tm"
@@ -187,15 +186,14 @@ class OnyxAuth(BaseScheduler):
         if os.name != 'nt':
             os.environ['DISPLAY'] = ':99'
 
-        proxies = os.getenv("ONYX_PROXIES").split(",") if os.getenv("ONYX_PROXIES") else ""
+        proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
 
         for proxy in proxies:
             browser = None
             try:
-                split_proxy = proxy.split(":")
-                server = ':'.join(split_proxy[0:2])
-                username = split_proxy[2]
-                password = split_proxy[3]
+                split_proxy = proxy.split("@")
+                server = split_proxy[1]
+                username, password = split_proxy[0].split(":")
 
                 async with async_playwright() as play:
                     browser = await play.firefox.launch(

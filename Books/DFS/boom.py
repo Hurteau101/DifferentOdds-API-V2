@@ -1,20 +1,15 @@
-import os
 import re
-import aiohttp
 from dotenv import load_dotenv
-
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Boom(DFSBookBase):
     load_dotenv()
     def __init__(self):
-        super().__init__(book_name="boom", request_type=SportbookRequestType.SPOOF)
+        super().__init__(book_name="boom")
 
     # Extract the multiplier from the stat list. 1st float found is the multiplier.
     def _get_multiplier(self, stat_list: list) -> float | None:
@@ -127,29 +122,16 @@ class Boom(DFSBookBase):
         return player_list
 
     async def run_book(self):
-        # async with aiohttp.ClientSession() as session:
-        async with CurlAsyncSession(impersonate="safari15_5") as session:
-            proxy_manger = ProxyManager(self.api_caller)
-            proxy_manger.proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
-
-            api_data = await proxy_manger.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            api_data = await self.api_caller(
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
                 headers=self.book_data.headers,
-                parse_json=True
+                use_proxy=True,
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
-                )
-
-                return
+                return None
 
             results = [
                 self._extract_game_data(game_data=game_details)

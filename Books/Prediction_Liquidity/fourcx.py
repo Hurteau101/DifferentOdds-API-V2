@@ -2,21 +2,19 @@ import asyncio
 import re
 import aiohttp
 from Books.Bases.prediction_liquidity_base import PredictionLiquidityBase
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
-from Utils.request_caller import SportbookRequestType
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class FourCX(PredictionLiquidityBase):
     INVALID_LEAGUES = ["live", "custom", "superbowl", "nfc", "afc"] # Avoid these leagues or anything with these keywords
 
     def __init__(self):
-        super().__init__(book_name="4cx", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="4cx")
 
-    async def _get_leagues(self, session: aiohttp.ClientSession) -> dict:
+    async def _get_leagues(self, session: CurlAsyncSession) -> dict:
         leagues = await self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("games"),
                     headers=self.book_data.headers,
@@ -172,24 +170,12 @@ class FourCX(PredictionLiquidityBase):
         auth_token = await self.load_auth()
 
         if not auth_token:
-            create_sentry_message(
-                tag_key="4cx",
-                tag_value="auth_failure",
-                message="No auth token was found in Redis",
-                level="error"
-            )
             return None
 
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             self.book_data.headers["Authorization"] = auth_token
             raw_leagues = await self._get_leagues(session)
             if not raw_leagues or not raw_leagues.get("data", {}).get("availableLeagues"):
-                create_sentry_message(
-                    tag_key="4cx",
-                    tag_value="league_failure",
-                    message="No leagues found",
-                    level="error"
-                )
                 return None
 
             leagues = raw_leagues.get("data", {}).get("availableLeagues", [])
@@ -197,12 +183,11 @@ class FourCX(PredictionLiquidityBase):
 
             orders = [
                 self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("orders"),
                     headers=self.book_data.headers,
                     method="POST",
-                    payload={"leagueRequested": league}
+                    json={"leagueRequested": league}
                 )
                 for league in leagues
             ]
@@ -227,7 +212,7 @@ class FourCX(PredictionLiquidityBase):
 
             game_list = list(game_data.values())
             mapped_data = await self.map_runner(session=session, sportsbook_data=game_list)
-
+            print(mapped_data)
             await self.store_data(
                 database=self.redis_database,
                 data_to_store=mapped_data,

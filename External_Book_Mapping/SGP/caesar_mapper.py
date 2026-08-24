@@ -1,16 +1,12 @@
 import asyncio
 from itertools import chain
 import random
-
-import aiohttp
 from Authentication.caesars_auth import CaesarAuth
 from Database.database import Database
 from External_Book_Mapping.base_mapper import BaseMapper
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
 import os
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 ### CHECK MAPPING - MOENYLINE/RUNS AND OTHERS DON'T BE SHOWING ###
 
@@ -23,7 +19,7 @@ class CaesarMapper(BaseMapper):
         raise ValueError("CAESAR_PROXY environment variable is not set.")
 
     def __init__(self):
-        super().__init__(book_name="caesars", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="caesars", category="sgp")
 
     async def _get_path_cache(self, redis_instance: RedisAsyncManager):
         cache = await redis_instance.get_data("caesar_path_cache")
@@ -32,15 +28,13 @@ class CaesarMapper(BaseMapper):
 
         return True, cache
 
-    async def _extract_cache(self, proxy_manager, session, waf_token, redis_instance: RedisAsyncManager):
+    async def _extract_cache(self, session, waf_token, redis_instance: RedisAsyncManager):
         raw_events = [
-            proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+            self.api_caller(
+                uset_proxy=True,
                 url=self.book_data.mapping.url.get("event_url").format(sport=sport),
                 method=self.book_data.mapping.method,
                 headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
-                parse_json=True
             )
             for sport in CaesarMapper.VALID_SPORTS
         ]
@@ -56,25 +50,17 @@ class CaesarMapper(BaseMapper):
         )
 
         if not event_ids:
-            create_sentry_message(
-                tag_key="caesars",
-                tag_value="no_events",
-                message="No event IDs found during Caesar mapping.",
-                level="error"
-            )
             return set()
 
         game_url_semaphore = asyncio.Semaphore(3)  # same cap as fetch_market
 
         async def fetch_game_url(event):
             async with game_url_semaphore:
-                result = await proxy_manager.proxy_caller(
-                    book_name=self.book_data.name,
-                    session=session,
+                result = await self.api_caller(
+                    uset_proxy=True,
                     url=self.book_data.mapping.url.get("game_url").format(event_id=event),
                     method=self.book_data.mapping.method,
                     headers={**self.book_data.mapping.headers, "x-aws-waf-token": waf_token},
-                    parse_json=True
                 )
                 await asyncio.sleep(random.uniform(0.05, 0.2))
                 return result
@@ -144,11 +130,10 @@ class CaesarMapper(BaseMapper):
             return False
 
         had_cache, cache_data = await self._get_path_cache(redis_instance)
-        proxy_manager = ProxyManager(self.api_caller, proxies=[CaesarMapper.PROXY_URL])
 
         if not had_cache:
             print("No cache found, extracting paths...")
-            cache_data = await self._extract_cache(proxy_manager, session, waf_token, redis_instance)
+            cache_data = await self._extract_cache(session, waf_token, redis_instance)
 
             if not cache_data:
                 return False
@@ -160,20 +145,18 @@ class CaesarMapper(BaseMapper):
 
         semaphore = asyncio.Semaphore(3)
 
-        async def fetch_market(path, proxy_manager, waf_token):
+        async def fetch_market(path, waf_token):
             async with semaphore:
-                return await proxy_manager.proxy_caller(
-                    book_name=self.book_data.name,
-                    session=session,
+                return await self.api_caller(
+                    uset_proxy=True,
                     url=self.book_data.mapping.url.get("market_url").format(path=path),
                     method=self.book_data.mapping.method,
                     headers={**self.book_data.mapping.headers,
                              "x-aws-waf-token": waf_token},
-                    parse_json=True
                 )
 
         for _ in range(3):
-            market_url_results = await asyncio.gather(*[fetch_market(path, proxy_manager, waf_token) for path in cache_data])
+            market_url_results = await asyncio.gather(*[fetch_market(path, waf_token) for path in cache_data])
 
             mapping = {}
             for result in market_url_results:
@@ -201,7 +184,7 @@ if __name__ == "__main__":
     mapper = CaesarMapper()
 
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
 
     asyncio.run(main())

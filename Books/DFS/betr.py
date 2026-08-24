@@ -1,15 +1,13 @@
 import asyncio
-
-import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
 from Monitoring.monitoring import create_sentry_message
-from Utils.request_caller import SportbookRequestType
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData, get_static_mapping
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Betr(DFSBookBase):
     def __init__(self):
-        super().__init__(request_type=SportbookRequestType.ASYNC, book_name="betr")
+        super().__init__(book_name="betr")
 
     @staticmethod
     def _extract_leagues(api_data: dict) -> set:
@@ -19,7 +17,7 @@ class Betr(DFSBookBase):
             for league in api_data.get("data", {}).get("getUpcomingEventsV2", [])
         )
 
-    async def _extract_game_data(self, league: set, session: aiohttp.ClientSession) -> list | None:
+    async def _extract_game_data(self, league: set, session: CurlAsyncSession) -> list | None:
         payload = {
                 "operationName": "EventsInfo",
                 "query": """
@@ -133,12 +131,11 @@ class Betr(DFSBookBase):
             }
 
         game_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
                 headers=self.book_data.headers,
-                payload=payload
+                json=payload
             )
 
         if not game_data:
@@ -316,13 +313,13 @@ class Betr(DFSBookBase):
         return results
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
-                payload={
+                headers=self.book_data.headers,
+                json={
                     "operationName": "AllLeaguesUpcomingEvents",
                     "query": """query AllLeaguesUpcomingEvents {
                               getUpcomingEventsV2 {
@@ -334,21 +331,14 @@ class Betr(DFSBookBase):
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league data found from API.",
-                    level="error"
-                )
-
-                return
+                return None
 
             leagues = self._extract_leagues(api_data)
 
             betr_data = await self._extract_game_data(leagues, session)
 
             if not betr_data:
-                return
+                return None
 
             events = {}
             for games in betr_data:

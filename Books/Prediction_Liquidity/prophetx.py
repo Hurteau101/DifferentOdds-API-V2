@@ -3,17 +3,14 @@ import json
 import os
 import re
 from itertools import batched
-import aiohttp
 from Books.Bases.prediction_liquidity_base import PredictionLiquidityBase
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Prophetx(PredictionLiquidityBase):
     def __init__(self):
-        super().__init__(book_name="prophetx", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="prophetx")
 
 
     def extract_event_data(self, raw_event_data: dict) -> dict:
@@ -124,20 +121,12 @@ class Prophetx(PredictionLiquidityBase):
     async def run_book(self):
         api_key = os.getenv("PROPHETX_API_KEY")
         if not api_key:
-            create_sentry_message(
-                tag_key="prophetx",
-                tag_value="api_key_failure",
-                message="No API Key found",
-                level="error"
-            )
+            return None
 
-            return
-
-        async with aiohttp.ClientSession() as session:
-            new_headers = {**self.book_data.headers, "Authorization": api_key}
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            new_headers = {"Authorization": api_key}
 
             events = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("events_url"),
                 method=self.book_data.method,
@@ -151,7 +140,6 @@ class Prophetx(PredictionLiquidityBase):
             market_data = await asyncio.gather(
                 *(
                     self.api_caller(
-                        book_name=self.book_data.name,
                         session=session,
                         url=self.book_data.url.get("markets_url"),
                         method=self.book_data.method,

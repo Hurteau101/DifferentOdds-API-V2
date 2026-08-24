@@ -381,19 +381,13 @@
 
 
 import asyncio
-import os
 import re
 from functools import reduce
-from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
-
-from Authentication.sts_auth import STSAuth
 from Books.Bases.pph_base import PPHBookBase
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
 import json
 from datetime import datetime, timezone
@@ -408,7 +402,7 @@ class STS(PPHBookBase):
     LEAGUE_NAME_REPLACER = ["-", "otincluded", "/usa/int"]
 
     def __init__(self):
-        super().__init__(book_name="sts", request_type=SportbookRequestType.SPOOF)
+        super().__init__(book_name="sts")
         self.retry = 0
 
     async def load_cookies(self) -> dict | None:
@@ -606,6 +600,8 @@ class STS(PPHBookBase):
     # Backup Auth since the site has bugs, where the cookie will no longer be valid, even if it was issued.
     # Happens randomly. So if we get no data back, we will try to refresh the cookie and try again once.
     async def back_up_auth_runner(self) -> bool:
+        from Authentication.sts_auth import STSAuth
+
         redis_instance = RedisAsyncManager(database=5)
         async with CurlAsyncSession(impersonate="firefox133") as session:  # Match auth script
             sts = STSAuth()
@@ -619,29 +615,28 @@ class STS(PPHBookBase):
 
     async def run_book(self):
         cookies = await self.load_cookies()
-        proxy = await self.load_proxy()
+        # proxy = await self.load_proxy()
 
-        if not cookies or not proxy:
-            if self.retry < 3:
-                print("Failed to fetch data, retry #", self.retry + 1)
-                auth_ok = await self.back_up_auth_runner()
-                if auth_ok:
-                    await self.run_book()
+        #
+        # if not cookies or not proxy:
+        #     if self.retry < 3:
+        #         print("Failed to fetch data, retry #", self.retry + 1)
+        #         auth_ok = await self.back_up_auth_runner()
+        #         if auth_ok:
+        #             await self.run_book()
+        #
+        #     return
 
-            return
-
-        async with CurlAsyncSession(impersonate="firefox133", cookies=cookies) as session:
-            proxy_manager = ProxyManager(self.api_caller)
-            proxy_manager.proxies = [proxy]
-
-            raw_league_data = await proxy_manager.api_caller(
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            raw_league_data = await self.api_caller(
                 url=self.book_data.url.get("category_url"),
                 headers=self.book_data.headers,
-                payload={"wagerTypeValue": "1"},
+                json={"wagerTypeValue": "1"},
                 method="POST",
-                session=session,
-                book_name=self.book_data.name,
-                parse_json=True
+                use_proxy=True,
+                # proxy_list=[proxy],
+                cookies=cookies,
+
             )
 
             if not raw_league_data:
@@ -650,7 +645,7 @@ class STS(PPHBookBase):
                     auth_ok = await self.back_up_auth_runner()
                     if auth_ok:
                         await self.run_book()
-                return
+                return None
 
             sport_data = [
                 {
@@ -663,11 +658,11 @@ class STS(PPHBookBase):
             ]
 
             league_name_tasks = [
-                proxy_manager.api_caller(
+                self.api_caller(
                     url=self.book_data.url.get("league_url"),
                     headers=self.book_data.headers,
                     # payload={"idMainHeader":str(sport_id), "wagerTypeValue": "1"},
-                    payload={
+                    json={
                         "menuItem": {
                             "idSport": sport.get("sport_id"),
                             "name": sport.get("sport_name"),
@@ -676,15 +671,15 @@ class STS(PPHBookBase):
                         "wagerTypeValue": "1"
                     },
                     method="POST",
-                    session=session,
-                    book_name=self.book_data.name,
-                    parse_json=True
+                    use_proxy=True,
+                    # proxy_list=[proxy],
+                    cookies=cookies,
                 )
 
                 for sport in sport_data
             ]
 
-            semaphore = asyncio.Semaphore(2)
+            semaphore = asyncio.Semaphore(1)
 
             league_results = await asyncio.gather(*[
                 self.post_with_semaphore(semaphore, task) for task in league_name_tasks
@@ -716,10 +711,10 @@ class STS(PPHBookBase):
 
 
             market_tasks = [
-                proxy_manager.api_caller(
+                self.api_caller(
                     url=self.book_data.url.get("market_url"),
                     headers=self.book_data.headers,
-                    payload={
+                    json={
                         "menuItems": [
                             {
                                 "idSport": market.get("value"),
@@ -735,9 +730,9 @@ class STS(PPHBookBase):
                         "getOnlyPeriods": False
                     },
                     method="POST",
-                    session=session,
-                    book_name=self.book_data.name,
-                    parse_json=True
+                    use_proxy=True,
+                    # proxy_list=[proxy],
+                    cookies=cookies,
                 )
 
                 for market in league_map.values()
@@ -782,6 +777,7 @@ class STS(PPHBookBase):
                         self.add_to_events(event_data, game, GameData)
 
             sts_data = list(event_data.values())
+            print(sts_data)
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=sts_data)
 

@@ -1,18 +1,17 @@
 import asyncio
 from datetime import datetime, timezone
 from typing import Iterator
-import aiohttp
 from Books.Bases.sportsbook_base import SportsbooksBookBase
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.helpers import convert_to_utc
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Bet105(SportsbooksBookBase):
     def __init__(self):
-        super().__init__(book_name="bet105", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="bet105")
 
     async def load_mapped_data(self) -> dict:
         """Load mapped data from Redis"""
@@ -112,16 +111,15 @@ class Bet105(SportsbooksBookBase):
 
         return fixture_results
 
-    async def _get_events(self, session: aiohttp.ClientSession, sportsbook_id: int):
+    async def _get_events(self, session: CurlAsyncSession, sportsbook_id: int, auth_header: dict):
         """Get the event names"""
         raw_event_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("events"),
             params={
                 "feed_source_id": sportsbook_id
             },
-            headers=self.book_data.headers,
+            headers=auth_header,
             method=self.book_data.method
         )
 
@@ -134,10 +132,10 @@ class Bet105(SportsbooksBookBase):
             if result.get("is_active") and any(event_name in result.get("feed_name") for event_name in ["vs", "at"])
         }
 
-    async def _book_runner(self, session: aiohttp.ClientSession, sportsbook_name: str, sportsbook_id: int,
-                           mapped_data: dict):
+    async def _book_runner(self, session: CurlAsyncSession, sportsbook_name: str, sportsbook_id: int,
+                           mapped_data: dict, auth_header: dict):
         """Helper method to run each book through the process"""
-        events = await self._get_events(session=session, sportsbook_id=sportsbook_id)
+        events = await self._get_events(session=session, sportsbook_id=sportsbook_id, auth_header=auth_header)
         if not events:
             return None
 
@@ -145,13 +143,12 @@ class Bet105(SportsbooksBookBase):
 
         raw_data = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("fixtures"),
                 params={
                     "league_id": ",".join(map(str, league_chunk))
                 },
-                headers=self.book_data.headers,
+                headers=auth_header,
                 method=self.book_data.method
             )
             for league_chunk in self.chunk(list(leagues.keys()), 14)
@@ -167,14 +164,13 @@ class Bet105(SportsbooksBookBase):
 
         raw_data = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("markets"),
                 params={
                     "league_id": ",".join(map(str, league_chunk)),
                     "feed_source_id": sportsbook_id
                 },
-                headers=self.book_data.headers,
+                headers=auth_header,
                 method=self.book_data.method
             )
             for league_chunk in self.chunk(list(league_set), 14)
@@ -294,17 +290,10 @@ class Bet105(SportsbooksBookBase):
 
 
         if not mapped_data:
-            create_sentry_message(
-                tag_key="bet105",
-                tag_value="mapping_failure",
-                message="No mapped data were found.",
-                level="error"
-            )
-
             return None
 
-        async with aiohttp.ClientSession() as session:
-            self.book_data.headers["Authorization"] = auth_token
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            auth_header = {"Authorization": auth_token}
 
             ## Keep in here until other sportsbooks are implemented
             sportsbooks_single = [
@@ -317,7 +306,7 @@ class Bet105(SportsbooksBookBase):
             sportsbook_tasks = [
                 self._book_runner(session=session, sportsbook_name=book.get("book_name"),
                                   sportsbook_id=book.get("feed_source_id"),
-                                  mapped_data=mapped_data
+                                  mapped_data=mapped_data, auth_header=auth_header
                                   )
                 # for book in self.mapped_data.get("sportsbooks", []) UNCOMMENT ONCE OTHER BOOKS ARE IMPLEMENTED.
                 for book in sportsbooks_single

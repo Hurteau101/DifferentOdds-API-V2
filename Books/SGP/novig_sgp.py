@@ -1,18 +1,14 @@
 import asyncio
 import os
-
-import aiohttp
 from dotenv import load_dotenv
-
 from Books.Bases.sgp_book_base import SGPBookBase
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 load_dotenv()
 
 class NovigSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="novig", sgp_data=sgp_data, **kwargs)
+        super().__init__(category="SGP", book_name="novig", sgp_data=sgp_data, **kwargs)
 
     def _extract_odds(self, api_data: list, is_sgp: bool) -> float | None:
         if is_sgp:
@@ -49,34 +45,34 @@ class NovigSGP(SGPBookBase):
 
         is_sgp = self.sgp_data.get("is_sgp", True)
 
-        proxy_1 = os.getenv("RESIDENTIAL_PROXIES")
-        proxy_2 = os.getenv("PROXIES")
-        proxies = [
-            prx
-            for proxy in [proxy_1, proxy_2] if proxy
-            for prx in proxy.split(",")
-        ]
+        api_data = await self.api_caller(
+            use_proxy=True,
+            headers=self.book_data.headers,
+            url=self.book_data.url.get("main_url"),
+            method="POST",
+            json=payload
+        )
 
-        proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
-
-        if not is_sgp:
-            api_data = await proxy_manager.rotating_proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
-                headers=self.book_data.headers,
-                url=self.book_data.url.get("main_url"),
-                method="POST",
-                payload=payload
-            )
-        else:
-            api_data = await proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
-                headers=self.book_data.headers,
-                url=self.book_data.url.get("main_url"),
-                method="POST",
-                payload=payload
-            )
+        # proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
+        #
+        # if not is_sgp:
+        #     api_data = await proxy_manager.rotating_proxy_caller(
+        #         book_name=self.book_data.name,
+        #         session=session,
+        #         headers=self.book_data.headers,
+        #         url=self.book_data.url.get("main_url"),
+        #         method="POST",
+        #         payload=payload
+        #     )
+        # else:
+        #     api_data = await proxy_manager.proxy_caller(
+        #         book_name=self.book_data.name,
+        #         session=session,
+        #         headers=self.book_data.headers,
+        #         url=self.book_data.url.get("main_url"),
+        #         method="POST",
+        #         payload=payload
+        #     )
 
         # api_data = await self.api_caller(
         #     book_name=self.book_data.name,
@@ -111,7 +107,7 @@ class NovigSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {
                 "book_name": "novig",
                 "links": ["https://novig.com/events/019f9c03-665e-7380-96b8-5cf45707f310/null",

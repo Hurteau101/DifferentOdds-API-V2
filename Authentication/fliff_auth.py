@@ -1,20 +1,16 @@
-#### LEAVE COMMENTED OUT -- DON'T THINK WE NEED THIS - June 21st
-
 import os
 from urllib.parse import urlencode
-
-import aiohttp
 from dotenv import load_dotenv
 from APScheduler.base_scheduler import BaseScheduler
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class FliffAuth(BaseScheduler):
     load_dotenv()
 
     def __init__(self):
-        super().__init__(request_type=SportbookRequestType.ASYNC)
+        super().__init__()
 
     async def get_location_token(self, location_auth, session):
         payload = {
@@ -95,7 +91,6 @@ class FliffAuth(BaseScheduler):
             url="https://api-verified.radar.io/v1/track",
             headers={
                 'Authorization': location_auth,
-                'Content-Type': 'application/json',
                 'X-Radar-Config': 'true',
                 'X-Radar-Device-Make': 'Genymobile',
                 'X-Radar-Device-Model': 'Galaxy S9',
@@ -105,12 +100,10 @@ class FliffAuth(BaseScheduler):
                 'X-Radar-Mobile-Origin': 'com.fliff.fapp',
                 'X-Radar-X-Platform-SDK-Type': 'ReactNative',
                 'X-Radar-X-Platform-SDK-Version': '3.20.3',
-                'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 13; Galaxy S9 Build/TQ2B.230505.005.A1)',
                 'Connection': 'Keep-Alive'
             },
-            book_name="fliff",
             method="POST",
-            payload=payload,
+            json=payload,
             session=session
         )
 
@@ -121,7 +114,7 @@ class FliffAuth(BaseScheduler):
 
 
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         basic_auth = os.getenv("FLIFF_BASIC_AUTH_TOKEN")
         refresh_token = os.getenv("FLIFF_REFRESH_TOKEN")
         location_auth = os.getenv("FLIFF_LOCATION_AUTH")
@@ -135,7 +128,6 @@ class FliffAuth(BaseScheduler):
             return False
 
         response = await self.api_caller(
-            book_name="fliff",
             session=session,
             url="https://app.getfliff.com/api/v1/oauth2/token/",
             method="POST",
@@ -144,13 +136,14 @@ class FliffAuth(BaseScheduler):
                 'authorization': f'Basic {basic_auth}',
                 'content-type': 'application/x-www-form-urlencoded',
             },
-            payload=urlencode({
+            default_headers=False,
+            data=urlencode({
                 'grant_type': 'refresh_token',
                 'refresh_token': os.getenv("FLIFF_REFRESH_TOKEN"),
                 'device_x_id': 'android.48e0c8468226f089'
-            })
-        ) or {}
+            }),
 
+        ) or {}
 
         if response.get("access_token"):
             await redis_instance.store_data(
@@ -173,13 +166,12 @@ class FliffAuth(BaseScheduler):
 if __name__ == "__main__":
     import asyncio
     from Redis.redis_manager import RedisAsyncManager
-    import aiohttp
 
     redis_instance = RedisAsyncManager(database=5)
     fliff = FliffAuth()
 
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await fliff.run_scheduler(session, redis_instance)
 
     asyncio.run(main())
