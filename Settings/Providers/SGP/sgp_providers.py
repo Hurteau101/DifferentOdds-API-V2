@@ -1,5 +1,4 @@
 from typing import Optional
-
 from Settings.Providers.base_provider import BaseProvider
 from dataclasses import dataclass
 
@@ -36,6 +35,7 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=True,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "event_id_url": "https://api.sportsbook.fanduel.com/ips/stats/eventIds",
@@ -74,6 +74,7 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=True,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "market_id_url": "https://www.on.betmgm.ca/cds-api/bettingoffer/fixtures?x-bwin-accessid=MzViOTU5Y2EtNzgyMy00ZTBmLThkNDctYjRlYjgwNjMwZDQy&lang=en-us&country=CA&userCountry=CA&subdivision=CA-Alberta&fixtureTypes=Standard&state=Latest&offerMapping=All&offerCategories=Gridable&fixtureCategories=Gridable,NonGridable,Other&sportIds={league_id}&regionIds=&competitionIds=&conferenceIds=",
@@ -104,6 +105,7 @@ SGP_PROVIDERS = [
             "selection_id": r'"selectionId":"(\d+)"',
         },
         method="WS",
+        has_sgp=True,
         is_active=True,
     ),
     SGPProvider(
@@ -117,6 +119,7 @@ SGP_PROVIDERS = [
             "event_id": r"event/(\d+)?",
         },
         method="GET",
+        has_sgp=True,
         is_active=True,
     ),
     SGPProvider(
@@ -136,6 +139,7 @@ SGP_PROVIDERS = [
               'Content-Type': 'application/json',
         },
         method="POST",
+        has_sgp=True,
         is_active=True,
     ),
     SGPProvider(
@@ -149,6 +153,8 @@ SGP_PROVIDERS = [
         },
         method="WS",
         is_active=True,
+        has_sgp=True,
+        alternate_name="hard rock"
     ),
     SGPProvider(
         title="Novig",
@@ -175,10 +181,11 @@ SGP_PROVIDERS = [
             'TE': 'trailers'
         },
         is_active=True,
+        has_sgp=True,
     ),
     SGPProvider(
         title="Onyx Odds",
-        name="onyxodds",
+        name="onyx odds",
         url={
             "main_url": "https://api.onyxodds.com/api/odds/parlayPrice"
         },
@@ -186,7 +193,9 @@ SGP_PROVIDERS = [
             "selection_id": r"selection=([\w-]+)",
         },
         method="POST",
-        is_active=False,
+        is_active=True,
+        has_sgp=True,
+        alternate_name="onyx odds",
         mapping=SGPMapper(
             url={
                 "league_url": "https://api.onyxodds.com/api/odds/mainLines",
@@ -214,7 +223,7 @@ SGP_PROVIDERS = [
     ),
     SGPProvider(
         title="Prophetx",
-        name="prophetx",
+        name="prophet x",
         url={
             "main_url": "https://cash.api.prophetx.co/parlay/api/v1/affiliate/quotes",
         },
@@ -227,6 +236,8 @@ SGP_PROVIDERS = [
 
         method="POST",
         is_active=True,
+        has_sgp=True,
+        alternate_name="prophet x",
     ),
     SGPProvider(
         title="The Score",
@@ -259,6 +270,7 @@ SGP_PROVIDERS = [
         },
         method="POST",
         is_active=True,
+        has_sgp=True,
     ),
     SGPProvider(
         title="Caesars Sportsbook",
@@ -295,7 +307,8 @@ SGP_PROVIDERS = [
             "select_id": r'selectionIds=([0-9a-fA-F-]+)',
         },
         method="POST",
-        is_active=True,
+        is_active=False,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "event_url": "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb/v4/sports/{sport}/tabs",
@@ -319,7 +332,7 @@ SGP_PROVIDERS = [
                 'Sec-Fetch-Site': 'cross-site',
             },
             method="GET",
-            is_active=True
+            is_active=False
         )
     ),
     SGPProvider(
@@ -333,6 +346,7 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=False,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "sports_url": "https://api-offering.betonline.ag/api/offering/sgp/sports",
@@ -374,6 +388,7 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=True,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "category_names": "https://betway.com/g/services/api/Content/v1/GetMenus",
@@ -409,6 +424,7 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=False,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "general_url": "https://stake.com/_api/graphql",
@@ -453,6 +469,7 @@ SGP_PROVIDERS = [
         },
         method="POST",
         is_active=True,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "main_url": "https://herald-2.app.getfliff.com/fc_mobile_api_public",
@@ -501,6 +518,7 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=True,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "main_url": "https://www.bovada.lv/services/sports/event/coupon/events/A/description/",
@@ -537,6 +555,7 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=True,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "leagues_url": "https://d18egz9kdmewpc.cloudfront.net/sportsbook/v3/all-sports",
@@ -582,6 +601,7 @@ SGP_PROVIDERS = [
         },
         method="POST",
         is_active=True,
+        has_sgp=True,
         mapping=SGPMapper(
             url={
                 "league_url": "https://bv2-us.digitalsportstech.com/api/sgmLeagues?sb=betus&user=undefined&legacy=1",

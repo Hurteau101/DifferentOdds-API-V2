@@ -10,6 +10,36 @@ from dotenv import load_dotenv
 from Monitoring.monitoring import create_sentry_message
 
 
+def _bulk_insert(data_to_store: dict, pipeline):
+    for key, value in data_to_store.items():
+        ttl = (
+                value.get("ttl")
+                or value.get("game_date")
+                or value.get("date")
+                or value.get("event_date")
+                or value.get("start_date")
+        )
+
+        if not ttl:
+            raise ValueError("ttl must be provided for each key")
+
+        if isinstance(ttl, str):
+            start_date_dt = datetime.fromisoformat(ttl.replace("Z", "+00:00"))
+            ttl = int(start_date_dt.timestamp() * 1000)
+
+            now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+
+            if ttl <= now_ms:
+                ttl = now_ms + 60000
+
+        elif isinstance(ttl, datetime):
+            if ttl.tzinfo is None:
+                ttl = ttl.replace(tzinfo=timezone.utc)
+
+            ttl = int(ttl.timestamp() * 1000)
+
+        pipeline.set(key, orjson.dumps(value))
+
 class RedisBaseManager:
     def __init__(self, **pool_kwargs):
         pool = async_redis.ConnectionPool(
@@ -112,39 +142,8 @@ class RedisBaseManager:
 
     async def bulk_insert_individual(self, data_to_store: dict, pipeline):
         """Bulk insert data into Redis using a pipeline."""
-
-        for key, value in data_to_store.items():
-            ttl = (
-                    value.get("ttl")
-                    or value.get("game_date")
-                    or value.get("date")
-                    or value.get("event_date")
-                    or value.get("start_date")
-            )
-
-            if not ttl:
-                raise ValueError("ttl must be provided for each key")
-
-            if isinstance(ttl, str):
-                start_date_dt = datetime.fromisoformat(ttl.replace("Z", "+00:00"))
-                ttl = int(start_date_dt.timestamp() * 1000)
-
-                now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
-
-                if ttl <= now_ms:
-                    ttl = now_ms + 60000
-
-            elif isinstance(ttl, datetime):
-                if ttl.tzinfo is None:
-                    ttl = ttl.replace(tzinfo=timezone.utc)
-
-                ttl = int(ttl.timestamp() * 1000)
-
-            pipeline.set(key, orjson.dumps(value))
-            pipeline.pexpireat(key, ttl)
-
-        await pipeline.execute()
-
+        _bulk_insert(data_to_store, pipeline)
+        return await pipeline.execute()
 
     # Use only when the connection needs to be closed (like cron jobs). Do not use on celery tasks.
     async def close_for_shutdown(self):
@@ -167,6 +166,7 @@ class RedisBaseManager:
         """Fetches and cleans the authentication token stored in Redis."""
         found_data = await self.redis_client.get(key_name)
         return RedisBaseManager.clean_data(found_data)
+
 
     async def get_all_key_values(self, count: int = 5000) -> list:
         """Retrieves all values from the Redis database."""
@@ -270,6 +270,37 @@ class RedisSyncManager:
     def delete_data(self, key_name: str):
         self.redis_client.delete(key_name)
 
+    def bulk_insert_individual(self, data_to_store: dict, pipeline):
+        """Bulk insert data into Redis using a pipeline."""
+        _bulk_insert(data_to_store=data_to_store, pipeline=pipeline)
+        return pipeline.execute()
+
+    def get_all_key_values(self, count: int = 5000) -> list:
+        """Retrieves all values from the Redis database."""
+        cursor = 0
+        all_keys = []
+        result = []
+
+        while True:
+            cursor, batch = self.redis_client.scan(cursor=cursor, count=count)
+            all_keys.extend(batch)
+            if cursor == 0:
+                break
+
+        pipe = self.redis_client.pipeline()
+
+        for key in all_keys:
+            pipe.get(key)
+
+        values = pipe.execute()
+
+        for value in values:
+            cleaned_value = RedisBaseManager.clean_data(value)
+            if not cleaned_value:
+                continue
+            result.append(cleaned_value)
+
+        return result
 
 class RedisStaticMappingService:
     """Service to fetch and cache static mappings from Redis."""

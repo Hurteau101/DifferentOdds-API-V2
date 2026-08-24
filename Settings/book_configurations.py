@@ -2,6 +2,7 @@ from Settings.Providers.DFS.dfs_providers import DFS_PROVIDERS
 from Settings.Providers.SGP.sgp_providers import SGP_PROVIDERS
 from Settings.Providers.Sportsbooks.sportsbooks_providers import SPORTSBOOKS_PROVIDERS
 from Settings.Providers.Prediction_Liquidity.prediction_liquidity_providers import PREDICTION_LIQUIDITY_PROVIDERS
+from dataclasses import fields
 
 NAMES_MAPPER = {
     "DFS": DFS_PROVIDERS,
@@ -31,14 +32,22 @@ class BookConfiguration:
 
         return provider
 
-
     @staticmethod
-    def get_book_info(book_type):
-        return  [
+    def get_book_info(book_type, key_names: dict | None = None, remove_non_active: bool = True):
+        """
+        Get book info for a specific book type.
+        :param book_type: The type of book to retrieve info for (ex. SGP, DFS, etc.).
+        :param key_names: A dictionary, where the key is the field name in the BookInfo class and the value is the desired key name in the output dictionary.
+        :param remove_non_active: If True, only active books will be included in the output.
+        """
+        if not key_names:
+            key_names = {"title": "title", "name": "book_key", "is_active": "status"}
+
+        return [
             {
-                "title": name.title,
-                "book_key": name.name,
-                "status": True if name.is_active else False
+                key_names.get(field.name, field.name): getattr(category, field.name)
+                for field in fields(category)
+                if field.name in key_names and (not remove_non_active or category.is_active)
             }
-            for name in NAMES_MAPPER.get(book_type.upper(), [])
+            for category in NAMES_MAPPER.get(book_type.upper(), [])
         ]

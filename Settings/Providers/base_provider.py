@@ -9,3 +9,6 @@ class BaseProvider:
     method: str
     headers: Optional[Dict] = None
     is_active: Optional[bool] = False
+    curl_impersonation: Optional[str] = "chrome"
+    alternate_name: Optional[str] = None
+    has_sgp: bool = False

@@ -10,14 +10,19 @@ from Redis.redis_manager import RedisAsyncManager
 
 class BookBase(APICaller, ABC):
     def __init__(self, category: str, book_name: str, redis_database: int, payload_batch: int, async_batch: int,
-                 impersonate: str = "chrome", expiration_time: int = 600):
+                 expiration_time: int = 600):
         self.book_data = BookConfiguration.get_provider(category=category, book_name=book_name)
         self.expiration_time = expiration_time # Used for Redis data expiration
         self.redis_database = redis_database # Used for Redis database selection
         self.bettorodds_mapping = BettoroddsMapping(payload_batch=payload_batch, async_batch=async_batch, book_name=book_name)
-        self.impersonate = impersonate
+        self.impersonate = self._get_impersonate(book_name=book_name, category=category)
 
         super().__init__()
+
+    def _get_impersonate(self, category: str, book_name: str):
+        config = BookConfiguration.get_provider(category=category, book_name=book_name)
+        return config.curl_impersonation
+
 
     @staticmethod
     def generate_key(key_data) -> str | None:
