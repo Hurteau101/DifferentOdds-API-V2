@@ -1,20 +1,14 @@
 import asyncio
 import os
-
-import aiohttp
 from dotenv import load_dotenv
-
 from Books.Bases.sgp_book_base import SGPBookBase
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class OnyxSGP(SGPBookBase):
     load_dotenv()
     def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="onyxodds", sgp_data=sgp_data,
+        super().__init__(category="SGP", book_name="onyx odds", sgp_data=sgp_data,
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     @SGPBookBase.ensure_link_data
@@ -23,26 +17,11 @@ class OnyxSGP(SGPBookBase):
         auth_token = await self.load_auth_token(key_name="onyx_auth")
 
         if not auth_token:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="auth_failure",
-                message="No auth found in Redis",
-                level="error"
-            )
             return None
-
-        proxy_manager = ProxyManager(self.api_caller)
-        proxy_manager.proxies = os.getenv("ONYX_PROXIES").split(",") if os.getenv("ONYX_PROXIES") else ""
 
         mapped_ids = await self.load_mapped_ids(key_name="onyx_ids")
 
         if not mapped_ids:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="mapping_failure",
-                message="No mapped IDs were found.",
-                level="error"
-            )
             return None
 
         payload = {
@@ -63,15 +42,14 @@ class OnyxSGP(SGPBookBase):
             }
         }
 
-        api_data = await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+        api_data = await self.api_caller(
+            use_proxy=True,
             url=self.book_data.url.get("main_url"),
             method=self.book_data.method,
             headers={
                 "Authorization": f"Bearer {auth_token}"
             },
-            payload=payload
+            json=payload
         )
 
         if not api_data:
@@ -82,7 +60,7 @@ class OnyxSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {
                 "book_name": "onyxodds",
                 "links": [

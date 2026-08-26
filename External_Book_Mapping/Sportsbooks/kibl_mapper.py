@@ -1,24 +1,21 @@
 import asyncio
-
 import aiohttp
 from External_Book_Mapping.base_mapper import BaseMapper
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class KiblMapper(BaseMapper):
     def __init__(self):
-        super().__init__(book_name="bet105", category="sportsbooks", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="bet105", category="sportsbooks")
 
-    async def get_leagues(self, session: aiohttp.ClientSession) -> dict:
+    async def get_leagues(self, session: CurlAsyncSession, auth_header: dict) -> dict:
         """Get the list of supported leagues"""
 
         raw_leagues = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("leagues"),
-            headers=self.book_data.headers,
+            headers=auth_header,
             method=self.book_data.method
         )
 
@@ -35,13 +32,12 @@ class KiblMapper(BaseMapper):
                and league.get("abrv") not in excluded_leagues and "tennis" not in league.get("name").lower() # REMOVE AFTER INVERSE CALCULATIONS IS FIXED
         }
 
-    async def get_sportsbooks(self, session: aiohttp.ClientSession) -> list:
+    async def get_sportsbooks(self, session: CurlAsyncSession, auth_header: dict) -> list:
         """Get the list of supported sportsbooks"""
         raw_books = await self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("sportsbooks"),
-                    headers=self.book_data.headers,
+                    headers=auth_header,
                     method=self.book_data.method
                 )
 
@@ -56,8 +52,8 @@ class KiblMapper(BaseMapper):
         ]
 
 
-    async def get_mapping_types(self, session: aiohttp.ClientSession, url_key: str, mapping_key_name: str,
-                                mapping_value_name: str) -> dict:
+    async def get_mapping_types(self, session: CurlAsyncSession, url_key: str, mapping_key_name: str,
+                                mapping_value_name: str, auth_header: dict) -> dict:
         """
         Generic method to get mapping types from the API
         @param session: aiohttp ClientSession
@@ -69,10 +65,9 @@ class KiblMapper(BaseMapper):
             raise ValueError("All parameters must be provided and non-empty.")
 
         raw_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get(url_key),
-            headers=self.book_data.headers,
+            headers=auth_header,
             method=self.book_data.method
         )
 
@@ -82,22 +77,17 @@ class KiblMapper(BaseMapper):
             if data and raw_data.get("result")
         }
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager):
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
         redis_auth_instance = RedisAsyncManager(database=5)
-        auth_token = await redis_auth_instance.get_data("kibl_auth_token")
+
+        auth_token = await redis_auth_instance.get_data(self.book_data.auth_job_dict.auth_redis_key)
 
         if not auth_token:
-            create_sentry_message(
-                tag_key="kibl",
-                tag_value="auth_failure",
-                message="No auth token was found in Redis",
-                level="error"
-            )
             return
 
-        self.book_data.headers["Authorization"] = auth_token
-        sportsbooks = await self.get_sportsbooks(session)
-        leagues = await self.get_leagues(session)
+        auth_header = {"Authorization": auth_token}
+        sportsbooks = await self.get_sportsbooks(session, auth_header)
+        leagues = await self.get_leagues(session, auth_header)
 
         market_mapper_dict = {
             "segments": ["segment_id", "name"],  # Full Game, First Quarter, etc..
@@ -112,7 +102,8 @@ class KiblMapper(BaseMapper):
                 session=session,
                 url_key=url_key,
                 mapping_key_name=mapping_info[0],
-                mapping_value_name=mapping_info[1]
+                mapping_value_name=mapping_info[1],
+                auth_header=auth_header
             )
 
             for url_key, mapping_info in market_mapper_dict.items()
@@ -134,17 +125,18 @@ class KiblMapper(BaseMapper):
         any_empty = any(not item for item in mapped_data.values() if isinstance(item, list))
 
         if not mapped_data or any_empty:
-            create_sentry_message(
-                tag_key="kibl",
-                tag_value="mapping_failure",
-                message="No mapped data was extracted from Kibl mapping.",
-                level="error"
-            )
-
             return
 
         await redis_instance.store_data(
-            key_name="kibl_mapper_data",
+            key_name=self.mapper_id_name,
             data_to_store=mapped_data,
             key_expiration=90000 # 25 Hour Expiration
         )
+
+if __name__ == "__main__":
+    redis_instance = RedisAsyncManager(database=2)
+    mapper = KiblMapper()
+    async def main():
+        async with CurlAsyncSession(impersonate="chrome") as session:
+            await mapper.run_scheduler(session, redis_instance)
+    asyncio.run(main())

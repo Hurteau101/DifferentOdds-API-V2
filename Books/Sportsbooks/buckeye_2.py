@@ -1,20 +1,17 @@
 import asyncio
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from itertools import chain
 from typing import Callable
 from zoneinfo import ZoneInfo
 import aiohttp
 from urllib.parse import urlencode
-
 from dotenv import load_dotenv
-from rapidfuzz import process, fuzz
 from Books.Bases.pph_base import PPHBookBase
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import TeamData, GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class Buckeye2(PPHBookBase):
@@ -25,7 +22,7 @@ class Buckeye2(PPHBookBase):
     }
 
     def __init__(self):
-        super().__init__(book_name="buckeye2", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="buckeye2")
 
     async def load_auth(self) -> str | None:
         """Extracts the cookies from Redis."""
@@ -359,41 +356,39 @@ class Buckeye2(PPHBookBase):
         return game_data
 
     # This is used for the dropdowns on the website.
-    async def get_buy_points(self, username: str, auth_token: str, session: aiohttp.ClientSession, sport_type: str, sport_subtype: str, proxy_manager: ProxyManager):
-        return await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+    async def get_buy_points(self, username: str, auth_token: str, sport_type: str, sport_subtype: str):
+        return await self.api_caller(
             url=self.book_data.url.get("point_group_url"),
+            use_proxy=True,
             method=self.book_data.method,
             headers={
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
+                **self.book_data.headers,
                 "Authorization": f"Bearer {auth_token}"
             },
 
-            payload=urlencode({
+            json={
                 # "customerID": username,
                 "customerID": f"{username}_0",
                 "wagerType": "Straight",
                 "sportType": sport_type,
                 "sportSubType": sport_subtype,
                 "RRO": ''
-            })
+            }
+
         )
 
 
 
-    async def market_caller(self, session: aiohttp.ClientSession, username: str, auth_token: str, league: dict, proxy_manager: ProxyManager):
-        market_data = await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+    async def market_caller(self, session: aiohttp.ClientSession, username: str, auth_token: str, league: dict):
+        market_data = await self.api_caller(
             url=self.book_data.url.get("market_url"),
+            use_proxy=True,
             headers={
                 **self.book_data.headers,
                 "Authorization": f"Bearer {auth_token}"
             },
             method=self.book_data.method,
-            payload=urlencode({
+            json={
                 # "customerID": username,
                 "customerID": f"{username}_0",
                 "operation": "Get_LeagueLines2",
@@ -412,14 +407,13 @@ class Buckeye2(PPHBookBase):
                 "placeLateFlag": "false",
                 "RRO": "1",
                 "agentSite": "0",
-            })
+            }
         )
 
         sport_type = league.get("SportType")
         if sport_type in ["BASKETBALL", "FOOTBALL"]:
-            buy_points = await self.get_buy_points(username=username, auth_token=auth_token, session=session,
-                                             sport_type=league.get("SportType"), sport_subtype=league.get("SportSubType"),
-                                                   proxy_manager=proxy_manager)
+            buy_points = await self.get_buy_points(username=username, auth_token=auth_token,
+                                             sport_type=league.get("SportType"), sport_subtype=league.get("SportSubType"))
 
             if buy_points and sport_type in ["BASKETBALL", "FOOTBALL"]:
                 buy_points_key = buy_points.get("BuyPoints", {})
@@ -443,40 +437,37 @@ class Buckeye2(PPHBookBase):
         if not username:
             raise ValueError("Missing required environment variable: BUCKEYE_2_USERNAME")
 
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             auth_token = await self.load_auth()
             if not auth_token:
                 print("Auth Expired")
-                return
+                return None
 
-            proxy_manager = ProxyManager(self.api_caller)
-            proxy_manager.proxies = os.getenv("RESIDENTIAL_PROXIES", '').split(",")
-
-            raw_leagues = await proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+            raw_leagues = await self.api_caller(
                 url=self.book_data.url.get("league_url"),
                 method=self.book_data.method,
+                use_proxy=True,
                 headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-                    'Accept': '*/*',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate',
-                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    # 'Origin': 'https://wwcd.me',
-                    'Origin': 'https://www.247bettor.com',
-                    'Connection': 'keep-alive',
-                    'Referer': 'https://www.247bettor.com/sports.html?v=1778340204456',
-                    # 'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
-                    'Sec-Fetch-Dest': 'empty',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Site': 'same-origin',
-                    'TE': 'trailers',
+                    # 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
+                    # 'Accept': '*/*',
+                    # 'Accept-Language': 'en-US,en;q=0.9',
+                    # 'Accept-Encoding': 'gzip, deflate',
+                    # 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    # 'X-Requested-With': 'XMLHttpRequest',
+                    # # 'Origin': 'https://wwcd.me',
+                    # 'Origin': 'https://www.247bettor.com',
+                    # 'Connection': 'keep-alive',
+                    # 'Referer': 'https://www.247bettor.com/sports.html?v=1778340204456',
+                    # # 'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
+                    # 'Sec-Fetch-Dest': 'empty',
+                    # 'Sec-Fetch-Mode': 'cors',
+                    # 'Sec-Fetch-Site': 'same-origin',
+                    # 'TE': 'trailers',
+                    **self.book_data.headers,
                     "Authorization": f"Bearer {auth_token}"
                 },
                 # Ensure its urlencode, or pass a string, or else you won't get the proper data back.
-                payload=urlencode({
+                json={
                     # "customerID": username,
                     "customerID": f"{username}_0",
                     "wagerType": "Straight",
@@ -485,7 +476,7 @@ class Buckeye2(PPHBookBase):
                     "operation": "Get_SportsLeagues",
                     "RRO": 1,
                     "agentSite": 0
-                })
+                }
             )
 
             leagues = [
@@ -500,7 +491,6 @@ class Buckeye2(PPHBookBase):
                     username=username,
                     auth_token=auth_token,
                     league=league,
-                    proxy_manager=proxy_manager
                 )
                 for league in leagues
             ]
@@ -547,7 +537,6 @@ class Buckeye2(PPHBookBase):
                         self.add_to_events(event_data, game_data, GameData)
 
             buckeye_2_data = list(event_data.values())
-            print(buckeye_2_data)
 
             mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_2_data)
 

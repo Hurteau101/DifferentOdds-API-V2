@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from curl_cffi import AsyncSession as CurlAsyncSession
 import logging
 from random import shuffle
+import inspect
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logging.getLogger("asyncio").setLevel(logging.WARNING)
@@ -60,6 +61,11 @@ class APICaller:
         except Exception as e:
             return CallResult(ok=False, data={}, status_code=None, text=repr(e))
 
+    def _caller_information(self):
+        """Get information about the caller."""
+        _stack = inspect.stack()[1]
+        return f"{_stack[0].f_locals['self'].__class__.__name__}.{_stack[3]}"
+
 
     async def api_caller(self, url: str, session: CurlAsyncSession|None = None, valid_codes:list|None = None, method: str = "GET",
                          use_proxy:bool = False, proxy_list: list|None = None, proxy_impersonate: str="chrome", **kwargs):
@@ -86,7 +92,7 @@ class APICaller:
             result = await self._caller(session=session, url=url, valid_codes=valid_codes, method=method, **kwargs)
 
             if not result.ok:
-                logger.error(f"Request failed | Status: {result.status_code} | Body: {result.text}")
+                logger.error(f"[{self._caller_information()}] Request failed | Status: {result.status_code} | Body: {result.text}")
 
             return result.data
 

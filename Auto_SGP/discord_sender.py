@@ -1,24 +1,27 @@
-import re
-from datetime import datetime, timezone
 import os
 import pytz
 from discordwebhook import Discord
+from datetime import datetime, timezone
 from dotenv import load_dotenv
+
+WEBHOOK_URL = "https://discord.com/api/webhooks/1541588378586185829/dEuU4fAQJxhNxWrqbn-zLt6fS96AOSBPom3kKXyCr7CZlgzKTHUXDMR9vtT7u08lk9sD"
+discord = Discord(url=WEBHOOK_URL)
 
 
 class DiscordSGP:
-    def __init__(self, production):
+    def __init__(self, production: bool):
         load_dotenv()
 
-        if production:
-            self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_PROD")
-        else:
-            self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_DEV")
-
-        if not self.webhook:
-            raise ValueError("DISCORD_WEBHOOK_URL not set in environment variables.")
-
-        self.discord = Discord(url=self.webhook)
+        # if production:
+        #     self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_PROD")
+        # else:
+        #     self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_DEV")
+        #
+        # if not self.webhook:
+        #     raise ValueError("DISCORD_WEBHOOK_URL not set in environment variables.")
+        #
+        # self.discord = Discord(url=self.webhook)
+        self.discord = Discord(url=WEBHOOK_URL)
 
     def _convert_to_utc(self, event_date):
         """
@@ -47,20 +50,9 @@ class DiscordSGP:
 
         return game_date
 
-    def extract_legs(self, sgp_data):
-        """Extracts the legs of the SGP from the provided data."""
-        legs = []
+    def _convert_to_unix(self, date_str: str):
+        return int(datetime.fromisoformat(date_str.replace("Z", "+00:00")).timestamp())
 
-        i = 1
-        while f"stat_name_{i}" in sgp_data:
-            name = sgp_data[f"stat_name_{i}"]
-            line = sgp_data[f"stat_type_{i}_line"]
-            direction = sgp_data[f"stat_{i}_direction"]
-
-            legs.append(f"{line} {name} [{direction}]")
-            i += 1
-
-        return legs
 
     @staticmethod
     def format_american(odds_val):
@@ -74,7 +66,27 @@ class DiscordSGP:
         except Exception:
             return str(odds_val)
 
+    @staticmethod
+    def format_ev(ev):
+        return f"{(round(ev or 0, 2) + 0.0):+.2f}%"
+
+    def _format_links(self, book_name:str, url:str):
+        label = book_name.title()
+
+        if isinstance(url, str):
+            return [f"- [{label}]({url})"]
+        if isinstance(url, dict):
+            return [
+                f"- [{label} {k.title()}]({v})"
+                for k, v in url.items() if v
+            ]
+
+        return []
+
     def mapper(self, book_name:str):
+        if not book_name:
+            return ''
+
         role_mapper = {
             "fanatics": os.getenv("FANATICS_ROLE_ID"),
             "fanduel": os.getenv("FANDUEL_ROLE_ID"),
@@ -93,175 +105,96 @@ class DiscordSGP:
         role_id = role_mapper.get(book_name.lower())
         return f"<@&{role_id}>" if role_id else ""
 
-    def send_alert(self, sgp_data):
-        event_date = self._convert_to_utc(sgp_data.get("date", "N/A"))
-        weighted_fair_value = sgp_data.get("weighted_fair_value", 0)
-        fair_parlay_price = sgp_data.get("fair_parlay_price", 0)
-
-
-        if weighted_fair_value >= 0:
-            weighted_fair_value_odds = f"+{round(weighted_fair_value, 2)}"
-        else:
-            weighted_fair_value_odds = f"-{round(weighted_fair_value, 2)}"
-
-        if fair_parlay_price >= 0:
-            fair_non_correlated_odd = f"+{round(fair_parlay_price, 2)}"
-        else:
-            fair_non_correlated_odd = f"-{round(fair_parlay_price, 2)}"
-
-        legs = self.extract_legs(sgp_data)
-        bet_lines = "\n".join(
-            [f"**Bet {i + 1}:** {leg}" for i, leg in enumerate(legs)]
-        )
-
-        # previous_message = "*(SGP already sent but odds have moved)*\n" if sgp_data.get("already_sent") else ""
+    def send_alert(self, slip: dict):
+        if not slip:
+            return None
 
         fields = []
 
-        # if previous_message:
-        #     fields.append({
-        #         "name": "Disclaimer",
-        #         "value": previous_message,
-        #         "inline": False
-        #     })
+        legs_text = "\n".join(
+            f"**{i}.** {leg.get('normalized') or '—'}"
+            for i, leg in enumerate(slip.get("legs", []), start=1)
+        )
 
-        # Build Fields
+        odds = [
+            f"- {book_name.title()}: {self.format_american(book_data.get('odds'))} | {self.format_ev(book_data.get('ev'))} EV"
+            for book_name, book_data in slip.get("weighted_sgp_odds").items()
+        ]
+
         fields.extend([
             {
-                "name": "Game Details",
-                "value": f"**Date:** "
-                         f"{event_date}\n**League:** {sgp_data.get('league', 'N/A')}",
+                "name": slip.get("event"),
+                "value": f"<t:{self._convert_to_unix(slip.get('date'))}:D>",
                 "inline": False
             },
             {
-                "name": "Bet Details",
-                "value": bet_lines,
+                "name": "",
+                "value": legs_text,
                 "inline": False
             },
             {
                 "name": "Weighted Fair Value",
-                "value": f"**{weighted_fair_value_odds}**",
+                "value": f"`{self.format_american(round(slip.get('weighted_fair_value'), 0))}`",
+                "inline": True
             },
             {
-                "name": "Fair Non Correlated Parlay Price",
-                "value": f"**{fair_non_correlated_odd}**",
+                "name": "Non-Correlated Price",
+                "value": f"`{self.format_american(slip.get('non_correlated_price'))}`",
+                "inline": True
+            },
+            {
+                "name": "SGP Odds",
+                "value": f"```\n" + "\n".join(odds) + "\n```",
+                "inline": False
             }
         ])
 
-        odds_lines = []
+        if slip.get("median_non_met_books", {}):
+            # print(
+            #     slip.get("weighted_sgp_odds", {})
+            # )
+            odds = [
+                f"- {book_name.title()}: {self.format_american(book_odds)}"
+                for book_name, book_odds in slip.get("median_non_met_books").items()
+            ]
 
-        discord_data = sgp_data.get("ev_results", {})
-        sorted_ev = dict(sorted(discord_data.items(), key=lambda x: x[1]['ev'], reverse=True))
-
-        for book, odds in sorted_ev.items():
-            if isinstance(odds, dict):
-                american = odds.get("odds")
-            else:
-                american = odds
-
-            if american is None:
-                american_str = "N/A"
-            elif int(american) >= 0:
-                american_str = f"+{int(american)}"
-            else:
-                american_str = str(int(american))
-
-            ev_value = odds.get("ev")
-            if isinstance(ev_value, (int, float)):
-                ev_str = f"{ev_value:.2f}% EV"
-            else:
-                ev_str = "N/A EV"
-
-            odds_lines.append(f"- {book.title()}: {american_str} | {ev_str}")
-
-        formatted_non_met = []
-        for entry in sgp_data.get("non_met_books", []):
-            for book_name, book_odds in entry.items():
-                formatted_non_met.append(
-                    f"- {book_name.title()}: {self.format_american(book_odds)}"
-                )
-
-        fields.append({
-            "name": "SGP Odds",
-            "value": f"```\n" + "\n".join(odds_lines) + "\n```",
-            "inline": False
-        })
-
-        if formatted_non_met:
             fields.append({
-                "name": "Negative EV Non-Weighted SGP Odds",
-                "value": f"```\n" + "\n".join(formatted_non_met) + "\n```",  # stays inside code block
+                "name": "Non-Weighted SGP Odds",
+                "value": f"```\n" + "\n".join(odds) + "\n```",
                 "inline": False
             })
 
-        formatted_links = []
-        for link_book_name, link_url in sgp_data.get("filtered_links").items():
-            # Draftkings are broken on discord for the time being.
-            if link_book_name == "draftkings":
-                continue
+        best_book = next(iter(slip.get("weighted_sgp_odds")), None)
 
-            # Temp condiiton for caesars desktop only link
-            if link_book_name == "caesars":
-                formatted_links.append(
-                    f"- [{link_book_name.title()} (Desktop Only)]({link_url})"
-                )
+        if best_book:
+            link_url = slip.get("sgp_links", {}).get(best_book)
+            links = self._format_links(best_book, link_url) if best_book else []
 
-                continue
-
-            if isinstance(link_url, str):
-                formatted_links.append(
-                    f"- [{link_book_name.title()}]({link_url})"
-                )
-            elif isinstance(link_url, dict):
-                mobile = link_url.get("mobile")
-                desktop = link_url.get("desktop")
-
-                formatted_links.append(
-                    f"- [{link_book_name.title()} Mobile]({mobile})\n"
-                    f"- [{link_book_name.title()} Desktop]({desktop})"
-                )
-
-
-        if formatted_links:
-            fields.append({
-                "name": "SGP Links",
-                "value": "\n".join(formatted_links),
-                "inline": False
-            })
-
-        fields.append({
-            "name": "WARNING",
-            "value": f"**Please verify all SGP sent during BETA**",
-            "inline": False
-        })
-
+            if links:
+                fields.append({
+                    "name": "Best Book Link",
+                    "value": "\n".join(links),
+                    "inline": False,
+                })
 
         embed = {
-            "title": f"{sgp_data.get('event', 'N/A')}",
+            "title": f"{len(slip.get('legs'))}-Leg SGP • {slip.get('league')}",
             "color": 0x2ECC71,
-            "author": {"name": "SGP Bot BETA • V2.0"},
+            "author": {"name": "SGP Bot • V3.0"},
             "fields": fields,
             "footer": {"text": "Powered by BettorOdds"},
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
-        roles = [
-            self.mapper(book_name)
-            for book_name, odds in sorted_ev.items()
-            if odds.get("ev", 0) >= sgp_data.get("minimum_ev")
-        ]
-
-        mentions = " ".join(roles)
-
-        if mentions:
-            mentions_block = f"\n\n{mentions}"
-        else:
-            mentions_block = ""
+        mention = f"{self.mapper(best_book)}" if best_book else ""
 
         try:
             self.discord.post(
-                content=mentions_block,
+                content=f"\n\n{mention}" if mention else "",
                 embeds=[embed]
             )
         except Exception as e:
             print("Error sending Discord alert:", e)
+
+# if __name__ == "__main__":
+#     DiscordSGP(production=False).send_alert(data, sgp_links=sgp_links)

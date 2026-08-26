@@ -1,18 +1,15 @@
 import asyncio
 import re
 from datetime import datetime, timezone
-
 from itertools import chain
-import aiohttp
 import pytz
 from dotenv import load_dotenv
 from trio import Semaphore
-
 from Books.Bases.pph_base import PPHBookBase
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 load_dotenv()
 
@@ -36,7 +33,7 @@ class Metallic(PPHBookBase):
 
 
     def __init__(self):
-        super().__init__(book_name="metallic", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="metallic")
 
     async def load_auth(self) -> str | None:
         """Extracts the cookies from Redis."""
@@ -224,12 +221,11 @@ class Metallic(PPHBookBase):
         return game_data
 
 
-    async def call_with_limit(self, sport_id, league_data, semaphore: Semaphore, session: aiohttp.ClientSession, auth_token: str):
+    async def call_with_limit(self, sport_id, league_data, semaphore: Semaphore, session: CurlAsyncSession, auth_token: str):
         """Helper function to call the API with a semaphore limit."""
         async with semaphore:
             # await asyncio.sleep(0.5)
             return await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("market_url"),
                 method=self.book_data.method,
@@ -237,19 +233,18 @@ class Metallic(PPHBookBase):
                     **self.book_data.headers,
                     "Authorization": f"Bearer {auth_token}"
                 },
-                payload=[{"IdSport": sport_id, "Period": league_data.get("period_numer", -1)}],
+                json=[{"IdSport": sport_id, "Period": league_data.get("period_numer", -1)}],
             )
 
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             auth_token = await self.load_auth()
 
             if not auth_token:
-                return
+                return None
 
             raw_leagues = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("league_url"),
                 method="GET",
@@ -260,7 +255,7 @@ class Metallic(PPHBookBase):
             )
 
             if not raw_leagues:
-                return
+                return None
 
             league_ids = self.build_league_ids(raw_leagues)
 
@@ -278,7 +273,7 @@ class Metallic(PPHBookBase):
 
             if not tasks:
                 print("No Tasks")
-                return
+                return None
 
             # Flatten list a bit.
             events = list(chain.from_iterable(

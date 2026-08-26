@@ -1,6 +1,5 @@
 import asyncio
 from Books.Bases.sgp_book_base import SGPBookBase
-from Utils.request_caller import SportbookRequestType
 from Utils.socket_pooler import SocketHelper
 
 # _pool = SocketPooler(url="wss://sportsbook.1.betfanatics.com/sportsbook-streaming-ws", headers={
@@ -13,7 +12,6 @@ from Utils.socket_pooler import SocketHelper
 class FanaticsSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(
-            request_type=SportbookRequestType.ASYNC,
             category="SGP",
             book_name="fanatics",
             retry_amount=4,

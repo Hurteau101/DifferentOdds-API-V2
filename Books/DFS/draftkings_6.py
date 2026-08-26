@@ -1,11 +1,8 @@
 import asyncio
-import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class DraftKingsPickSix(DFSBookBase):
     MARKET_MAPPING = {
@@ -14,7 +11,7 @@ class DraftKingsPickSix(DFSBookBase):
     }
 
     def __init__(self):
-        super().__init__(book_name="draftkings_6", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="draftkings_6")
 
     def _extract_league_keys(self, api_data):
         return [
@@ -198,18 +195,17 @@ class DraftKingsPickSix(DFSBookBase):
 
         return market_dict
 
-    async def _extract_game_data(self, league_id: int | str, mapping_data: dict, results: dict, session: aiohttp.ClientSession):
+    async def _extract_game_data(self, league_id: int | str, mapping_data: dict, results: dict, session: CurlAsyncSession):
         markets_ids = results.get("pickCategoryById", {}).keys()
 
         raw_market_data = await asyncio.gather(*[
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("individual_market_url").format(
                     league_id=league_id,
                     category_id=market_id
                 ),
-                method="get",
+                method=self.book_data.method,
                 headers=self.book_data.headers,
             )
             for market_id in markets_ids
@@ -270,71 +266,50 @@ class DraftKingsPickSix(DFSBookBase):
         return market_data.values()
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_league_keys = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("league_list_url"),
-                method="get",
+                method=self.book_data.method,
                 headers=self.book_data.headers,
             )
 
             if not api_league_keys:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league keys returned",
-                    level="error"
-                )
-                return
+                return None
 
             league_keys = self._extract_league_keys(api_league_keys)
 
             league_results = await asyncio.gather(*[
                 self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("league_data_url").format(
                         league_key=league_key,
                         sport_key=league_key
                     ),
-                    method="get",
+                    method=self.book_data.method,
                     headers=self.book_data.headers,
                 )
                 for league_key in league_keys
             ])
 
             if not league_results:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league results returned",
-                    level="error"
-                )
-                return
+                return None
 
             team_mapping = await self._get_team_game_ids(league_results=league_results)
             league_ids = list(team_mapping.keys())
 
             market_results = await asyncio.gather(*[
                 self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("main_market_url").format(league_id=league),
-                    method="get",
+                    method=self.book_data.method,
                     headers=self.book_data.headers,
                 )
                 for league in league_ids
             ])
 
             if not market_results:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No market data returned",
-                    level="error"
-                )
-                return
+                return None
 
             picksix_data = []
 

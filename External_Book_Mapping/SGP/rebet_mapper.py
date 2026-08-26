@@ -45,17 +45,15 @@ from Redis.redis_manager import static_mapping_service
 from External_Book_Mapping.base_mapper import BaseMapper
 from Redis.redis_manager import RedisAsyncManager
 from Utils.helpers import clean_structure
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class RebetMapper(BaseMapper):
     def __init__(self):
-        super().__init__(book_name="rebet", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="rebet", category="sgp")
 
 
-    async def _get_league_sport_ids(self, session: aiohttp.ClientSession):
+    async def _get_league_sport_ids(self, session: CurlAsyncSession):
         raw_sport_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             headers=self.book_data.headers,
             url=self.book_data.mapping.url.get('leagues_url'),
@@ -70,10 +68,9 @@ class RebetMapper(BaseMapper):
             for league in country.get("leagues", [])
         }
 
-    async def _get_events(self, session: aiohttp.ClientSession, sport_league_ids: dict):
+    async def _get_events(self, session: CurlAsyncSession, sport_league_ids: dict):
         tasks = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 headers=self.book_data.headers,
                 url=self.book_data.mapping.url.get('events_url'),
@@ -96,10 +93,9 @@ class RebetMapper(BaseMapper):
             for event in result.get("data", {}).get("events", [])
         }
 
-    async def _get_markets(self, session: aiohttp.ClientSession, event_ids: set):
+    async def _get_markets(self, session: CurlAsyncSession, event_ids: set):
         tasks = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 headers=self.book_data.headers,
                 url=self.book_data.mapping.url.get('market_urls').format(event_id=event_id),
@@ -121,7 +117,7 @@ class RebetMapper(BaseMapper):
 
 
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         league_ids = await self._get_league_sport_ids(session=session)
         print(league_ids)
         event_ids = await self._get_events(session=session, sport_league_ids=league_ids)
@@ -141,6 +137,6 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = RebetMapper()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
     asyncio.run(main())

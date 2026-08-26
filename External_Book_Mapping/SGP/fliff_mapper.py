@@ -1,15 +1,13 @@
 import asyncio
 import itertools
-import aiohttp
 from Redis.redis_manager import static_mapping_service
 from External_Book_Mapping.base_mapper import BaseMapper
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class FliffMapper(BaseMapper):
     def __init__(self):
-        super().__init__(book_name="fliff", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="fliff", category="sgp")
 
     def _extract_primary_conflict_keys(self, league_data: dict) -> set:
         return set(
@@ -17,14 +15,13 @@ class FliffMapper(BaseMapper):
             for league in league_data.get("x_slots", {}).get("active_prematch_conflicts", [])
         )
 
-    async def _extract_secondary_conflict_keys(self, conflict_keys: set, session: aiohttp.ClientSession) -> dict:
+    async def _extract_secondary_conflict_keys(self, conflict_keys: set, session: CurlAsyncSession) -> dict:
         tasks = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("main_url"),
                 method=self.book_data.mapping.method,
-                payload={
+                json={
                       "header": {
                         "device_x_id": "web.cc38c7c9aa44db6bc754e152d881a20b",
                         "app_x_version": "5.0.27.245",
@@ -128,13 +125,12 @@ class FliffMapper(BaseMapper):
 
         return con_keys
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         raw_league = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.mapping.url.get("main_url"),
             method=self.book_data.mapping.method,
-            payload={
+            json={
                 "header": {
                     "device_x_id": "web.cc38c7c9aa44db6bc754e152d881a20b",
                     "app_x_version": "5.0.27.245",
@@ -168,7 +164,6 @@ class FliffMapper(BaseMapper):
         conflict_keys = self._extract_primary_conflict_keys(league_data=raw_league)
 
         mapped_ids = await self._extract_secondary_conflict_keys(conflict_keys=conflict_keys, session=session)
-
         # stat_types = set(
         #     map_key
         #     for mapped_conflict in mapped_ids.values()
@@ -177,7 +172,7 @@ class FliffMapper(BaseMapper):
 
         if mapped_ids:
             await redis_instance.store_data(
-                key_name="fliff_ids",
+                key_name=self.mapper_id_name,
                 data_to_store=mapped_ids,
                 key_expiration=900
             )
@@ -191,6 +186,6 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = FliffMapper()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
     asyncio.run(main())

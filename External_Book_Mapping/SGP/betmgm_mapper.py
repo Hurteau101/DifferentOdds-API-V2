@@ -1,16 +1,10 @@
 import asyncio
 import math
 import re
-from math import ceil
-from collections import defaultdict
 from itertools import chain
-import aiohttp
-
-from Database.database import Database
 from External_Book_Mapping.base_mapper import BaseMapper
-from Monitoring.monitoring import create_sentry_message
+from curl_cffi import AsyncSession as CurlAsyncSession
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
 
 
 class BetMgmMapper(BaseMapper):
@@ -24,7 +18,7 @@ class BetMgmMapper(BaseMapper):
         45, # MMA
     ]
     def __init__(self):
-        super().__init__(book_name="betmgm", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="betmgm", category="sgp")
 
     def _map_parent_data(self, parent_data: dict, parent_fixture_id: int, market_name: str, original_line: str | int, market_unique_id: int):
         if not all([parent_data, parent_fixture_id, market_name, original_line]):
@@ -137,11 +131,10 @@ class BetMgmMapper(BaseMapper):
             for option in option_list.get("options", [])
         }
 
-    async def _extract_mapping(self, session: aiohttp.ClientSession) -> dict | None:
+    async def _extract_mapping(self, session: CurlAsyncSession) -> dict | None:
         # Get all the mapping ID's for the leagues we want.
         tasks = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.mapping.url.get("market_id_url").format(league_id=league_id),
                 method=self.book_data.mapping.method,
@@ -159,21 +152,13 @@ class BetMgmMapper(BaseMapper):
             chain.from_iterable(self._filter_mapping(result).items() for result in results if result)
         )
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         mapped_ids = await self._extract_mapping(session=session)
         if not mapped_ids:
-            create_sentry_message(
-                tag_key="betmgm",
-                tag_value="mapping_failure",
-                message="No mapped IDs were extracted from BetMGM mapping.",
-                level="error"
-            )
-
             return False
 
-
         await redis_instance.store_data(
-            key_name="betmgm_ids",
+            key_name=self.mapper_id_name,
             data_to_store=mapped_ids,
             key_expiration=self.default_key_expiration
         )
@@ -184,6 +169,6 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = BetMgmMapper()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
     asyncio.run(main())

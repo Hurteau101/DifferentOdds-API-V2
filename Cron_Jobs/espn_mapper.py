@@ -2,10 +2,13 @@ import asyncio
 import re
 from datetime import datetime, timezone
 from itertools import chain
+import asyncio
 import aiohttp
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import APICaller, SportbookRequestType
+from Utils.request_caller import APICaller
+from curl_cffi import AsyncSession as CurlAsyncSession
 
+## Try Datacenter Proxies.
 
 class ESPNMapper(APICaller):
     ESPN_LEAGUES = [
@@ -13,16 +16,15 @@ class ESPNMapper(APICaller):
         {"espn_league": "nhl", "sport": "hockey"},
         {"espn_league": "mlb", "sport": "baseball"},
         {"espn_league": "nfl", "sport": "football"},
-        {"espn_league": "fiba", "sport": "basketball"},
+        # {"espn_league": "fiba", "sport": "basketball"},
         {"espn_league": "mens-college-basketball", "sport": "basketball"},
         {"espn_league": "wnba", "sport": "basketball"},
     ]
 
-    ### PULL FROM DATABASE LATER ON.
-
-    def __init__(self, session: aiohttp.ClientSession):
-        super().__init__(SportbookRequestType.ASYNC)
+    def __init__(self, session: CurlAsyncSession):
+        super().__init__()
         self.session = session
+        self.semaphore = asyncio.Semaphore(10)
 
     def _normalize_team_name(self, name: str) -> str:
         overrides = {
@@ -60,6 +62,7 @@ class ESPNMapper(APICaller):
             for team_name, team_id in teams.items():
                 mapping.setdefault(league_name, {})[team_name] = {
                     "id": team_id,
+                    "team_name": team_name,
                     "abbreviation": abbreviations.get(team_name),
                     "players": players.get(team_id, []),
                     "schedule": schedules.get(team_id, [])
@@ -72,14 +75,26 @@ class ESPNMapper(APICaller):
                 key_expiration=21600 # 6 Hours
             )
 
+    async def call_with_semaphore(self, semaphore: asyncio.Semaphore, session, url, method, headers=None, data=None, use_proxy=False):
+        async with semaphore:
+            return await self.api_caller(
+                session=session,
+                url=url,
+                method=method,
+                headers=headers,
+                data=data,
+                use_proxy=use_proxy
+            )
+
 
     async def _get_players(self, team_ids: list, sport: str, league: str):
         tasks = [
-            self.api_caller(
-                book_name="ESPNMapper",
+            self.call_with_semaphore(
                 session=self.session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams/{team_id}/roster?limit=5000",
                 method="GET",
+                use_proxy=True,
+                semaphore=self.semaphore
             )
             for team_id in team_ids
         ]
@@ -95,7 +110,7 @@ class ESPNMapper(APICaller):
             team_id = result.get("team", {}).get("id")
             for athlete in result.get("athletes", []):
                 for player in (athlete.get("items") or [athlete]):
-                    player_name = player.get("displayName")
+                    player_name = player.get("displayName", '').lower()
                     if not player_name:
                         continue
 
@@ -107,11 +122,12 @@ class ESPNMapper(APICaller):
 
     async def _get_schedule(self, team_ids: list, sport: str, league: str) -> dict:
         tasks = [
-            self.api_caller(
-                book_name="ESPNMapper",
+            self.call_with_semaphore(
                 session=self.session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams/{team_id}/schedule",
                 method="GET",
+                use_proxy=True,
+                semaphore=self.semaphore
             )
             for team_id in team_ids
         ]
@@ -156,11 +172,12 @@ class ESPNMapper(APICaller):
         """
 
         raw_teams = [
-            self.api_caller(
-                book_name="ESPNMapper",
+            self.call_with_semaphore(
                 session=self.session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{teams['sport']}/{teams['espn_league']}/teams?limit=5000",
                 method="GET",
+                use_proxy=True,
+                semaphore=self.semaphore
             )
 
             for teams in self.ESPN_LEAGUES
@@ -169,7 +186,7 @@ class ESPNMapper(APICaller):
         results = await asyncio.gather(*raw_teams)
 
         leagues = list(chain.from_iterable(
-            result["sports"][0]["leagues"]
+            result.get("sports", [])[0].get("leagues")
             for result in results
         ))
 
@@ -180,7 +197,7 @@ class ESPNMapper(APICaller):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             espn = ESPNMapper(session=session)
             await espn.run_mapping()
 

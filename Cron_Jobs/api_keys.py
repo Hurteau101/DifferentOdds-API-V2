@@ -2,7 +2,7 @@ from Monitoring.monitoring import init_sentry
 init_sentry()
 
 import asyncio
-from Database.database import Database
+from Database.database_old import Database
 from Redis.redis_manager import RedisAsyncManager
 
 

@@ -4,14 +4,13 @@ from dotenv import load_dotenv
 import os
 from Books.Bases.sgp_book_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
-from Utils.proxy_manger import ProxyManager
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_result
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class KambiSGP(SGPBookBase):
     load_dotenv()
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="kambi", retry_amount=5, sgp_data=sgp_data, **kwargs)
+        super().__init__(category="SGP", book_name="kambi", retry_amount=5, sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=False)
@@ -24,7 +23,6 @@ class KambiSGP(SGPBookBase):
         # proxy_manger = ProxyManager(self.api_caller, proxies=[proxy])
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("main_url").format(event_id=event_id, bet_ids=bet_id_list),
             method=self.book_data.method,
@@ -47,7 +45,7 @@ class KambiSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {'book_name': 'kambi', 'links': [
                 "https://{state}.betrivers.com/?page=sportsbook#event/1024653253?coupon=single|4134649159|",
                 "https://{state}.betrivers.com/?page=sportsbook#event/1024653253?coupon=single|4134638535|"

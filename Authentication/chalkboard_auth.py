@@ -1,17 +1,14 @@
 import os
-import aiohttp
 from dotenv import load_dotenv
-from APScheduler.base_scheduler import BaseScheduler
-from Monitoring.monitoring import create_sentry_message
+from Authentication.base_auth import BaseAuth
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
-
-class ChalkboardAuth(BaseScheduler):
+class ChalkboardAuth(BaseAuth):
     def __init__(self):
-        super().__init__(request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="chalkboard", category="dfs")
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         load_dotenv()
         token_url = os.getenv("CHALKBOARD_TOKEN_URL")
         api_key = os.getenv("CHALKBOARD_API_KEY")
@@ -29,7 +26,6 @@ class ChalkboardAuth(BaseScheduler):
         }
 
         response = await self.api_caller(
-            book_name="chalkboard",
             session=session,
             url=f"{token_url}?key={api_key}",
             method="POST",
@@ -41,13 +37,6 @@ class ChalkboardAuth(BaseScheduler):
         refresh = (response or {}).get("refresh_token", "")
 
         if not auth:
-            create_sentry_message(
-                tag_key="chalkboard",
-                tag_value="auth_failure",
-                message="Auth token not found after authentication attempts.",
-                level="error"
-            )
-
             return False
 
         previous_refresh = await redis_instance.get_data(
@@ -63,7 +52,7 @@ class ChalkboardAuth(BaseScheduler):
             )
 
         await redis_instance.store_data(
-            key_name="chalkboard_access_token",
+            key_name=self.auth_id_name,
             data_to_store=auth,
             key_expiration=5270400  # 61 Days
         )
@@ -78,7 +67,7 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=5)
     caesar = ChalkboardAuth()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await caesar.run_scheduler(session, redis_instance)
 
     asyncio.run(main())

@@ -1,16 +1,14 @@
 import asyncio
-import aiohttp
 from dotenv import load_dotenv
-
 from Books.Bases.sgp_book_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
 import os
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class FliffSGP(SGPBookBase):
     load_dotenv()
     def __init__(self, mapped_ids_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="fliff",
+        super().__init__(category="SGP", book_name="fliff",
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     async def create_payload(self, sgp_token, location_token):
@@ -89,7 +87,6 @@ class FliffSGP(SGPBookBase):
             return None
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             params={
                 "device_x_id":"android.48e0c8468226f089",
@@ -124,7 +121,7 @@ class FliffSGP(SGPBookBase):
                 "authorization": f"Bearer {access_token}",
                 "location_token": location_token,
             },
-            payload=payload
+            json=payload
         )
 
         if not api_data:
@@ -148,7 +145,7 @@ class FliffSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {
                 'book_name': 'fliff',
                 'links': [

@@ -2,13 +2,11 @@ import asyncio
 import itertools
 import re
 import time
-
-import aiohttp
 from Redis.redis_manager import static_mapping_service
 from External_Book_Mapping.base_mapper import BaseMapper
 from Redis.redis_manager import RedisAsyncManager
 from Utils.helpers import clean_structure
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class BovadaMapper(BaseMapper):
     SPORT_PATHS = [
@@ -22,7 +20,7 @@ class BovadaMapper(BaseMapper):
 
 
     def __init__(self):
-        super().__init__(book_name="bovada", category="sgp", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="bovada", category="sgp")
 
     def _determine_market_type(self, teams: set, group_description: str, market_name: str):
         """Determines if its a main market or player market"""
@@ -65,13 +63,12 @@ class BovadaMapper(BaseMapper):
 
 
 
-    async def run_scheduler(self, session: aiohttp.ClientSession, redis_instance: RedisAsyncManager) -> bool:
+    async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         tasks = [
             self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
+                    # "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
                     "Referer": "https://www.bovada.lv/sports",
                 },
                 url=f"{self.book_data.mapping.url.get('main_url')}{path}",
@@ -216,7 +213,7 @@ class BovadaMapper(BaseMapper):
 
         if mapped_ids:
             await redis_instance.store_data(
-                key_name="bovada_ids",
+                key_name=self.mapper_id_name,
                 data_to_store=mapped_ids,
                 key_expiration=900
             )
@@ -226,6 +223,6 @@ if __name__ == "__main__":
     redis_instance = RedisAsyncManager(database=2)
     mapper = BovadaMapper()
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             await mapper.run_scheduler(session=session, redis_instance=redis_instance)
     asyncio.run(main())

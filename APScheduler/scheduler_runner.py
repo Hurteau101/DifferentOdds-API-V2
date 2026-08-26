@@ -58,221 +58,221 @@ class RedisSelector(Enum):
 
 
 AUTH_JOBS = [
-    {
-        "book_name": "fliff",
-        "class": FliffAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 180,  # 3 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "fliff_auth_token",
-    },
-    {
-        "book_name": "fourcx",
-        "class": FourcxAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 86400,  # 24 hours
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "4cx_auth_token",
-    },
-    {
-        "book_name": "caesars",
-        "class": CaesarAuth,
-        "job_type": "auth",
-        "is_active": False,
-        "interval": 600, # 10 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "caesars_waf_token",
-    },
-    {
-        "book_name": "chalkboard",
-        "class": ChalkboardAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 3600,  # 1 hour
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "chalkboard_access_token",
-    },
-    {
-        "book_name": "kibl",
-        "class": KiblAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 82800,  # 23 hours
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "kibl_auth_token",
-    },
-    {
-        "book_name": "onyx",
-        "class": OnyxAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 25200,  # 7 hours
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "onyx_auth",
-    },
-    {
-        "book_name": "ace",
-        "class": AceAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 900,  # 15 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "ace_cookies",
-    },
-    {
-        "book_name": "metallic",
-        "class": MetallicAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 900,  # 15 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "metallic_token",
-    },
-    {
-        "book_name": "buckeye2",
-        "class": Buckeye2Auth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 900,  # 15 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "aiohttp",
-        "redis_key_checker_name": "buckeye_2_auth_token",
-    },
-    {
-        "book_name": "sts",
-        "class": STSAuth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 900,  # 15 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "curl",
-        "redis_key_checker_name": "sts_cookies",
-    },
-    {
-        "book_name": "buckeye1",
-        "class": Buckeye1Auth,
-        "job_type": "auth",
-        "is_active": True,
-        "interval": 900,  # 15 minutes
-        "redis_db": RedisSelector.AUTH,
-        "session_type": "curl",
-        "redis_key_checker_name": "buckeye1_cookies",
-    }
+    # {
+    #     "book_name": "fliff",
+    #     "class": FliffAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 180,  # 3 minutes
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "fliff_auth_token",
+    # },
+    # {
+    #     "book_name": "fourcx",
+    #     "class": FourcxAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 86400,  # 24 hours
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "4cx_auth_token",
+    # },
+    # {
+    #     "book_name": "caesars",
+    #     "class": CaesarAuth,
+    #     "job_type": "auth",
+    #     "is_active": False,
+    #     "interval": 600, # 10 minutes
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "caesars_waf_token",
+    # },
+    # {
+    #     "book_name": "chalkboard",
+    #     "class": ChalkboardAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 3600,  # 1 hour
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "chalkboard_access_token",
+    # },
+    # {
+    #     "book_name": "kibl",
+    #     "class": KiblAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 82800,  # 23 hours
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "kibl_auth_token",
+    # },
+    # {
+    #     "book_name": "onyx",
+    #     "class": OnyxAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 25200,  # 7 hours
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "onyx_auth",
+    # },
+    # {
+    #     "book_name": "ace",
+    #     "class": AceAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 900,  # 15 minutes
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "ace_cookies",
+    # },
+    # {
+    #     "book_name": "metallic",
+    #     "class": MetallicAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 900,  # 15 minutes
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "metallic_token",
+    # },
+    # {
+    #     "book_name": "buckeye2",
+    #     "class": Buckeye2Auth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 900,  # 15 minutes
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "aiohttp",
+    #     "redis_key_checker_name": "buckeye_2_auth_token",
+    # },
+    # {
+    #     "book_name": "sts",
+    #     "class": STSAuth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 900,  # 15 minutes
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "curl",
+    #     "redis_key_checker_name": "sts_cookies",
+    # },
+    # {
+    #     "book_name": "buckeye1",
+    #     "class": Buckeye1Auth,
+    #     "job_type": "auth",
+    #     "is_active": True,
+    #     "interval": 900,  # 15 minutes
+    #     "redis_db": RedisSelector.AUTH,
+    #     "session_type": "curl",
+    #     "redis_key_checker_name": "buckeye1_cookies",
+    # }
 ]
 
 MAPPER_JOBS = [
-    {
-        "book_name": "betmgm",
-        "class": BetMgmMapper,
-        "job_type": "mapper",
-        "is_active": True,
-        "interval": 600,  # 5 minutes
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
-        "requires_auth": False,
-        "redis_key_checker_name": "betmgm_ids",
-    },
-    {
-        "book_name": "caesars",
-        "class": CaesarMapper,
-        "job_type": "mapper",
-        "is_active": False,
-        "interval": 600,  # 10 minutes
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
-        "requires_auth": True,
-        "redis_key_checker_name": "caesar_mapped_ids",
-        "redis_auth_checker_name": "caesars_waf_token"
-    },
-    {
-        "book_name": "fanduel",
-        "class": FanduelMapper,
-        "job_type": "mapper",
-        "is_active": True,
-        "interval": 600,  # 10 minutes
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
-        "requires_auth": False,
-        "redis_key_checker_name": "fanduel_ids"
-    },
-    {
-        "book_name": "onyxodds",
-        "class": OnyxMapper,
-        "job_type": "mapper",
-        "is_active": True,
-        "interval": 600,  # 10 minutes
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
-        "requires_auth": True,
-        "redis_key_checker_name": "onyx_ids",
-        "redis_auth_checker_name": "onyx_auth"
-    },
-    {
-        "book_name": "kibl",
-        "class": KiblMapper,
-        "job_type": "mapper",
-        "is_active": True,
-        "interval": 86400,  # 24 Hours
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
-        "requires_auth": True,
-        "redis_key_checker_name": "kibl_mapper_data",
-        "redis_auth_checker_name": "kibl_auth_token"
-    },
-    {
-        "book_name": "betway",
-        "class": BetwayMapper,
-        "job_type": "mapper",
-        "is_active": True,
-        "interval": 600,  # 10 Minutes
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "curl",
-        "requires_auth": False,
-        "redis_key_checker_name": "betway_mapped_ids"
-    },
-    {
-        "book_name": "fliff",
-        "class": FliffMapper,
-        "job_type": "mapper",
-        "is_active": True,
-        "interval": 600,  # 10 Minutes
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
-        "requires_auth": False,
-        "redis_key_checker_name": "fliff_ids",
-    },
-    {
-        "book_name": "bovada",
-        "class": BovadaMapper,
-        "job_type": "mapper",
-        "is_active": True,
-        "interval": 600,  # 10 Minutes
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
-        "requires_auth": False,
-        "redis_key_checker_name": "bovada_ids",
-    },
-    {
-        "book_name": "prop_builder",
-        "class": PropBuilderMapper,
-        "job_type": "mapper",
-        "is_active": True,
-        "interval": 600,  # 10 Minutes
-        "redis_db": RedisSelector.MAPPER,
-        "session_type": "aiohttp",
-        "requires_auth": False,
-        "redis_key_checker_name": "prop_builder_mapped_ids",
-    }
+    # {
+    #     "book_name": "betmgm",
+    #     "class": BetMgmMapper,
+    #     "job_type": "mapper",
+    #     "is_active": True,
+    #     "interval": 600,  # 5 minutes
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "aiohttp",
+    #     "requires_auth": False,
+    #     "redis_key_checker_name": "betmgm_ids",
+    # },
+    # {
+    #     "book_name": "caesars",
+    #     "class": CaesarMapper,
+    #     "job_type": "mapper",
+    #     "is_active": False,
+    #     "interval": 600,  # 10 minutes
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "aiohttp",
+    #     "requires_auth": True,
+    #     "redis_key_checker_name": "caesar_mapped_ids",
+    #     "redis_auth_checker_name": "caesars_waf_token"
+    # },
+    # {
+    #     "book_name": "fanduel",
+    #     "class": FanduelMapper,
+    #     "job_type": "mapper",
+    #     "is_active": True,
+    #     "interval": 600,  # 10 minutes
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "aiohttp",
+    #     "requires_auth": False,
+    #     "redis_key_checker_name": "fanduel_ids"
+    # },
+    # {
+    #     "book_name": "onyxodds",
+    #     "class": OnyxMapper,
+    #     "job_type": "mapper",
+    #     "is_active": True,
+    #     "interval": 600,  # 10 minutes
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "aiohttp",
+    #     "requires_auth": True,
+    #     "redis_key_checker_name": "onyx_ids",
+    #     "redis_auth_checker_name": "onyx_auth"
+    # },
+    # {
+    #     "book_name": "kibl",
+    #     "class": KiblMapper,
+    #     "job_type": "mapper",
+    #     "is_active": True,
+    #     "interval": 86400,  # 24 Hours
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "aiohttp",
+    #     "requires_auth": True,
+    #     "redis_key_checker_name": "kibl_mapper_data",
+    #     "redis_auth_checker_name": "kibl_auth_token"
+    # },
+    # {
+    #     "book_name": "betway",
+    #     "class": BetwayMapper,
+    #     "job_type": "mapper",
+    #     "is_active": True,
+    #     "interval": 600,  # 10 Minutes
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "curl",
+    #     "requires_auth": False,
+    #     "redis_key_checker_name": "betway_mapped_ids"
+    # },
+    # {
+    #     "book_name": "fliff",
+    #     "class": FliffMapper,
+    #     "job_type": "mapper",
+    #     "is_active": True,
+    #     "interval": 600,  # 10 Minutes
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "aiohttp",
+    #     "requires_auth": False,
+    #     "redis_key_checker_name": "fliff_ids",
+    # },
+    # {
+    #     "book_name": "bovada",
+    #     "class": BovadaMapper,
+    #     "job_type": "mapper",
+    #     "is_active": True,
+    #     "interval": 600,  # 10 Minutes
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "aiohttp",
+    #     "requires_auth": False,
+    #     "redis_key_checker_name": "bovada_ids",
+    # },
+    # {
+    #     "book_name": "prop_builder",
+    #     "class": PropBuilderMapper,
+    #     "job_type": "mapper",
+    #     "is_active": True,
+    #     "interval": 600,  # 10 Minutes
+    #     "redis_db": RedisSelector.MAPPER,
+    #     "session_type": "aiohttp",
+    #     "requires_auth": False,
+    #     "redis_key_checker_name": "prop_builder_mapped_ids",
+    # }
 ]
 
 

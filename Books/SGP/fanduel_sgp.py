@@ -3,12 +3,11 @@ import aiohttp
 from Books.Bases.sgp_book_base import SGPBookBase
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
 
 
 class FanduelSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="fanduel", sgp_data=sgp_data,
+        super().__init__(category="SGP", book_name="fanduel", sgp_data=sgp_data,
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     @SGPBookBase.ensure_link_data

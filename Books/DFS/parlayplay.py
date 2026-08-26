@@ -2,11 +2,9 @@ import asyncio
 import re
 import aiohttp
 from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
-from Utils.request_caller import SportbookRequestType
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Parlayplay(DFSBookBase):
     SOLO_SPORTS = [
@@ -15,7 +13,7 @@ class Parlayplay(DFSBookBase):
         "UFC"
     ]
     def __init__(self):
-        super().__init__(book_name="parlayplay", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="parlayplay")
 
         # Extract team data
 
@@ -113,9 +111,8 @@ class Parlayplay(DFSBookBase):
             ]
         )
 
-    async def _get_leagues(self, session: aiohttp.ClientSession) -> list:
+    async def _get_leagues(self, session: CurlAsyncSession) -> list:
         league_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("league_url"),
             method=self.book_data.method
@@ -155,21 +152,14 @@ class Parlayplay(DFSBookBase):
         return league_list
 
     async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             league_data = await self._get_leagues(session)
 
             if not league_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league data returned",
-                    level="error"
-                )
-                return
+                return None
 
             tasks = [
                 self.api_caller(
-                    book_name=self.book_data.name,
                     session=session,
                     url=self.book_data.url.get("main_url").format(sport=league.get("sport"),
                                                                   league=league.get("league"), period=period),
@@ -183,13 +173,7 @@ class Parlayplay(DFSBookBase):
             results = await asyncio.gather(*tasks)
 
             if not results:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No market data returned",
-                    level="error"
-                )
-                return
+                return None
 
             api_data = [result for result in results if result]
 

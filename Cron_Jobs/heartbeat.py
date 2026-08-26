@@ -7,6 +7,7 @@ from Monitoring.Discord_Logging.logger import send_discord_message
 from Redis.redis_manager import RedisSyncManager
 from Settings.book_configurations import BookConfiguration
 from datetime import datetime, timezone, timedelta
+from Utils.helpers import is_production
 
 load_dotenv()
 
@@ -134,9 +135,8 @@ class HeartBeat:
         )
 
 
-
     def check_keys(self):
-        sent_db = 14 if os.getenv("ENVIRONMENT") == "NON_PRODUCTION" else 17
+        sent_db = 14 if is_production() else 17
 
         sent_already_instance = RedisSyncManager(database=sent_db)
 
