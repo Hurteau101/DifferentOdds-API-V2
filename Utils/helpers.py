@@ -3,7 +3,11 @@ from dataclasses import asdict
 from functools import lru_cache
 from dateutil import parser
 import pytz
+from dotenv import load_dotenv
 from unidecode import unidecode
+import os
+
+load_dotenv()
 
 def serialize_data(data) -> list[dict]:
     """Serialize data to JSON format."""
@@ -64,3 +68,12 @@ def ordinal_formatter(market_name):
         return f"{result_split[0]} {' '.join(word.capitalize() for word in result_split[1:])}"
 
     return ' '.join(word.capitalize() for word in market_name.split())
+
+def is_production():
+    """Check if the environment is production."""
+    is_prod = os.getenv("IS_PRODUCTION")
+
+    if not is_prod:
+        raise RuntimeError("Environment not set")
+
+    return bool(is_prod.lower() == "true")

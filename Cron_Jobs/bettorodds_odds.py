@@ -6,6 +6,7 @@ from Redis.redis_manager import RedisSyncManager
 import re
 from Settings.book_configurations import BookConfiguration, NAMES_MAPPER
 import itertools
+from Utils.helpers import clean_and_normalize
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ SPREAD_PATTERN = re.compile(r'[+-]\d')
 
 def _input_team(game_details: dict, league: str, espn_mapping: dict):
     """In charge of adding the team name to the game details"""
-    player_name = game_details.get("Player")
+    player_name = clean_and_normalize(game_details.get("Player", ''))
     split_match = game_details.get("Match", '').split(" vs ")
     stat = game_details.get("Stat", '')
 
@@ -81,8 +82,6 @@ def _get_valid_books() -> set:
         for category in categories
     ]
 
-    print(books)
-
     return set(
         book.get("alternate_name", '').lower()
         if book.get("alternate_name") else book.get("book_key")
@@ -95,10 +94,6 @@ def configure_data(bettorodds_data: dict) -> dict:
     espn_mapping_redis_instance = RedisSyncManager(database=8)
     espn_mapping = espn_mapping_redis_instance.get_data(key_name="espn_mapping")
 
-    import json
-    with open("bettorodds_data_ref.json", "w") as f:
-        json.dump(bettorodds_data, f, indent=2)
-
     if not espn_mapping:
         logging.warning("ESPN mapping not found in Redis. Using default values.")
         return bettorodds_data
@@ -107,7 +102,6 @@ def configure_data(bettorodds_data: dict) -> dict:
     formatted_data = {}
 
     valid_books = _get_valid_books()
-    print(valid_books)
 
     for game_details in bettorodds_data.values():
         league = game_details.get("League", "N/A")
@@ -120,9 +114,14 @@ def configure_data(bettorodds_data: dict) -> dict:
             continue
 
         for side in book_feed:
+            normalized_raw = f"{game_details.get('Player', '')} {side} {game_details.get('Line', '')} {game_details.get('Prop', '').replace('Player', '')}"
+            unique_stat = f"{game_details.get('Player', '')} {game_details.get('Prop', '').replace('Player', '')}"
+
             formatted_data.setdefault(league, {}).setdefault(game_details.get("Match"), []).append({
                 "group_id": game_details.get("Unique ID"),
                 "id": generate_key(game_details, side),
+                "unique_stat": re.sub(r"\s+", " ", unique_stat).strip(),
+                "normalized_name": re.sub(r"\s+", " ", normalized_raw).strip(),
                 "date": game_details.get("Date"),
                 "stat": game_details.get("Prop"),
                 "line": game_details.get("Line"),
@@ -142,7 +141,9 @@ def _extract_book_feed(book_feed: dict, stat_type: str, valid_books: set):
     odds = {}
 
     for book_name, book_directions in book_feed.items():
-        if book_name.lower() not in valid_books:
+        book_name = book_name.lower()
+
+        if book_name not in valid_books:
             continue
 
         has_nested_dict = any(isinstance(value, dict) for value in book_directions.values())
@@ -156,13 +157,14 @@ def _extract_book_feed(book_feed: dict, stat_type: str, valid_books: set):
             if not american_odds or american_odds == "N/A":
                 continue
 
-            odds.setdefault(side, [])
-            odds[side].append({
-                "book_name": book_name,
-                "american_odds": american_odds,
-                "bet_link": book_data.get("bet_link") if book_data.get("bet_link") else book_data.get(
-                    "internal_betlink"),
-                "vig": book_data.get("vig_free_odds")
+            odds.setdefault(side, {})
+            odds[side].update({
+                book_name: {
+                    "american_odds": american_odds,
+                    "bet_link": book_data.get("bet_link") if book_data.get("bet_link") else book_data.get(
+                        "internal_betlink"),
+                    "vig": book_data.get("vig_free_odds")
+                }
             })
 
     return odds
@@ -185,10 +187,6 @@ def load_bettorodds(limit: str="all", retry_amount: int = 3):
                     continue
 
                 bettorodds_data = configure_data(bettorodds_data)
-
-                import json
-                with open("bettorodds_data_changed.json", "w") as f:
-                    json.dump(bettorodds_data, f, indent=2)
 
                 redis_instance = RedisSyncManager(database=8)
                 redis_instance.store_data(

@@ -1,16 +1,16 @@
 import os
 from urllib.parse import urlencode
 from dotenv import load_dotenv
-from APScheduler.base_scheduler import BaseScheduler
+from Authentication.base_auth import BaseAuth
 from Redis.redis_manager import RedisAsyncManager
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
-class FliffAuth(BaseScheduler):
+class FliffAuth(BaseAuth):
     load_dotenv()
 
     def __init__(self):
-        super().__init__()
+        super().__init__(book_name="fliff", category="sgp")
 
     async def get_location_token(self, location_auth, session):
         payload = {
@@ -147,7 +147,7 @@ class FliffAuth(BaseScheduler):
 
         if response.get("access_token"):
             await redis_instance.store_data(
-                key_name="fliff_auth_token",
+                key_name=self.auth_id_name,
                 data_to_store={
                     "access_token": response["access_token"],
                     "location_token": location_token,

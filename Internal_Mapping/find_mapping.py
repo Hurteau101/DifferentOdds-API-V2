@@ -1,7 +1,7 @@
 import asyncio
 from collections import defaultdict
 from rapidfuzz import fuzz, process
-from Database.database import Database
+from Database.database_old import Database
 from Redis.redis_manager import RedisAsyncManager
 from Utils.helpers import clean_structure
 

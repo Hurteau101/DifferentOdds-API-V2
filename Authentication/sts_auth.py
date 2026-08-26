@@ -1,13 +1,15 @@
 import os
 from dotenv import load_dotenv
-from APScheduler.base_scheduler import BaseScheduler
 from camoufox.async_api import AsyncCamoufox
 
-class STSAuth(BaseScheduler):
+from Authentication.base_auth import BaseAuth
+
+
+class STSAuth(BaseAuth):
     load_dotenv()
 
     def __init__(self):
-        super().__init__()
+        super().__init__(book_name="sts", category="sportsbooks")
 
     async def run_scheduler(self, redis_instance, **kwargs) -> bool:
         username = os.getenv("STS_USERNAME")
@@ -48,7 +50,7 @@ class STSAuth(BaseScheduler):
                         print(f"Proxy {ip}:{port} - missing required cookies, trying next.")
                         continue
 
-                    await redis_instance.store_data(key_name="sts_cookies", data_to_store=cookies, key_expiration=1200)
+                    await redis_instance.store_data(key_name=self.auth_id_name, data_to_store=cookies, key_expiration=1200)
                     await redis_instance.store_data(key_name="sts_proxy", data_to_store=proxy, key_expiration=1200)
                     return True
 

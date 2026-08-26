@@ -3,16 +3,18 @@ import os
 import curl_cffi
 from dotenv import load_dotenv
 from multidict import CIMultiDictProxy
-from APScheduler.base_scheduler import BaseScheduler
 from curl_cffi import AsyncSession as CurlAsyncSession
 
-class MetallicAuth(BaseScheduler):
+from Authentication.base_auth import BaseAuth
+
+
+class MetallicAuth(BaseAuth):
     LOGIN_URL = "https://black34.com/player-api/identity/CustomerLoginRedir?RedirToHome=1"
     FORM_URL = "https://black34.com/player-api/identity/customerLoginFromToken"
     load_dotenv()
 
     def __init__(self):
-        super().__init__()
+        super().__init__(book_name="metallic", category="sportsbooks")
 
     # This handles the login redirect, where it will point to the location, that has the temp token we need.
     async def login_redirect(self, session: CurlAsyncSession):
@@ -86,7 +88,7 @@ class MetallicAuth(BaseScheduler):
             return False
 
         await redis_instance.store_data(
-            key_name="metallic_token",
+            key_name=self.auth_id_name,
             data_to_store=auth_token,
             key_expiration=5400 # 90 Minutes
         )

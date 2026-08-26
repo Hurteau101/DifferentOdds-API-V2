@@ -9,16 +9,17 @@ from playwright.sync_api import sync_playwright
 
 
 from APScheduler.base_scheduler import BaseScheduler
+from Authentication.base_auth import BaseAuth
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Utils.request_caller import SportbookRequestType
 
-class CaesarAuth(BaseScheduler):
+
+class CaesarAuth(BaseAuth):
     _BLOCKED_RESOURCE_TYPES = {"image", "media", "font", "stylesheet"}
     load_dotenv()
 
     def __init__(self):
-        super().__init__(request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="caesars", category="sgp")
 
     async def _block_heavy_resources(self, route):
         request = route.request
@@ -108,7 +109,7 @@ class CaesarAuth(BaseScheduler):
 
         if waf_token:
             await redis_instance.store_data(
-                key_name="caesars_waf_token",
+                key_name=self.auth_id_name,
                 data_to_store=waf_token,
                 key_expiration=720
             )

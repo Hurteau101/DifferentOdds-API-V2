@@ -106,7 +106,7 @@ class FanduelMapper(BaseMapper):
             mapped_ids.update(fanduel_ids)
 
         await redis_instance.store_data(
-            key_name="fanduel_ids",
+            key_name=self.mapper_id_name,
             data_to_store=mapped_ids,
             key_expiration=self.default_key_expiration
         )

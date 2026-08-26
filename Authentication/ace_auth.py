@@ -1,14 +1,16 @@
 import os
 from dotenv import load_dotenv
-from APScheduler.base_scheduler import BaseScheduler
 from curl_cffi import AsyncSession as CurlAsyncSession
 
-class AceAuth(BaseScheduler):
+from Authentication.base_auth import BaseAuth
+
+
+class AceAuth(BaseAuth):
     URL = "https://backend.betvegas23.com/Login.aspx"
     load_dotenv()
 
     def __init__(self):
-        super().__init__()
+        super().__init__(book_name="ace", category="sportsbooks")
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance) -> bool:
         await session.post(
@@ -23,7 +25,7 @@ class AceAuth(BaseScheduler):
             })
 
         await redis_instance.store_data(
-            key_name="ace_cookies",
+            key_name=self.auth_id_name,
             data_to_store=session.cookies.get_dict(),
             key_expiration=1200  # 20 Minutes
         )

@@ -275,6 +275,17 @@ class RedisSyncManager:
         _bulk_insert(data_to_store=data_to_store, pipeline=pipeline)
         return pipeline.execute()
 
+    def delete_keys(self, keys: list | set, redis_client):
+        """
+        Delete multiple keys from Redis.
+        """
+        pipeline = redis_client.pipeline()
+
+        for key in keys:
+            pipeline.unlink(key)
+
+        pipeline.execute()
+
     def get_all_key_values(self, count: int = 5000) -> list:
         """Retrieves all values from the Redis database."""
         cursor = 0

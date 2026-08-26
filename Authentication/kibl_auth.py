@@ -1,11 +1,11 @@
 import os
 from dotenv import load_dotenv
-from APScheduler.base_scheduler import BaseScheduler
+from Authentication.base_auth import BaseAuth
 from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from curl_cffi import AsyncSession as CurlAsyncSession
 
-class KiblAuth(BaseScheduler):
+class KiblAuth(BaseAuth):
     URL = "https://cognito-idp.us-west-2.amazonaws.com/"
     HEADERS = {
         'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
@@ -13,7 +13,7 @@ class KiblAuth(BaseScheduler):
     }
 
     def __init__(self):
-        super().__init__()
+        super().__init__(book_name="bet105", category="sportsbooks")
 
 
     def _extract_auth_refresh(self, response: dict):
@@ -84,7 +84,7 @@ class KiblAuth(BaseScheduler):
             )
 
             await redis_instance.store_data(
-                key_name="kibl_auth_token",
+                key_name=self.auth_id_name,
                 data_to_store=auth,
                 key_expiration=expiry  # 61 Days
             )
@@ -98,7 +98,7 @@ class KiblAuth(BaseScheduler):
             return False
 
         await redis_instance.store_data(
-            key_name="kibl_auth_token",
+            key_name=self.auth_id_name,
             data_to_store=auth,
             key_expiration=82800  # 61 Days
         )

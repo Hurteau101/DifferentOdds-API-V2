@@ -3,16 +3,16 @@ from typing import Union
 from urllib.parse import urlparse, parse_qs, quote
 
 class Link:
-    def link_creator(self, payload: list) -> dict:
+    def link_creator(self, link_data: dict) -> dict:
         """
         Create multi-leg betslip links for different sportsbooks.
-        :param payload: The payload containing book names and their respective links.
+        :param link_data: The filtered link data containing book names and their respective links.
         :return: Returns a dictionary with sportsbook names as keys and their combined betslip links as values.
         """
         mapper = {
             "fanduel": self._fanduel,
             "hardrock": self._hardrock,
-            "draftkings": self._draftkings,
+            # "draftkings": self._draftkings,
             "onyxodds": self._onyxodds,
             "betmgm": self._betmgm,
             "novig": self._novig,
@@ -20,18 +20,11 @@ class Link:
             "caesars": self._caesar
         }
 
-        results = {}
-
-        for book in payload:
-            book_name = book.get("book_name")
-            links = book.get("links", [])
-            if book_name in mapper:
-                url_results = mapper[book_name](links)
-                if url_results:
-                    results[book_name] = url_results
-
-        return results
-
+        return {
+            book_name: mapper[book_name](links)
+            for book_name, links in link_data.items()
+            if book_name in mapper
+        }
 
 
     def _common_query_extractor(self, links: list, query_name: str) -> Union[str | list]:

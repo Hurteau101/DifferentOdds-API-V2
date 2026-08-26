@@ -329,7 +329,7 @@ class BetwayMapper(BaseMapper):
             return False
 
         await redis_instance.store_data(
-            key_name="betway_mapped_ids",
+            key_name=self.mapper_id_name,
             data_to_store=mapping,
             key_expiration=900
         )

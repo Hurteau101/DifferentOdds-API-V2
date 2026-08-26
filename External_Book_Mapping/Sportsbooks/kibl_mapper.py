@@ -79,7 +79,8 @@ class KiblMapper(BaseMapper):
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager):
         redis_auth_instance = RedisAsyncManager(database=5)
-        auth_token = await redis_auth_instance.get_data("kibl_auth_token")
+
+        auth_token = await redis_auth_instance.get_data(self.book_data.auth_job_dict.auth_redis_key)
 
         if not auth_token:
             return
@@ -127,7 +128,7 @@ class KiblMapper(BaseMapper):
             return
 
         await redis_instance.store_data(
-            key_name="kibl_mapper_data",
+            key_name=self.mapper_id_name,
             data_to_store=mapped_data,
             key_expiration=90000 # 25 Hour Expiration
         )

@@ -11,7 +11,7 @@ class HardrockSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(
             category="SGP",
-            book_name="hardrock",
+            book_name="hard rock",
             sgp_data=sgp_data,
             **kwargs
         )

@@ -488,7 +488,7 @@ class PropBuilderMapper(BaseMapper):
 
         if mapped_ids:
             await redis_instance.store_data(
-                key_name="prop_builder_mapped_ids",
+                key_name=self.mapper_id_name,
                 data_to_store=mapped_ids,
                 key_expiration=900
             )

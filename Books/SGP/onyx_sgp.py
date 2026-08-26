@@ -8,7 +8,7 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 class OnyxSGP(SGPBookBase):
     load_dotenv()
     def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
-        super().__init__(category="SGP", book_name="onyxodds", sgp_data=sgp_data,
+        super().__init__(category="SGP", book_name="onyx odds", sgp_data=sgp_data,
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
     @SGPBookBase.ensure_link_data

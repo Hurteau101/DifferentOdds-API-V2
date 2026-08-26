@@ -3,7 +3,8 @@ from typing import List, Optional
 from API.Helpers.common import get_books
 from API.Helpers.parlay_helper import ParlayFetcher, SGPBooks
 from API.security import get_api_key
-
+from Database.base_db import DB
+from Database.AutoSGP.sgp_db import SGPHistory
 
 router = APIRouter(prefix="/sgp", tags=["SGP"])
 
@@ -161,6 +162,16 @@ async def get_auto_sgp_by_book(
         for sgp in sgp_data
         if book.lower() in sgp["book_list"]
     ]
+
+@router.get("/auto_sgp/history",
+            summary="Get Auto SGP History",
+            description="Fetch Auto SGP history.",
+            dependencies=[Depends(get_api_key)]
+            )
+async def get_auto_sgp_history(db: DB):
+    return await SGPHistory.all_history(db)
+
+
 
 @router.get("/auto_sgp",
             summary="Get the Auto SGP Odds",

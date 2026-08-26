@@ -1,12 +1,12 @@
 import os
 from dotenv import load_dotenv
-from APScheduler.base_scheduler import BaseScheduler
+from Authentication.base_auth import BaseAuth
 from Redis.redis_manager import RedisAsyncManager
 from curl_cffi import AsyncSession as CurlAsyncSession
 
-class ChalkboardAuth(BaseScheduler):
+class ChalkboardAuth(BaseAuth):
     def __init__(self):
-        super().__init__()
+        super().__init__(book_name="chalkboard", category="dfs")
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance: RedisAsyncManager) -> bool:
         load_dotenv()
@@ -52,7 +52,7 @@ class ChalkboardAuth(BaseScheduler):
             )
 
         await redis_instance.store_data(
-            key_name="chalkboard_access_token",
+            key_name=self.auth_id_name,
             data_to_store=auth,
             key_expiration=5270400  # 61 Days
         )

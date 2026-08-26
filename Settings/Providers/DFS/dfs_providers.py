@@ -1,31 +1,40 @@
 import os
+from dataclasses import dataclass
 from dotenv import load_dotenv
-from Settings.Providers.base_provider import BaseProvider
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector
 
 load_dotenv()
+
+@dataclass
+class DFSProvider(BaseProvider):
+    base_file_path = "Books.DFS"
 
 
 # List of DFS providers with their configurations.
 DFS_PROVIDERS = [
-    BaseProvider(
+    DFSProvider(
         title="Underdog Fantasy",
         name="underdog",
         url={
             "main_url": "https://api.underdogfantasy.com/beta/v6/over_under_lines",
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="Underdog",
+        file_name="underdog",
     ),
-    BaseProvider(
+    DFSProvider(
         title="PrizePicks",
         name="prizepicks",
         url={
             "main_url": "https://partner-api.prizepicks.com/projections"
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="Prizepicks",
+        file_name="prizepicks",
     ),
-    BaseProvider(
+    DFSProvider(
         title="Betr",
         name="betr",
         url={
@@ -44,9 +53,11 @@ DFS_PROVIDERS = [
             'Connection': 'keep-alive',
             'TE': 'trailers'
         },
-        is_active=True
+        is_active=True,
+        class_name="Betr",
+        file_name="betr",
     ),
-    BaseProvider(
+    DFSProvider(
         title="Drafters",
         name="drafters",
         url={
@@ -57,9 +68,11 @@ DFS_PROVIDERS = [
             "Authorization": os.getenv("drafters_auth_token")
         },
         method="GET",
-        is_active=False
+        is_active=False,
+        class_name="Drafters",
+        file_name="drafters",
     ),
-    BaseProvider(
+    DFSProvider(
         title="Boom Fantasy",
         name="boom",
         url={
@@ -77,9 +90,11 @@ DFS_PROVIDERS = [
               'if-none-match': 'W/"118d-Ko20dOxZMQt3uUUiTsEJZ5sZZDs"'
         },
         method="GET",
-        is_active=False
+        is_active=False,
+        class_name="Boom",
+        file_name="boom",
     ),
-    BaseProvider(
+    DFSProvider(
         title="ParlayPlay",
         name="parlayplay",
         url={
@@ -87,9 +102,11 @@ DFS_PROVIDERS = [
             "league_url": "http://45.61.52.251:8000/parlayplay/leagues"
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="Parlayplay",
+        file_name="parlayplay",
     ),
-    BaseProvider(
+    DFSProvider(
         title="Splash Sports",
         name="splashsports",
         url={
@@ -99,42 +116,22 @@ DFS_PROVIDERS = [
             "Authorization": os.getenv("splash_auth_token"),
         },
         method="GET",
-        is_active=False
+        is_active=False,
+        class_name="SplashSports",
+        file_name="splashsports",
     ),
-    BaseProvider(
-        title="Ownerbox",
-        name="ownerbox",
-        url={
-            "stat_url": "https://app.ownersbox.com/fsp/marketType/active?sport={league}",
-            "game_url": "https://app.ownersbox.com/fsp/v4/market?sport={league}&marketTypeId={market_id}"
-        },
-        headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.5',
-            # 'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'OwnersBox-Client-Type': 'web',
-            'OwnersBox-Client-Version': '1.11.4',
-            'Connection': 'keep-alive',
-            'Referer': 'https://app.ownersbox.com/wfs/player-picks/lobby/MLB',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'TE': 'trailers',
-        },
-        method="GET",
-        is_active=False
-    ),
-    BaseProvider(
+    DFSProvider(
         title="Parlaye",
         name="parlaye",
         url={
             "main_url": "https://m2efyeevmf.us-east-2.awsapprunner.com/available_picks/get-player-picks/"
         },
         method="POST",
-        is_active=False
+        is_active=False,
+        class_name="Parlaye",
+        file_name="parlaye",
     ),
-    BaseProvider(
+    DFSProvider(
         title="DraftKings Pick 6",
         name="draftkings_6",
         url= {
@@ -144,9 +141,11 @@ DFS_PROVIDERS = [
             "individual_market_url": "https://api.draftkings.com/sites/US-PSX/pick6/v1/pickgroups/{league_id}/category/pickcards?pickCategoryId={category_id}&appname=psxandroid&version=260861600&format=json"
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="DraftKingsPickSix",
+        file_name="draftkings_6",
     ),
-    BaseProvider(
+    DFSProvider(
         title="Sleeper Fantasy",
         name="sleeper",
         url={
@@ -157,9 +156,11 @@ DFS_PROVIDERS = [
             'alternate_url_4': "https://api.sleeper.app/scores/lines_game_picker",  # Season Data
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="Sleeper",
+        file_name="sleeper",
     ),
-    BaseProvider(
+    DFSProvider(
         title="Dabble",
         name="dabble",
         url={
@@ -173,40 +174,28 @@ DFS_PROVIDERS = [
             "authorization": "",
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="Dabble",
+        file_name="dabble",
     ),
-    BaseProvider(
+    DFSProvider(
         title="Chalkboard",
         name="chalkboard",
         url={
             "main_url": os.getenv("CHALKBOARD_URL")
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            refresh_interval=3600, # 1 Hour
+            job_active=True,
+            auth_redis_key="chalkboard_access_token"
+        ),
+        class_name="Chalkboard",
+        file_name="chalkboard",
     ),
-    BaseProvider(
-        title="FanDuel Picks",
-        name="fanduel_picks",
-        url={
-            "main_url": "https://picks.fanduel.com/lobby.data?sport={league}&_routes=routes%2Flobby%2B%2F_route",
-            "stat_url": "https://picks.fanduel.com/api/game-group-props?gameGroupId={game_id}&marketIds=&_data=routes%2Fapi%2B%2Fgame-group-props%2B%2F_resource",
-            "multi": "https://picks.fanduel.com/api/bonus-multiplier"
-        },
-        headers={
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Galaxy S9 Build/TQ2B.230505.005.A1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/101.0.4951.61 Mobile Safari/537.36 CoreWebView-Android/3.0.3 AppInfo (appDomain/picks; region/nj; version/0.0.1; platform/android)',
-            'Accept': '*/*',
-            'X-Requested-With': 'com.fanduel.flywheelnativecontainer.picks',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Dest': 'empty',
-            'Referer': 'https://picks.fanduel.com/lobby?sport=NFL&gameGroup=019bd787-377b-7622-a5aa-0dbd7d67454c&stat=Rush+%2B+Rec+TDs',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'en-US,en;q=0.9',
-        },
-        method="GET",
-        is_active=False
-    ),
-    BaseProvider(
+    DFSProvider(
         title="Epick Fantasy",
         name="epicks",
         url={
@@ -215,6 +204,8 @@ DFS_PROVIDERS = [
             "stat_url": "https://sportsdata.prod.epickfantasy.com/api/props/ui?state_or_territory=CA&mode=DUEL&limit=1000"
         },
         method="GET",
-        is_active=False
+        is_active=False,
+        class_name="Epicks",
+        file_name="epicks",
     )
 ]

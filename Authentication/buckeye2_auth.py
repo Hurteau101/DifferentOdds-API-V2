@@ -1,15 +1,16 @@
 import os
 from dotenv import load_dotenv
-from APScheduler.base_scheduler import BaseScheduler
 from curl_cffi import AsyncSession as CurlAsyncSession
 
+from Authentication.base_auth import BaseAuth
 
-class Buckeye2Auth(BaseScheduler):
+
+class Buckeye2Auth(BaseAuth):
     URL = "https://www.247bettor.com/cloud/api/System/authenticateCustomer"
     load_dotenv()
 
     def __init__(self):
-        super().__init__()
+        super().__init__(book_name="buckeye2", category="sportsbooks")
 
     # async def run_scheduler(self, session, redis_instance) -> bool:
     #     username = os.getenv("BUCKEYE_2_USERNAME")
@@ -150,7 +151,7 @@ class Buckeye2Auth(BaseScheduler):
         auth_token = response.get("code")
 
         await redis_instance.store_data(
-            key_name="buckeye_2_auth_token",
+            key_name=self.auth_id_name,
             data_to_store=auth_token,
             key_expiration=1200  # 20 minutes
         )

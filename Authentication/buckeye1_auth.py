@@ -1,15 +1,15 @@
 import os
 from dotenv import load_dotenv
-from APScheduler.base_scheduler import BaseScheduler
 from curl_cffi import AsyncSession as CurlAsyncSession
 
+from Authentication.base_auth import BaseAuth
 
-class Buckeye1Auth(BaseScheduler):
+
+class Buckeye1Auth(BaseAuth):
     load_dotenv()
 
     def __init__(self):
-        super().__init__()
-
+        super().__init__(book_name="kibl", category="sportsbooks")
 
     async def run_scheduler(self, session: CurlAsyncSession, redis_instance) -> bool:
         username = os.getenv("BUCKEYE_1_USERNAME")
@@ -44,7 +44,7 @@ class Buckeye1Auth(BaseScheduler):
 
         if cookies:
             await redis_instance.store_data(
-                key_name="buckeye1_cookies",
+                key_name=self.auth_id_name,
                 data_to_store=cookies,
                 key_expiration=1200  # 20 Minutes
             )

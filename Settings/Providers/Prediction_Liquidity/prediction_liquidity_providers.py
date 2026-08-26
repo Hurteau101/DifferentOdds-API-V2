@@ -1,11 +1,16 @@
 from typing import Optional
-from Settings.Providers.base_provider import BaseProvider
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector
 from dataclasses import dataclass
+
+
+@dataclass
+class LiquidityProvider(BaseProvider):
+    base_file_path = "Books.Prediction_Liquidity"
 
 
 
 PREDICTION_LIQUIDITY_PROVIDERS = [
-    BaseProvider(
+    LiquidityProvider(
         title="4cx",
         name="4cx",
         url={
@@ -18,9 +23,17 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
             'Referer': 'https://4cx.io/',
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            refresh_interval=86400, # 24 Hours
+            job_active=True,
+            auth_redis_key="4cx_auth_token"
+        ),
+        class_name="FourCX",
+        file_name="fourcx",
     ),
-    BaseProvider(
+    LiquidityProvider(
         title="Novig",
         name="novig",
         url={
@@ -31,9 +44,11 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
             "Content-Type": "application/json"
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        class_name="Novig",
+        file_name="novig",
     ),
-    BaseProvider(
+    LiquidityProvider(
         title="Prophetx",
         name="prophetx",
         url={
@@ -42,6 +57,8 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
         },
 
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="Prophetx",
+        file_name="prophetx",
     ),
 ]

@@ -166,7 +166,7 @@ class CaesarMapper(BaseMapper):
             if mapping:
                 print(f"Found {len(mapping)} mappings.")
                 await redis_instance.store_data(
-                    key_name="caesar_mapped_ids",
+                    key_name=self.mapper_id_name,
                     data_to_store=mapping,
                     key_expiration=800
                 )

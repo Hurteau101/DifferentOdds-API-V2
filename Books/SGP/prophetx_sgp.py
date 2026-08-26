@@ -6,7 +6,7 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 
 class ProphetxSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(category="SGP", book_name="prophetx", sgp_data=sgp_data, **kwargs)
+        super().__init__(category="SGP", book_name="prophet x", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
     @SGPBookBase.retry_book(is_disabled=True)

@@ -1,7 +1,15 @@
-from Settings.Providers.base_provider import BaseProvider
+from dataclasses import dataclass
+from typing import Optional
+
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJobDict, RedisSelector
+
+
+@dataclass
+class SportsbooksProvider(BaseProvider):
+    base_file_path = "Books.Sportsbooks"
 
 SPORTSBOOKS_PROVIDERS = [
-    BaseProvider(
+    SportsbooksProvider(
         title="Bet105",
         name="bet105",
         url={
@@ -18,9 +26,24 @@ SPORTSBOOKS_PROVIDERS = [
             "markets": "https://api.kibl.io/sports/get/info/markets",
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        mapper_job_dict=MapperJobDict(
+            job_type=RedisSelector.MAPPER,
+            refresh_interval=86400,  # 24 Hours
+            job_active=True,
+            requires_auth=True,
+            mapper_redis_key="kibl_mapper_data"
+        ),
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            refresh_interval=82800, # 23 Hours
+            job_active=True,
+            auth_redis_key="kibl_auth_token"
+        ),
+        class_name="Bet105",
+        file_name="bet105",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="STS",
         name="sts",
         url={
@@ -36,9 +59,17 @@ SPORTSBOOKS_PROVIDERS = [
             'TE': 'trailers'
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            refresh_interval=900,  # 15 minutes
+            job_active=True,
+            auth_redis_key="sts_cookies"
+        ),
+        class_name="STS",
+        file_name="sts",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="Ace",
         name="ace",
         url={
@@ -46,14 +77,21 @@ SPORTSBOOKS_PROVIDERS = [
             "market_url": "https://backend.betvegas23.com/wager/NewScheduleHelper.aspx"
         },
         headers={
-            # "User-Agent": "Mozilla/5.0",
             "Referer": "https://betvegas23.com/",
             "Origin": "https://betvegas23.com",
         },
         method="POST",
-        is_active=False
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            refresh_interval=900,  # 15 minutes
+            job_active=True,
+            auth_redis_key="ace_cookies"
+        ),
+        class_name="Ace",
+        file_name="ace",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="1BV",
         name="1bv",
         url={
@@ -68,9 +106,11 @@ SPORTSBOOKS_PROVIDERS = [
             'Connection': 'keep-alive',
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="OneBv",
+        file_name="onebv",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="Metallic",
         name="metallic",
         url={
@@ -83,9 +123,17 @@ SPORTSBOOKS_PROVIDERS = [
             'Referer': 'https://black34.com/v2/',
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            refresh_interval=900,  # 15 minutes
+            job_active=True,
+            auth_redis_key="metallic_token"
+        ),
+        class_name="Metallic",
+        file_name="metallic",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="Buckeye 2",
         name="buckeye2",
         url={
@@ -114,22 +162,38 @@ SPORTSBOOKS_PROVIDERS = [
             'TE': 'trailers'
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            refresh_interval=900,  # 15 minutes
+            job_active=True,
+            auth_redis_key="buckeye_2_auth_token"
+        ),
+        class_name="Buckeye2",
+        file_name="buckeye_2",
     ),
-    BaseProvider(
-            title="Buckeye 1",
-            name="buckeye1",
-            url={
-                "market_url": "https://playnow365.com/Qubic/PlayerGameSelection.php"
-            },
-            headers={
-                'Connection': 'keep-alive',
-                'Host': 'playnow365.com',
-                'Origin': 'https://playnow365.com',
-                'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
-            },
-            method="POST",
-            is_active=True
+    SportsbooksProvider(
+        title="Buckeye 1",
+        name="buckeye1",
+        url={
+            "market_url": "https://playnow365.com/Qubic/PlayerGameSelection.php"
+        },
+        headers={
+            'Connection': 'keep-alive',
+            'Host': 'playnow365.com',
+            'Origin': 'https://playnow365.com',
+            'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
+        },
+        method="POST",
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            refresh_interval=900,  # 15 minutes
+            job_active=True,
+            auth_redis_key="buckeye1_cookies"
+        ),
+        class_name="Buckeye1",
+        file_name="buckeye_1",
         ),
         # BaseProvider(
         #     title="Prop Builder",

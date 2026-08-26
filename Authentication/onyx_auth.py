@@ -131,13 +131,14 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 from APScheduler.base_scheduler import BaseScheduler
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
+from Authentication.base_auth import BaseAuth
 from Redis.redis_manager import RedisAsyncManager
 import aiohttp, re
 
-class OnyxAuth(BaseScheduler):
+class OnyxAuth(BaseAuth):
     load_dotenv()
     def __init__(self):
-        super().__init__()
+        super().__init__(book_name="fanduel", category="sgp")
 
     async def _extract_otp(self):
         email_client_base_url = "https://api.mail.tm"
@@ -277,7 +278,7 @@ class OnyxAuth(BaseScheduler):
 
                     if auth_token:
                         await redis_instance.store_data(
-                            key_name="onyx_auth",
+                            key_name=self.auth_id_name,
                             data_to_store=auth_token,
                             key_expiration=27000
                         )

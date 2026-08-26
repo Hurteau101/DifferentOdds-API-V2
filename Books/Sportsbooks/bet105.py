@@ -210,6 +210,9 @@ class Bet105(SportsbooksBookBase):
 
         if "props" in fixture.get("name").lower():
             teams = parent_dict.get("event_name").split(" vs ")
+            if len(teams) != 2:
+                return None
+
             key = Bet105.generate_key([teams[0], teams[1], parent_dict.get("start_date")])
 
             team_data = TeamData(
