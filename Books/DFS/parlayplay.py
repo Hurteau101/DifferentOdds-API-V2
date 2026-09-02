@@ -1,7 +1,7 @@
 import asyncio
 import re
-import aiohttp
-from Books.Bases.dfs_book_base import DFSBookBase
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -14,8 +14,6 @@ class Parlayplay(DFSBookBase):
     ]
     def __init__(self):
         super().__init__(book_name="parlayplay")
-
-        # Extract team data
 
     def _extract_team_data(self, game_data: dict) -> dict:
         team_a = game_data.get("match", {}).get("homeTeam", {}).get("teamname")
@@ -88,6 +86,7 @@ class Parlayplay(DFSBookBase):
             solo_game=self._check_solo_sport(player),
             odds=[
                 DFSStats(
+                    static_mapping=self.static_mapping,
                     player_name=player.get("player").get("fullName"),
                     player_team=team_data.get("player_team"),
                     stat_type=configure_stat_type(stat.get("marketName")),
@@ -151,11 +150,16 @@ class Parlayplay(DFSBookBase):
 
         return league_list
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             league_data = await self._get_leagues(session)
 
             if not league_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API league data found"
+                )
                 return None
 
             tasks = [
@@ -173,6 +177,11 @@ class Parlayplay(DFSBookBase):
             results = await asyncio.gather(*tasks)
 
             if not results:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API market data found"
+                )
                 return None
 
             api_data = [result for result in results if result]
@@ -188,15 +197,20 @@ class Parlayplay(DFSBookBase):
 
             parlay_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=parlay_data)
+            if not parlay_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=parlay_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            return parlay_data
 
 if __name__ == "__main__":
     ud = Parlayplay()

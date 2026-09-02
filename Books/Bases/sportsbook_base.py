@@ -1,41 +1,20 @@
-import aiohttp
+from abc import abstractmethod
 from Books.Bases.book_base import BookBase
-from Settings.Models.sportsbooks_models import SportsbookStats
+from Redis.redis_manager import RedisAsyncManager
+
 
 class SportsbooksBookBase(BookBase):
     def __init__(self, book_name: str):
-        super().__init__(category="sportsbooks", book_name=book_name, redis_database=6,
-                         payload_batch=10, async_batch=20)
+        super().__init__(book_category="sportsbooks", book_name=book_name, redis_database=0)
+        self.auth_redis_manager = RedisAsyncManager(database=1)
+        if self.book_data.auth_job_dict:
+            self.auth_id_name = self.book_data.auth_job_dict.auth_redis_key
+        self.mapper_redis_manager = RedisAsyncManager(database=2)
+        if self.book_data.mapper_job_dict:
+            self.mapper_id_name = self.book_data.mapper_job_dict.mapper_redis_key
 
-    async def map_runner(self, sportsbook_data: list, session: aiohttp.ClientSession = None):
-        mapped_data = await self.bettorodds_mapping.run_mapping(session=session, sportsbook_data=sportsbook_data)
+        self.espn_redis = RedisAsyncManager(database=8)
 
-        raw_unique_data_passer = [
-            {
-                "player_name": odds.bet_player,
-                "league": data.league,
-                "solo_game": data.solo_game,
-                "future": odds.future,
-                "team_a": data.team_data.team_a,
-                "team_b": data.team_data.team_b,
-            }
-
-            for data in sportsbook_data
-            for odds in data.odds
-        ]
-
-        mappings = await self.combine_bettorodds_internal_mapping(
-            raw_unique_data=raw_unique_data_passer,
-            bettorodds_mapped_data=mapped_data
-        )
-
-        teams = mappings.get("teams", {})
-        players = mappings.get("players", {})
-        markets = mappings.get("markets", {})
-
-        return self.map_data(
-            original_sportsbook_data=sportsbook_data,
-            mapped_teams=teams,
-            mapped_players=players,
-            mapped_markets=markets,
-        )
+    @abstractmethod
+    async def run_book(self) -> list | None:
+        raise NotImplementedError("Subclasses must implement the run_book method.")

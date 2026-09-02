@@ -1,5 +1,5 @@
 from typing import Union
-
+from Utils.helpers import decimal_to_american, american_to_decimal
 
 def get_percentage(o):  # converts American Odds to Percentage % (<= 1)
     """
@@ -88,28 +88,6 @@ def get_ev_from_odds(odds: float, nvig: float) -> float:
         float: EV expressed as percentage points.
     """
     return get_ev(odds, get_percentage(nvig))
-
-
-def percentage_to_american_odds(probability):
-    """
-    Convert a decimal probability to rounded American odds.
-
-    Args:
-        probability (float): Decimal probability between 0 and 1.
-
-    Returns:
-        int: Rounded American odds (negative for probabilities > 0.5).
-
-    Examples:
-        >>> percentage_to_american_odds(0.25)
-        300
-    """
-    if probability > 0.5:
-        odds = -(100 * probability) / (1 - probability)
-    else:
-        odds = (100 * (1 - probability)) / probability
-
-    return round(odds)
 
 
 def linear_reduction(book_odds, is_percentage=False) -> float:
@@ -233,20 +211,6 @@ def get_sgp_data(normal_books: dict, sgp_results: dict, fair_odds: Union[dict | 
     returned_data['weighted_fair_value'] = weighted_fair_value
     returned_data['weighted_book_data'] = weighted_book_data
     return returned_data
-
-def american_to_decimal(odds):
-    """Convert American odds to decimal odds."""
-    if odds > 0:
-        return 1 + (odds / 100)
-    else:
-        return 1 + (100 / abs(odds))
-
-def decimal_to_american(decimal):
-    """Convert decimal odds back to American odds."""
-    if decimal >= 2.0:
-        return (decimal - 1) * 100
-    else:
-        return -100 / (decimal - 1)
 
 
 def parlay_odds(*odds_list):

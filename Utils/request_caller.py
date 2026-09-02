@@ -1,14 +1,18 @@
-import json
 import os
+import re
 from dataclasses import dataclass
 from curl_cffi import AsyncSession as CurlAsyncSession
 import logging
 from random import shuffle
 import inspect
+from enum import Enum
+from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 @dataclass
 class CallResult:
@@ -17,6 +21,8 @@ class CallResult:
     status_code: int | None
     text: str | None = None
 
+class PredefinedProxy(Enum):
+    PROXY_CHEAP_RESIDENTIAL_PROXIES = [proxy for proxy in os.getenv("PROXY_CHEAP_RESIDENTIAL_PROXIES", "").split(",") if proxy]
 
 class APICaller:
     FINGERPRINT_HEADERS = [
@@ -35,9 +41,21 @@ class APICaller:
         "priority",
     ]
 
-    def _header_conflict_check(self, additional_headers: dict, default_headers: bool):
+
+    def _check_proxy_format(self, proxy: str):
+        """Ensures that the proxy format is USERNAME:PASSWORD@HOST:PORT"""
+        return bool(re.fullmatch(r'\S+:\S+@[\d.]+:\d+', proxy))
+
+    def _header_conflict_check(self, additional_headers: dict, default_headers: bool, default_headers_override: list | None):
         if default_headers and additional_headers:
-            conflicting = [key for key in additional_headers if key.lower() in self.FINGERPRINT_HEADERS]
+
+            default_headers_override = [key.lower() for key in default_headers_override] if default_headers_override else []
+
+            conflicting = [
+              key
+              for key in additional_headers
+              if key.lower() in self.FINGERPRINT_HEADERS and key.lower() not in default_headers_override
+            ]
 
             if conflicting:
                 raise ValueError(
@@ -52,7 +70,6 @@ class APICaller:
 
         try:
             request = await session.request(method=method, url=url, **kwargs)
-
             if request.status_code not in valid_codes:
                 return CallResult(ok=False, data={}, status_code=request.status_code, text=request.text)
 
@@ -68,7 +85,8 @@ class APICaller:
 
 
     async def api_caller(self, url: str, session: CurlAsyncSession|None = None, valid_codes:list|None = None, method: str = "GET",
-                         use_proxy:bool = False, proxy_list: list|None = None, proxy_impersonate: str="chrome", **kwargs):
+                         use_proxy:bool = False, proxy_list: list[str]|None = None, proxy_impersonate: str="chrome",
+                         default_header_override: list | None = None, **kwargs):
         """
         Helper function to make API calls using curl_cffi.
         :param url: The URL to be called.
@@ -78,12 +96,23 @@ class APICaller:
         :param use_proxy: Whether to use proxy or not. Default: False
         :param proxy_list: List of connection strings. Proxy format USERNAME:PASSWORD@HOST:PORT Default: RESIDENTIAL_PROXIES environment variable
         :param proxy_impersonate: The browser to impersonate. Default: chrome
-        :param kwargs: Additional parameters passed through to curl_cffi's session.request(). See the
+        :param default_header_override: List of header names to override in the default headers. Default: None
+        :param kwargs:
+            Additional parameters passed through to curl_cffi's session.request(). See the
             curl_cffi docs for all supported options (headers, params, json, data, auth, cookies, timeout,
             default_headers, allow_redirects, multipart, etc.): https://curl-cffi.readthedocs.io/en/latest/quick_start.html
+            Additionally handled by this function:
+
+            - "default_headers_override``: list of header names to override in the default headers.
+
         :return: The response from the API OR an empty dict.
         """
-        self._header_conflict_check(additional_headers=kwargs.get("headers"), default_headers=kwargs.get("default_headers", True))
+
+        self._header_conflict_check(
+            additional_headers=kwargs.get("headers"),
+            default_headers=kwargs.get("default_headers", True),
+            default_headers_override=default_header_override
+        )
 
         if not use_proxy:
             if not session:
@@ -98,12 +127,18 @@ class APICaller:
 
         if not proxy_list:
             # Use default proxy list if not provided.
-            proxy_list = os.getenv("RESIDENTIAL_PROXIES", "").split(",") if os.getenv("RESIDENTIAL_PROXIES") else []
+            proxy_list = PredefinedProxy.PROXY_CHEAP_RESIDENTIAL_PROXIES.value
+
             if not proxy_list:
                 raise ValueError("RESIDENTIAL_PROXIES environment variable is not set.")
 
         # Shuffle to avoid the same order of proxies.
         shuffled_proxies = list(proxy_list)
+        valid_proxies = [proxy for proxy in shuffled_proxies if self._check_proxy_format(proxy)]
+
+        if not valid_proxies:
+            raise ValueError(f"No valid proxy formats in proxy list. Format should be USERNAME:PASSWORD@HOST:PORT")
+
         shuffle(shuffled_proxies)
 
         errors = []

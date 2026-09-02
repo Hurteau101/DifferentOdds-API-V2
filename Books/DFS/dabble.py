@@ -1,7 +1,7 @@
 import asyncio
 import re
-from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -90,6 +90,7 @@ class Dabble(DFSBookBase):
             stat_type = market_names.get(player.get("marketId"), "").lower()
 
             stat_obj = DFSStats(
+                static_mapping=self.static_mapping,
                 player_name=player_name,
                 player_team=team_data.get("player_team"),
                 stat_type=stat_type,
@@ -115,7 +116,7 @@ class Dabble(DFSBookBase):
 
         return list(merged_stats.values())
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate="chrome") as session:
             league_data = await self.api_caller(
                 url=self.book_data.url.get("main_url"),
@@ -125,6 +126,11 @@ class Dabble(DFSBookBase):
             )
 
             if not league_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API league data found"
+                )
                 return None
 
             league_ids = [
@@ -145,6 +151,11 @@ class Dabble(DFSBookBase):
             results = await asyncio.gather(*tasks)
 
             if not results:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API league IDs found"
+                )
                 return None
 
             game_ids = set(
@@ -167,6 +178,11 @@ class Dabble(DFSBookBase):
             results = await asyncio.gather(*tasks)
 
             if not results:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API game data found"
+                )
                 return None
 
             # Flatten and filter out None results
@@ -184,15 +200,20 @@ class Dabble(DFSBookBase):
 
             dabble_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=dabble_data)
+            if not dabble_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                key_name=self.book_data.name,
+                data_to_store=dabble_data,
             )
 
-            return mapped_data
+            return dabble_data
 
 if __name__ == "__main__":
     dabble = Dabble()

@@ -1,113 +1,97 @@
 import asyncio
 from collections import Counter
-from Books.Bases.sgp_book_base import SGPBookBase
+from Books.Bases.sgp_base import SGPBookBase
+from Books.Bases.mapper_base import MapperBase
 from Redis.redis_manager import RedisAsyncManager
-from Utils.helpers import cache_time
+from Utils.helpers import decimal_to_american
 from curl_cffi import AsyncSession as CurlAsyncSession
+from Books.SGP.Mapping.prop_builder_mapper import PropBuilderMapper
+
 
 class PropBuilderSGP(SGPBookBase):
-    def __init__(self, mapped_ids_redis_instance, **kwargs):
-        super().__init__(category="SGP", book_name="prop_builder",
-                         mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
-        self.not_found = []
+    def __init__(self, **kwargs):
+        super().__init__(category="SGP", book_name="prop builder", **kwargs)
+
+    def _rebuild_additional_data(self, additional_data: list):
+        """Rebuilds the additional data"""
+        modified_data = []
+
+        for data in additional_data:
+            if data.get("prop_key") and data.get("event_key"):
+                modified_data.append({"event_key": data.get("event_key"), "prop_key": data.get("prop_key")})
+            else:
+                split_event_name = data.get("event_name").split(" vs ")
+                event_name = "_vs_".join(sorted(split_event_name)).replace(" ", "_").lower()
+                event_date = data.get("date")
+                event_key = "_".join([event_name, event_date]).replace(" ", "_").lower()
+                prop_key = MapperBase.build_prop_key(side=data.get("side"), line=data.get("line"), player=data.get("player"), stat=data.get("market_name"))
+
+                modified_data.append({"event_key": event_key, "prop_key": f"{prop_key}".lower()})
 
 
-    def _check_key(self, selection_parts: list, found_game_mapping: dict):
-        key_name = "_".join(selection_parts).lower().replace(" ", "_").replace("_team_total", "")
-        found = found_game_mapping.get(key_name)
+        return modified_data
 
-        if not found:
-            self.not_found.append(key_name)
-        else:
-            self.not_found.clear()
-        return found
-
-    def _find_key(self, parts: list, found_game_mapping: dict):
-        for candidate in (parts, parts[::-1]):
-            key = self._check_key(selection_parts=candidate, found_game_mapping=found_game_mapping)
-
-            if key:
-                return key
-        return None
-
-
-    def _build_payload(self, mapped_ids: dict, additional_data: dict) -> dict:
+    def _build_payload(self, mapped_ids: dict, additional_data: list) -> dict | None:
         event_name_count = Counter(item.get("event_name") for item in additional_data if item.get("event_name"))
         date_count = Counter(item.get("date") for item in additional_data if item.get("date"))
 
         if len(event_name_count) != 1 or len(date_count) != 1:
-            return {}
+            return None
 
-        event_name = additional_data[0].get("event_name")
-        event_date = cache_time(additional_data[0].get("date"))
-
-        team_1, team_2 = event_name.split(" vs ")
-
-        if not team_1 or not team_2:
-            return {}
-
-        team_key = " vs ".join(sorted([team_1, team_2]))
-        event_key = "_".join([team_key, event_date]).replace(" ", "_").lower()
-
-        found_game_mapping = mapped_ids.get(event_key, {})
-
-        if not found_game_mapping:
-            print("No Game Mapping Found:", event_key)
-            return {}
+        additional_data = self._rebuild_additional_data(additional_data=additional_data)
 
         payload = {
             "events": []
         }
 
-        for additonal in additional_data:
-            selection_name = additonal.get("selection_name", '').replace("+", '')
-            market_name = additonal.get("market_name", '')
-
-            parts = [selection_name, market_name]
-
-            found_key = self._find_key(parts, found_game_mapping)
-
-            if not found_key:
-                # print(self.not_found)
-                return {}
-
+        for data in additional_data:
+            event_key = data.get("event_key")
+            prop_key = data.get("prop_key")
+            found = mapped_ids.get(event_key, {}).get(prop_key)
+            if not found:
+                return None
 
             payload["events"].append({
-                "player1": found_key.get("player1"),
-                "game1": found_key.get("game1"),
-                "statistic": found_key.get("statistic"),
-                "conditionValue": found_key.get("condition_value"),
-                "type": found_key.get('type') or 20,
-                "market": found_key.get("game_id"),
+                "player1": found.get("player1"),
+                "game1": found.get("game1"),
+                "statistic": found.get("statistic"),
+                "conditionValue": found.get("condition_value"),
+                "type": found.get('type') or 20,
+                "market": found.get("game_id"),
             })
-
-        if len(payload.get("events")) != len(additional_data):
-            return {}
 
         return payload
 
 
-    @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self, session):
-        mapped_ids = await self.load_mapped_ids(key_name="prop_builder_mapped_ids")
-        additional_data = self.sgp_data.get("event_data", [])
+    async def run_book(self, session: CurlAsyncSession | None = None) -> dict | None:
+        mapped_ids = await self.mapper_redis_manager.get_data(key_name=self.mapper_id_name)
 
+        additional_data = self.sgp_data.get("event_data", [])
         if not mapped_ids or not additional_data:
             return None
 
         payload = self._build_payload(mapped_ids=mapped_ids, additional_data=additional_data)
-
         if not payload:
+            return None
+
+        token = await PropBuilderMapper.security_token(session=session,
+                                                 security_url=self.book_data.mapping.url.get("security_url"),
+                                                 api_caller=self.api_caller)
+        if not token:
             return None
 
         api_data = await self.api_caller(
             session=session,
             url=self.book_data.url.get("sgp_url"),
             method=self.book_data.method,
-            headers=self.book_data.headers,
-            payload=payload
-        )
+            headers={
+                **self.book_data.headers,
+                **token
 
+            },
+            valid_codes=[201],
+            json=payload
+        )
 
         if not api_data:
             return None
@@ -117,7 +101,7 @@ class PropBuilderSGP(SGPBookBase):
         if not odds:
             return None
 
-        american_odds = self.convert_decimal_to_american(float(odds))
+        american_odds = decimal_to_american(float(odds))
 
         return PropBuilderSGP.return_odds(
             american_odds=american_odds,
@@ -136,25 +120,30 @@ if __name__ == "__main__":
                     "https://{state}.betway.com/sports/event/16902972",
                 ],
                 "event_data": [
-                  {
-                    "event_name": "Los Angeles Dodgers vs Colorado Rockies",
-                    "date": "2026-07-09 02:10:00Z",
-                    "market_name": "Player Outs",
-                    "selection_name": "Roki Sasaki Over 16.5",
-                    "line": "16.5"
-                  },
-                  {
-                    "event_name": "Los Angeles Dodgers vs Colorado Rockies",
-                    "date": "2026-07-09 02:10:00Z",
-                    "market_name": "Player Hits + Runs + RBIs",
-                    "selection_name": "Kyle Tucker Over 1.5",
-                    "line": "1.5"
-                  }
-                ]
+                      {
+                        "market_name": "Total Runs",
+                        "date": "2026-08-30T02:05:00Z",
+                        "event_name": "Oakland Athletics vs Baltimore Orioles",
+                        "line": "11.5",
+                        "player": "",
+                        "side": "Under",
+                        # "prop_key": "11.5_total_runs_under",
+                        # "event_key": "baltimore_orioles_vs_oakland_athletics_2026-08-30t02:05:00z"
+                      },
+                      {
+                        "market_name": "Moneyline",
+                        "date": "2026-08-30T02:05:00Z",
+                        "event_name": "Oakland Athletics vs Baltimore Orioles",
+                        "line": "",
+                        "player": "",
+                        "side": "Baltimore Orioles",
+                        # "prop_key": "baltimore_orioles_moneyline",
+                        # "event_key": "baltimore_orioles_vs_oakland_athletics_2026-08-30t02:05:00z"
+                      }
+                    ]
             }
 
-            redis_mapped = RedisAsyncManager(database=2)
-            book = PropBuilderSGP(sgp_data=sgp_data, mapped_ids_redis_instance=redis_mapped)
+            book = PropBuilderSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)
             print(data)
 

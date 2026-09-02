@@ -1,6 +1,6 @@
 import asyncio
 import os
-from Books.Bases.sgp_book_base import SGPBookBase
+from Books.Bases.sgp_base import SGPBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
@@ -9,7 +9,6 @@ class ProphetxSGP(SGPBookBase):
         super().__init__(category="SGP", book_name="prophet x", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
         headers = self.book_data.headers
         headers.update({
@@ -47,7 +46,10 @@ if __name__ == "__main__":
     if __name__ == "__main__":
         async def main():
             async with CurlAsyncSession(impersonate="chrome") as session:
-                sgp_data = {'book_name': 'prophetx', 'links': ['https://www.prophetx.co/?action=addtobetslip&lineID=881bfbeec4d3c089bcd0ee9a32cd5d53&partner_id=null&currency=cash', 'https://www.prophetx.co/?action=addtobetslip&lineID=71152995a5239b78e694b87254c1b8ef&partner_id=null&currency=cash']}
+                sgp_data = {'book_name': 'prophetx', 'links': [
+                    "https://www.prophetx.co/?action=addtobetslip&lineID=30e3d3312eabbe5b8f2bb5d51cb76127&partner_id=null",
+                    "https://www.prophetx.co/?action=addtobetslip&lineID=28a16a07b8bddf9f11a14525c6e96b57&partner_id=null"
+                ]}
 
                 book = ProphetxSGP(sgp_data)
                 data = await book.run_book(session=session)
@@ -55,9 +57,3 @@ if __name__ == "__main__":
 
 
         asyncio.run(main())
-
-    # sgp_data = {'book_name': 'prophetx', 'links': ['https://www.prophetx.co/?action=addtobetslip&lineID=881bfbeec4d3c089bcd0ee9a32cd5d53&partner_id=null&currency=cash', 'https://www.prophetx.co/?action=addtobetslip&lineID=71152995a5239b78e694b87254c1b8ef&partner_id=null&currency=cash']}
-    #
-    # book = ProphetxSGP(sgp_data=sgp_data)
-    # data = asyncio.run(book.run_book())
-    # print(data)

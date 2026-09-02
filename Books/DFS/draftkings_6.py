@@ -1,5 +1,6 @@
 import asyncio
-from Books.Bases.dfs_book_base import DFSBookBase
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -249,6 +250,7 @@ class DraftKingsPickSix(DFSBookBase):
 
                     market_data[player_key].odds.append(
                         DFSStats(
+                            static_mapping=self.static_mapping,
                             player_name=markets.get("player_name"),
                             player_team=markets.get("player_team"),
                             stat_type=stat["stat_type"],
@@ -265,7 +267,7 @@ class DraftKingsPickSix(DFSBookBase):
 
         return market_data.values()
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_league_keys = await self.api_caller(
                 session=session,
@@ -275,6 +277,11 @@ class DraftKingsPickSix(DFSBookBase):
             )
 
             if not api_league_keys:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API league ids data found"
+                )
                 return None
 
             league_keys = self._extract_league_keys(api_league_keys)
@@ -293,6 +300,11 @@ class DraftKingsPickSix(DFSBookBase):
             ])
 
             if not league_results:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API league data found"
+                )
                 return None
 
             team_mapping = await self._get_team_game_ids(league_results=league_results)
@@ -309,6 +321,11 @@ class DraftKingsPickSix(DFSBookBase):
             ])
 
             if not market_results:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API market data found"
+                )
                 return None
 
             picksix_data = []
@@ -321,18 +338,24 @@ class DraftKingsPickSix(DFSBookBase):
                     results=market,
                     session=session
                 )
+
                 if data:
                     picksix_data.extend(data)
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=picksix_data)
+            if not picksix_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=picksix_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            return picksix_data
 
 if __name__ == "__main__":
     ud = DraftKingsPickSix()

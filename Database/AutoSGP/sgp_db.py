@@ -1,13 +1,11 @@
-from typing import List, Optional, Any
-from sqlalchemy import ARRAY, String, DateTime, Dialect
-from sqlalchemy.dialects.postgresql import JSONB, insert
+from typing import List
+from sqlalchemy import ARRAY, String, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import ForeignKey, UniqueConstraint, Index, select
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload, sessionmaker, Session, validates
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections import defaultdict
-
-from sqlalchemy.sql.type_api import _T
 
 from Database.base_db import Base, to_dict
 import sqlalchemy.types as types

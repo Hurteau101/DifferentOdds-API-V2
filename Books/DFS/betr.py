@@ -1,8 +1,7 @@
-import asyncio
-from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData, get_static_mapping
+from Settings.Models.base_models import GameData, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Betr(DFSBookBase):
@@ -139,13 +138,6 @@ class Betr(DFSBookBase):
             )
 
         if not game_data:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="api_failure",
-                message="No Game Data Found",
-                level="error"
-            )
-
             return None
 
         return [
@@ -212,6 +204,7 @@ class Betr(DFSBookBase):
 
                 bet_options = [
                     DFSStats(
+                        static_mapping=self.static_mapping,
                         player_name=player_name,
                         player_team=player_team,
                         stat_type=stat_type_helper(projection.get("label")),
@@ -248,12 +241,6 @@ class Betr(DFSBookBase):
 
     def _extract_team_games(self, teams: list, team_names: dict | str, league: str, game_date: str) -> list:
         if not teams:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="team_failure",
-                message="No teams found in team game extraction.",
-                level="error"
-            )
             return []
 
         return [
@@ -268,24 +255,13 @@ class Betr(DFSBookBase):
             )
         ]
 
-    def _extract_solo_games(self, players: list) -> list | None:
-        if not players:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="solo_game_failure",
-                message="No players found in solo game extraction.",
-                level="error"
-            )
-
-            return []
-
     def _game_info_controller(self, game: dict) -> list | None:
         results = []
         if game.get("status") != "SCHEDULED":
             return None
 
         # Import here and in Dataclass as this does require the leagues to be mapped prior dataclass creation.
-        static_mapping = get_static_mapping().get("leagues", {}) or {}
+        static_mapping = self.static_mapping.get("league_mapper", {})
 
         league = static_mapping.get(game.get("league").lower(), {}).get("mapped_name", game.get("league").upper())
 
@@ -301,18 +277,11 @@ class Betr(DFSBookBase):
             game_data = self._extract_team_games(game.get("teams"), team_names, league, game_date)
             results.extend(game_data)
         else:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="unknown_player_structure",
-                message=F"Unknown player structure encountered in game data [{game.get('playerStructure')}].",
-                level="error"
-            )
-
             return None
 
         return results
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_data = await self.api_caller(
                 session=session,
@@ -331,6 +300,11 @@ class Betr(DFSBookBase):
             )
 
             if not api_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
+                )
                 return None
 
             leagues = self._extract_leagues(api_data)
@@ -350,16 +324,22 @@ class Betr(DFSBookBase):
 
             betr_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=betr_data)
+            if not betr_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=betr_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            return betr_data
 
 if __name__ == "__main__":
+    import asyncio
     betr = Betr()
     asyncio.run(betr.run_book())

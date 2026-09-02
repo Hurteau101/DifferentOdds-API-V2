@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-
 from dotenv import load_dotenv
 from fastapi import Depends
 from sqlalchemy.engine import URL, create_engine
@@ -30,7 +29,7 @@ def async_engine():
         _url(production, "postgresql+asyncpg"),
         echo=not production,
         pool_size=10,
-        max_overflow=5,
+        max_overflow=20,
         pool_pre_ping=True,
     )
 
@@ -46,8 +45,8 @@ def sync_engine():
     return create_engine(
         _url(production, "postgresql"),
         echo=not production,
-        pool_size=5,
-        max_overflow=5,
+        pool_size=10,
+        max_overflow=20,
         pool_pre_ping=True,
     )
 

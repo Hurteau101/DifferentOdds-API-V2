@@ -1,0 +1,52 @@
+import pytest
+from Redis.redis_manager import RedisAsyncManager
+from Settings.book_configurations import BookConfiguration
+import itertools
+
+from Tests.helper import get_class_instance
+
+SPECIFIC_BOOKS = []
+
+book_config = [
+    BookConfiguration.get_book_info(
+    book_type=book_type,
+    remove_non_active=True,
+    key_names={"name": "book_key", "class_name": "class_name", "class_path": "class_path", "auth_job_dict": "auth_dict"}
+    )
+
+    for book_type in ["dfs", "sgp", "sportsbooks", "prediction_liquidity"]
+]
+
+if SPECIFIC_BOOKS:
+    book_config = [
+        [book]
+        for book in itertools.chain.from_iterable(book_config)
+        if book.get("book_key") in SPECIFIC_BOOKS
+    ]
+
+filtered_auth = [
+    book
+    for book in itertools.chain.from_iterable(book_config)
+    if book.get("auth_dict")
+]
+
+@pytest.mark.parametrize(
+    "book_config",
+    [book for book in filtered_auth],
+    ids=[b["book_key"] for b in filtered_auth],
+)
+async def test_auth_books(book_config):
+    redis_manager = RedisAsyncManager(database=1)
+    await redis_manager.flush_db()
+
+    auth_dict = book_config.get("auth_dict")
+
+    class_instance = get_class_instance(class_name=auth_dict.class_name, class_path=auth_dict.class_path)
+
+    valid_run = await class_instance.run_auth()
+    assert valid_run
+
+    auth_key = auth_dict.auth_redis_key
+    auth_token = await redis_manager.get_data(key_name=auth_key)
+
+    assert auth_token

@@ -1,18 +1,13 @@
 import asyncio
-import aiohttp
-from Books.Bases.sgp_book_base import SGPBookBase
-from Monitoring.monitoring import create_sentry_message
-from Redis.redis_manager import RedisAsyncManager
-
+from Books.Bases.sgp_base import SGPBookBase
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class FanduelSGP(SGPBookBase):
-    def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
-        super().__init__(category="SGP", book_name="fanduel", sgp_data=sgp_data,
-                         mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
+    def __init__(self, sgp_data: dict, **kwargs):
+        super().__init__(category="SGP", book_name="fanduel", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self, session):
+    async def run_book(self, session) -> dict | None:
         mapped_data = await self._map_data()
 
         # Check if mapped_data is empty or contains None marketId
@@ -22,16 +17,16 @@ class FanduelSGP(SGPBookBase):
         payload = self._create_payload(mapped_data)
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("sgp_url"),
             method="POST",
             headers=self.book_data.headers,
-            payload=payload
+            default_header_override=["Accept"],
+            json=payload,
         )
 
         if not api_data:
-            return
+            return None
 
         number_of_legs = len(mapped_data)
 
@@ -58,16 +53,9 @@ class FanduelSGP(SGPBookBase):
 
     async def _map_data(self) -> list | None:
         """ Map the marketID from the links to the actual marketId using Redis. Due to links being external market IDs"""
-        mapped_ids = await self.load_mapped_ids(key_name="fanduel_ids")
+        mapped_ids = await self.mapper_redis_manager.get_data(key_name="fanduel_ids")
 
         if not mapped_ids:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="mapping_failure",
-                message="No mapped IDs were found.",
-                level="error"
-            )
-
             return None
 
         return [
@@ -100,13 +88,14 @@ class FanduelSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
             sgp_data = {'book_name': 'fanduel', 'links': [
-                'https://sportsbook.fanduel.com/addToBetslip?marketId=42.562499828&selectionId=38225623',
-                'https://sportsbook.fanduel.com/addToBetslip?marketId=42.562497363&selectionId=15552474']}
+                "https://sportsbook.blue_book.com/addToBetslip?marketId=42.604449122&selectionId=72268406",
+                "https://sportsbook.blue_book.com/addToBetslip?marketId=42.604449172&selectionId=79285407"
+                ]
+            }
 
-            redis_mapped = RedisAsyncManager(database=2)
-            book = FanduelSGP(mapped_ids_redis_instance=redis_mapped, sgp_data=sgp_data)
+            book = FanduelSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)
             print(data)
 

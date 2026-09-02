@@ -1,50 +1,74 @@
 import asyncio
 import re
+from typing import Counter
 from curl_cffi import AsyncSession as CurlAsyncSession
-from Books.Bases.sgp_book_base import SGPBookBase
+from Bases.mapper_base import MapperBase
+from Books.Bases.sgp_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
-
-
+from Utils.helpers import decimal_to_american
 
 class BetwaySGP(SGPBookBase):
-    def __init__(self, mapped_ids_redis_instance, **kwargs):
-        super().__init__(category="SGP", book_name="betway",
-                         mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(category="SGP", book_name="betway", **kwargs)
 
-    async def _get_outcome_ids(self, additional_list: list) -> list | None:
-        mapped_ids = await self.load_mapped_ids(key_name="betway_mapped_ids")
-
-        if not mapped_ids:
-            return None
+    def _rebuild_additional_data(self, additional_data: list):
+        """Rebuilds the additional data"""
+        modified_data = []
 
         pattern = re.compile(r"event/(\d+)")
+
         event_id = next((
             found_id.group(1)
             for link in self.links
             if (found_id := pattern.search(link))
         ), None)
 
-        if not event_id:
+
+        for data in additional_data:
+            if data.get("prop_key"):
+                modified_data.append({"event_key": event_id, "prop_key": data.get("prop_key")})
+            else:
+                prop_key = MapperBase.build_prop_key(side=data.get("side"), line=data.get("line"), player=data.get("player"), stat=data.get("market_name"))
+                modified_data.append({"event_key": event_id, "prop_key": f"{prop_key}".lower()})
+
+
+        return modified_data
+
+    def _build_outcomes(self, mapped_ids: dict, additional_data: list) -> list | None:
+        event_name_count = Counter(item.get("event_name") for item in additional_data if item.get("event_name"))
+        date_count = Counter(item.get("date") for item in additional_data if item.get("date"))
+
+        if len(event_name_count) != 1 or len(date_count) != 1:
             return None
 
-        outcome_ids = []
+        additional_data = self._rebuild_additional_data(additional_data=additional_data)
+        outcomes = []
 
-        for additional in additional_list:
-            market_name = additional["market_name"]
-            selection = additional["selection_name"]
-            generate_key = "_".join([market_name, selection]).lower().replace(" ", "_")
+        for data in additional_data:
+            event_key = data.get("event_key")
+            prop_key = data.get("prop_key")
 
-            found_mapping = mapped_ids.get(event_id, {}).get(generate_key)
+            found = mapped_ids.get(event_key, {}).get(prop_key)
+            if not found:
+                return None
 
-            if found_mapping:
-                outcome_ids.append(found_mapping)
+            outcomes.append(found.get("outcome_id"))
 
-        if len(outcome_ids) != len(additional_list):
+        return outcomes
+
+    async def run_book(self, session: CurlAsyncSession | None = None) -> dict | None:
+        mapped_ids = await self.mapper_redis_manager.get_data(key_name=self.mapper_id_name)
+
+        additional_data = self.sgp_data.get("event_data", [])
+
+        if not mapped_ids or not additional_data:
             return None
 
-        return outcome_ids
+        outcome_ids = self._build_outcomes(mapped_ids=mapped_ids, additional_data=additional_data)
 
-    async def _extract_odds(self, outcome_ids: list, session: CurlAsyncSession):
+        if not outcome_ids:
+            return None
+
         api_data = await self.api_caller(
             session=session,
             url=self.book_data.url.get("sgp_url"),
@@ -56,7 +80,12 @@ class BetwaySGP(SGPBookBase):
                 "ClientTypeId": 2,
                 "JurisdictionId": 2,
                 "ClientIntegratorId": 1,
-                "Selections": outcome_ids,
+                "Selections": [
+                    {
+                        "OutcomeId": outcome
+                    }
+                    for outcome in outcome_ids
+                ],
                 "Rewards": []
             }
         )
@@ -77,35 +106,13 @@ class BetwaySGP(SGPBookBase):
         if len(outcome_ids) != len(selections) or not decimal_odds:
             return None
 
-        american_odds = self.convert_decimal_to_american(float(decimal_odds))
+        american_odds = decimal_to_american(float(decimal_odds))
 
         return BetwaySGP.return_odds(
             american_odds=american_odds,
             decimal_odds=float(decimal_odds)
         )
 
-    @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self, session):
-        additional_data = self.sgp_data.get("event_data", [])
-
-        valid_input = all(
-            key in data
-            for data in additional_data
-            for key in ("market_name", "selection_name")
-        ) and bool(self.links)
-
-
-        if not valid_input:
-            return None
-
-        outcome_ids = await self._get_outcome_ids(additional_list=additional_data)
-        if not outcome_ids:
-            return
-
-        return await self._extract_odds(outcome_ids=outcome_ids, session=session)
-
-
-#### CHECK OTHER MAPPING TO ENSURE ERRORS ARE SENT
 
 if __name__ == "__main__":
     async def main():
@@ -113,35 +120,35 @@ if __name__ == "__main__":
             sgp_data = {
                 'book_name': 'betway',
                 'links': [
-                    "https://{state}.betway.com/sports/event/16902972",
-                    "https://{state}.betway.com/sports/event/16902972",
+                    "https://{state}.betway.com/sports/event/17158909",
+                    "https://{state}.betway.com/sports/event/17158909"
                 ],
-                'event_data': [
-                    {'market_name': 'Moneyline', 'selection_name': 'Chicago Cubs'},
-                    {'market_name': 'Total Runs', 'selection_name': 'Over 7.5'}
+                "event_data": [
+                  {
+                    "market_name": "Player RBIs",
+                    "date": "2026-08-30T23:20:00Z",
+                    "event_name": "Chicago Cubs vs Cincinnati Reds",
+                    "line": "1.5",
+                    "player": "JJ Bleday",
+                    "side": "Over",
+                    "prop_key": "1.5_jj_bleday_over_player_rbis",
+                    "event_key": "chicago_cubs_vs_cincinnati_reds_2026-08-30t23:20:00z"
+                  },
+                    {
+                        "market_name": "Player Bases",
+                        "date": "2026-08-30T23:20:00Z",
+                        "event_name": "Chicago Cubs vs Cincinnati Reds",
+                        "line": "0.5",
+                        "player": "Pete Crow-Armstrong",
+                        "side": "Over",
+                        "prop_key": "0.5_over_pete_crow-armstrong_player_bases",
+                        "event_key": "chicago_cubs_vs_cincinnati_reds_2026-08-30t23:20:00z"
+                    }
                 ]
             }
 
-            redis_mapped = RedisAsyncManager(database=2)
-            book = BetwaySGP(sgp_data=sgp_data, mapped_ids_redis_instance=redis_mapped)
+            book = BetwaySGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)
             print(data)
 
     asyncio.run(main())
-
-
-
-    # sgp_data = {
-    #     'book_name': 'betmgm',
-    #     'links': ["https://{state}.betway.com/sports/event/16447138",
-    #               "https://{state}.betway.com/sports/event/16447138"]
-    # }
-    #
-    # additional_data = [
-    #     {"market_name": "Player Points", "selection": "PJ Washington Over 12.5"},
-    #     {"market_name": "Player Points", "selection": "Jayson Tatum Over 12.5"}
-    # ]
-    #
-    # book = BetwaySGP(sgp_data=sgp_data, additional_data=additional_data)
-    # data = asyncio.run(book.run_book())
-    # print(data)

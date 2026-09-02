@@ -1,8 +1,8 @@
 import asyncio
-import os
 from dotenv import load_dotenv
-from Books.Bases.sgp_book_base import SGPBookBase
+from Books.Bases.sgp_base import SGPBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
+from Utils.helpers import convert_probability_to_american_odds
 
 load_dotenv()
 
@@ -28,15 +28,13 @@ class NovigSGP(SGPBookBase):
             for odds in api_data
         ])
 
-        return NovigSGP.convert_probability_to_american_odds(probability)
+        return convert_probability_to_american_odds(probability)
 
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
 
         ids = [{"id": link.get("event_id")} for link in self.link_data]
-
 
         payload = {
             "boostId": None,
@@ -50,49 +48,9 @@ class NovigSGP(SGPBookBase):
             headers=self.book_data.headers,
             url=self.book_data.url.get("main_url"),
             method="POST",
-            json=payload
+            json=payload,
+            valid_codes=[201]
         )
-
-        # proxy_manager = ProxyManager(proxies=proxies, api_caller_func=self.api_caller)
-        #
-        # if not is_sgp:
-        #     api_data = await proxy_manager.rotating_proxy_caller(
-        #         book_name=self.book_data.name,
-        #         session=session,
-        #         headers=self.book_data.headers,
-        #         url=self.book_data.url.get("main_url"),
-        #         method="POST",
-        #         payload=payload
-        #     )
-        # else:
-        #     api_data = await proxy_manager.proxy_caller(
-        #         book_name=self.book_data.name,
-        #         session=session,
-        #         headers=self.book_data.headers,
-        #         url=self.book_data.url.get("main_url"),
-        #         method="POST",
-        #         payload=payload
-        #     )
-
-        # api_data = await self.api_caller(
-        #     book_name=self.book_data.name,
-        #     headers=self.book_data.headers,
-        #     session=session,
-        #     url=self.book_data.url.get("main_url"),
-        #     method="POST",
-        #     payload=payload
-        # )
-
-        # api_data = await proxy_manager.proxy_caller(
-        #     book_name=self.book_data.name,
-        #     session=session,
-        #     headers=self.book_data.headers,
-        #     url=self.book_data.url.get("main_url"),
-        #     method="POST",
-        #     payload=payload
-        # )
-
-
 
         if not api_data:
             return None
@@ -110,9 +68,11 @@ if __name__ == "__main__":
         async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {
                 "book_name": "novig",
-                "links": ["https://novig.com/events/019f9c03-665e-7380-96b8-5cf45707f310/null",
-                          "https://novig.com/events/019f9ec8-4fa3-71a0-a76b-48407921ef9e/null"],
-                "is_sgp": False
+                "links": [
+                    "https://novig.com/events/01a05abf-58f0-7df2-af4d-8f0e2a6b418e/null?referralCode=null",
+                    "https://novig.com/events/01a05abf-58e9-7df2-9d3f-f20634fd5f25/null?referralCode=null"
+                ],
+                "is_sgp": True
             }
             novig_sgp = NovigSGP(sgp_data=sgp_data)
             results = await novig_sgp.run_book(session=session)

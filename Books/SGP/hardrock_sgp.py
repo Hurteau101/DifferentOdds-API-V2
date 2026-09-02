@@ -1,11 +1,7 @@
-from Books.Bases.sgp_book_base import SGPBookBase
+from Books.Bases.sgp_base import SGPBookBase
 import asyncio
 from Utils.socket_pooler import SocketHelper
-
-# _pool = SocketPooler(url="wss://api.hardrocksportsbook.com/websocket", headers={
-#     'Origin': 'https://api.hardrocksportsbook.com',
-#     'Host': 'api.hardrocksportsbook.com'
-# })
+from Utils.helpers import decimal_to_american
 
 class HardrockSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
@@ -16,12 +12,8 @@ class HardrockSGP(SGPBookBase):
             **kwargs
         )
 
-
-
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session=None):
-
         hardrock_ids = [item["bet_id"] for item in self.link_data]
 
         payload = self.create_payload(hardrock_ids)
@@ -34,16 +26,6 @@ class HardrockSGP(SGPBookBase):
             }
         )
 
-        # data = await socket_helper.send(payload={
-        #   "SportsbookLoginRequest": {
-        #     "sessionToken": None
-        #   }
-        # })
-        #
-        # if data.get("Response", {}).get("status") != "ok":
-        #     return None
-
-
         data = await socket_helper.send(payload)
 
         if not data:
@@ -55,7 +37,7 @@ class HardrockSGP(SGPBookBase):
             (
                 {
                     "decimal": price,
-                    "american": self.convert_decimal_to_american(price),
+                    "american": decimal_to_american(price),
                 }
                 for betslip in betslip_data.get("sameGameParlays", {}).values()
                 if (price := betslip.get("price"))
@@ -90,8 +72,8 @@ if __name__ == "__main__":
     sgp_data = {
         "book_name": "hardrock",
         "links": [
-          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/8181944312381178196",
-          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/1795042579159581007",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/5209784919571693970",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/6738962142176870793"
         ]
       }
 

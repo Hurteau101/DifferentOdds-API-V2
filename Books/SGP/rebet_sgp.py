@@ -1,7 +1,7 @@
 import asyncio
 
 from aiohttp import payload
-from Books.Bases.sgp_book_base import SGPBookBase
+from Books.Bases.sgp_base import SGPBookBase
 
 
 

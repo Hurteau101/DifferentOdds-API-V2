@@ -1,39 +1,23 @@
 import asyncio
-import aiohttp
 from dotenv import load_dotenv
-import os
-from Books.Bases.sgp_book_base import SGPBookBase
-from Redis.redis_manager import RedisAsyncManager
-from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_result
+from Books.Bases.sgp_base import SGPBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class KambiSGP(SGPBookBase):
     load_dotenv()
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(category="SGP", book_name="kambi", retry_amount=5, sgp_data=sgp_data, **kwargs)
+        super().__init__(category="SGP", book_name="kambi", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=False)
     async def run_book(self, session):
         bet_id_list = ",".join([bet_id.get("bet_id") for bet_id in self.link_data])
         event_id = next(iter({item["event_id"] for item in self.link_data}))
-
-        # Geo-Location issues, must use this proxy.
-        # proxy = os.getenv("KAMBI_PROXY")
-        # proxy_manger = ProxyManager(self.api_caller, proxies=[proxy])
 
         api_data = await self.api_caller(
             session=session,
             url=self.book_data.url.get("main_url").format(event_id=event_id, bet_ids=bet_id_list),
             method=self.book_data.method,
         )
-
-        # api_data = await self.api_caller(
-        #     book_name=self.book_data.name,
-        #     session=session,
-        #     url=self.book_data.url.get("main_url").format(event_id=event_id, bet_ids=bet_id_list),
-        #     method=self.book_data.method,
-        # )
 
         if not api_data:
             return None
@@ -47,8 +31,8 @@ if __name__ == "__main__":
     async def main():
         async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {'book_name': 'kambi', 'links': [
-                "https://{state}.betrivers.com/?page=sportsbook#event/1024653253?coupon=single|4134649159|",
-                "https://{state}.betrivers.com/?page=sportsbook#event/1024653253?coupon=single|4134638535|"
+                "https://{state}.betrivers.com/?page=sportsbook#event/1024787556?coupon=single|4319709181|",
+                "https://{state}.betrivers.com/?page=sportsbook#event/1024787556?coupon=single|4319718284|"
                         ]}
             book = KambiSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)

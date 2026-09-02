@@ -1,15 +1,6 @@
-import asyncio
-import json
 from datetime import datetime
 from typing import Callable
-
-import requests
-from bs4 import BeautifulSoup
-from curl_cffi.requests import Session
 from rapidfuzz import process, fuzz
-
-from Books.Bases.book_base import BookBase
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import TeamData, OddsFormat, GameData
 from Settings.Models.sportsbooks_models import SportsbookStats
@@ -54,6 +45,7 @@ class PPHBookBase(SportsbooksBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                static_mapping=self.static_mapping,
                 market=self.convert_spread_name(mapped_market_name, league),
                 bet_team=team,
                 line=float(spread_line),
@@ -87,6 +79,7 @@ class PPHBookBase(SportsbooksBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                static_mapping=self.static_mapping,
                 market=mapped_market_name,
                 bet_team=team,
                 line=None,
@@ -140,66 +133,6 @@ class PPHBookBase(SportsbooksBookBase):
 
         return market_name
 
-
-    def pph_login_helper(self, payload: dict, sportsbook_name: str, additional_headers: dict = None,
-                   login_key_word_check: str = None):
-        """
-        Used for PPH sportsbooks that require login via ASP.NET forms.
-        :param payload: The payload containing login credentials and any additional required fields.
-        :param sportsbook_name: The name of the sportsbook for logging purposes.
-        :param additional_headers: Any additional headers to include in the login request.
-        :param login_key_word_check: A keyword to check in cookies to verify successful login.
-        """
-        def find_values(name):
-            hidden_tag = soup.find("input", {"name": name})
-            return hidden_tag["value"] if hidden_tag else ""
-
-        if not payload:
-            raise ValueError("Payload for login cannot be empty.")
-
-        with Session(impersonate="chrome120") as session:
-            response = session.get(self.book_data.url.get("login_url"))
-            soup = BeautifulSoup(response.text, "html.parser")
-
-
-            starter_payload = {
-                "__VIEWSTATE": find_values("__VIEWSTATE"),
-                "__VIEWSTATEGENERATOR": find_values("__VIEWSTATEGENERATOR"),
-                "__EVENTVALIDATION": find_values("__EVENTVALIDATION"),
-            }
-
-            starter_payload.update(payload)
-
-            if additional_headers:
-                self.book_data.headers.update(additional_headers)
-
-            print(starter_payload)
-            response = session.post("https://bettheguys.com/Login.aspx", data=payload, headers=self.book_data.headers)
-
-            print(response.text)
-
-            if login_key_word_check and login_key_word_check not in session.cookies.get_dict():
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="login_failure",
-                    message="Couldn't login",
-                    level="error"
-                )
-                return None
-            print(session.cookies.get_dict())
-            return session.cookies.get_dict()
-
-    @staticmethod
-    async def post_with_semaphore(semaphore: asyncio.Semaphore, task, retries: int = 3, delay: float = 1.0):
-        async with semaphore:
-            for attempt in range(retries):
-                try:
-                    await asyncio.sleep(0.5)
-                    return await task
-                except Exception as e:
-                    if attempt == retries - 1:
-                        return None
-                    await asyncio.sleep(delay * (attempt + 1))
 
     def extract_market_names(self, book_data: list[GameData]):
         return set(
@@ -260,13 +193,6 @@ class PPHBookBase(SportsbooksBookBase):
         ), {})
 
         return found_scheduled_game_data
-
-
-
-
-
-
-
 
     @staticmethod
     def is_within_minutes(minutes: int, date_1: datetime | str, date_2: datetime | str) -> bool:

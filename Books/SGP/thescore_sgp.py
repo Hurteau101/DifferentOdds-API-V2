@@ -1,17 +1,14 @@
 import asyncio
 import copy
 import re
-from Books.Bases.sgp_book_base import SGPBookBase
+from Books.Bases.sgp_base import SGPBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
-
-## If it stops fetching the SGP Odds - Look into proxying.
 
 class ThescoreSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(category="SGP", book_name="thescore", sgp_data=sgp_data, **kwargs)
 
     # Don't reuse session.
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session=None):
         link_data = self._custom_link_extract(self.links)
 
@@ -20,7 +17,6 @@ class ThescoreSGP(SGPBookBase):
 
         async with CurlAsyncSession(impersonate="chrome") as session:
             data = await session.get("https://sportsbook.ca-default.thescore.bet/")
-            print(data)
             token = await self._get_anonymous_token(session)
 
             if not token:
@@ -205,8 +201,8 @@ if __name__ == "__main__":
     async def main():
         async with CurlAsyncSession(impersonate="safari15_5") as session:
             sgp_data = {'book_name': 'thescore', 'links': [
-                "https://sportsbook.thescore.bet/sport/baseball/organization/united-states/competition/mlb/event/d2df8508-88d9-4cfb-8712-3c00c25fd09c/section/player_props?market_selection_id[0]=MarketSelection:9084e8e9-028c-4c68-9613-b238a0833fc7&odds_numerator[0]=13&odds_denominator[0]=5",
-                "https://sportsbook.thescore.bet/sport/baseball/organization/united-states/competition/mlb/event/d2df8508-88d9-4cfb-8712-3c00c25fd09c/section/player_props?market_selection_id[0]=MarketSelection:dc540706-b90f-4d8c-bc28-2d1d05fe0380&odds_numerator[0]=21&odds_denominator[0]=10",
+                "https://sportsbook.thescore.bet/sport/baseball/organization/united-states/competition/mlb/event/9295c531-1a1c-4796-86b9-02cf4ca697ae/section/player_props?market_selection_id[0]=MarketSelection:c8ba616c-0957-40b6-baf8-f4b3b4777c5a&odds_numerator[0]=11&odds_denominator[0]=5",
+                "https://sportsbook.thescore.bet/sport/baseball/organization/united-states/competition/mlb/event/9295c531-1a1c-4796-86b9-02cf4ca697ae/section/player_props?market_selection_id[0]=MarketSelection:78c6afee-419a-4e99-9b7f-a2a0a86c7277&odds_numerator[0]=11&odds_denominator[0]=5"
             ]}
 
             book = ThescoreSGP(sgp_data=sgp_data)
@@ -214,10 +210,3 @@ if __name__ == "__main__":
             print(data)
 
     asyncio.run(main())
-
-    # sgp_data = {'book_name': 'thescore', 'links': ['https://sportsbook.thescore.bet/sport/basketball/organization/united-states/competition/nba/event/a0e973a2-833c-4ac8-9922-44e255916e27/section/player_props?market_selection_id[0]=MarketSelection:62fffb0a-1200-416e-bfd2-63e04c35e3e0&odds_numerator[0]=13&odds_denominator[0]=8', "https://sportsbook.thescore.bet/sport/basketball/organization/united-states/competition/nba/event/a0e973a2-833c-4ac8-9922-44e255916e27/section/player_props?market_selection_id[0]=MarketSelection:de13e23a-e0a2-4957-a961-113fa71fbd9b&odds_numerator[0]=43&odds_denominator[0]=23"]}
-    #
-    # thescore = ThescoreSGP(sgp_data=sgp_data)
-    #
-    # data = asyncio.run(thescore.run_book())
-    # print(data)
