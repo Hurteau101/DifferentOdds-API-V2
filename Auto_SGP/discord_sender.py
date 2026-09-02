@@ -4,9 +4,6 @@ from discordwebhook import Discord
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
-WEBHOOK_URL = "https://discord.com/api/webhooks/1541588378586185829/dEuU4fAQJxhNxWrqbn-zLt6fS96AOSBPom3kKXyCr7CZlgzKTHUXDMR9vtT7u08lk9sD"
-discord = Discord(url=WEBHOOK_URL)
-
 
 class DiscordSGP:
     def __init__(self, production: bool):
@@ -21,6 +18,8 @@ class DiscordSGP:
         #     raise ValueError("DISCORD_WEBHOOK_URL not set in environment variables.")
         #
         # self.discord = Discord(url=self.webhook)
+        WEBHOOK_URL = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_DEV")
+
         self.discord = Discord(url=WEBHOOK_URL)
 
     def _convert_to_utc(self, event_date):

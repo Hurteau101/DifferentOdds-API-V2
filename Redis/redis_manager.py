@@ -7,8 +7,6 @@ import redis.asyncio as async_redis
 import orjson
 from dotenv import load_dotenv
 
-from Monitoring.monitoring import create_sentry_message
-
 
 def _bulk_insert(data_to_store: dict, pipeline):
     for key, value in data_to_store.items():
@@ -65,12 +63,6 @@ class RedisBaseManager:
 
         acquired = await lock.acquire()
         if not acquired:
-            create_sentry_message(
-                tag_key="redis_lock",
-                tag_value=key_name,
-                message=f"Could not acquire lock for key: {key_name}",
-                level="warning"
-            )
             return
 
         try:
@@ -197,6 +189,9 @@ class RedisBaseManager:
 
         return result
 
+    async def flush_db(self):
+        """Flushes the entire Redis database."""
+        await self.redis_client.flushdb()
 
 class RedisAsyncManager(RedisBaseManager):
     def __init__(self, host: str = "localhost", database: int = 0, port: int = 6379, max_connections: int = 50,
@@ -320,16 +315,15 @@ class RedisStaticMappingService:
     _ttl = 1200  # 20 minutes
 
     def __init__(self):
-        self.redis = RedisSyncManager(database=11)
+        self.redis = RedisSyncManager(database=7)
 
     def get(self):
         now = time.time()
 
         if self._cache is None or now - self._last_loaded > self._ttl:
             self._cache = {
-                "stats": self.redis.get_data("stat_mapper") or {},
-                "leagues": self.redis.get_data("league_mapper") or {},
-                "sports": self.redis.get_data("sport_mapper") or {}
+                "static_mapping": self.redis.get_data("stat_mapper") or {},
+                "league_mapping": self.redis.get_data("league_mapper") or {},
             }
 
             self._last_loaded = now

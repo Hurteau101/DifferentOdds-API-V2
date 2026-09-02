@@ -1,13 +1,13 @@
 import asyncio
 import re
-import aiohttp
-from Books.Bases.prediction_liquidity_base import PredictionLiquidityBase
-from Redis.redis_manager import RedisAsyncManager
+from loguru import logger
+from Books.Bases.prediction_base import PredictionBookBase
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
-class FourCX(PredictionLiquidityBase):
+class FourCX(PredictionBookBase):
     INVALID_LEAGUES = ["live", "custom", "superbowl", "nfc", "afc"] # Avoid these leagues or anything with these keywords
 
     def __init__(self):
@@ -134,6 +134,7 @@ class FourCX(PredictionLiquidityBase):
                     bet_player=game.get("eventName").split("(")[0].title().strip() if "props" in league.lower() else None,
                     player_team=teams.get(order.get("participantId")) if "props" in league.lower() else None,
                     future=False,
+                    static_mapping=self.static_mapping,
                     liquidity_data=[
                         LiquidityData(
                             odds_format=OddsFormat(american_odds=order.get("odds")),
@@ -161,21 +162,23 @@ class FourCX(PredictionLiquidityBase):
 
         return valid_leagues
 
-    async def load_auth(self) -> str:
-        """Retrieve the authentication token from Redis"""
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("4cx_auth_token")
-
-    async def run_book(self):
-        auth_token = await self.load_auth()
+    async def run_book(self) -> list | None:
+        auth_token = await self.redis_auth_manager.get_data("4cx_auth_token")
 
         if not auth_token:
+            logger.error("No auth token found")
             return None
 
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             self.book_data.headers["Authorization"] = auth_token
             raw_leagues = await self._get_leagues(session)
             if not raw_leagues or not raw_leagues.get("data", {}).get("availableLeagues"):
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No raw leagues found"
+                )
+
                 return None
 
             leagues = raw_leagues.get("data", {}).get("availableLeagues", [])
@@ -211,15 +214,21 @@ class FourCX(PredictionLiquidityBase):
 
 
             game_list = list(game_data.values())
-            mapped_data = await self.map_runner(session=session, sportsbook_data=game_list)
-            print(mapped_data)
+
+            if not game_list:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
+
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=game_list,
+                key_name=self.book_data.name,
             )
 
-            return mapped_data
+            return game_list
 
 
 if __name__ == "__main__":

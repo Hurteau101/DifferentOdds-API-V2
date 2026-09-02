@@ -65,10 +65,10 @@ DFS_PROVIDERS = [
             "alternate_url": "https://api.drafters.com/games/list/draft_user?page_type=props"
         },
         headers={
-            "Authorization": os.getenv("drafters_auth_token")
+            "Authorization": os.getenv("DRAFTERS_AUTH_TOKEN")
         },
         method="GET",
-        is_active=False,
+        is_active=True,
         class_name="Drafters",
         file_name="drafters",
     ),
@@ -102,7 +102,7 @@ DFS_PROVIDERS = [
             "league_url": "http://45.61.52.251:8000/parlayplay/leagues"
         },
         method="GET",
-        is_active=True,
+        is_active=False,
         class_name="Parlayplay",
         file_name="parlayplay",
     ),
@@ -185,12 +185,15 @@ DFS_PROVIDERS = [
             "main_url": os.getenv("CHALKBOARD_URL")
         },
         method="POST",
-        is_active=True,
+        is_active=False,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
             refresh_interval=3600, # 1 Hour
             job_active=True,
-            auth_redis_key="chalkboard_access_token"
+            auth_redis_key="chalkboard_access_token",
+            base_file_path=DFSProvider.base_file_path,
+            class_name="ChalkboardAuth",
+            file_name="chalkboard_auth",
         ),
         class_name="Chalkboard",
         file_name="chalkboard",

@@ -1,14 +1,14 @@
 import asyncio
-import json
 import os
 import re
 from itertools import batched
-from Books.Bases.prediction_liquidity_base import PredictionLiquidityBase
+from Books.Bases.prediction_base import PredictionBookBase
+from LoggingHelper.logging_helper import ErrorTypes, insert_log
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
-class Prophetx(PredictionLiquidityBase):
+class Prophetx(PredictionBookBase):
     def __init__(self):
         super().__init__(book_name="prophetx")
 
@@ -110,7 +110,7 @@ class Prophetx(PredictionLiquidityBase):
                 if not prediction_data["liquidity_data"]:
                     continue
 
-                stats = PredictionLiquidityStats(**prediction_data)
+                stats = PredictionLiquidityStats(**prediction_data, static_mapping=self.static_mapping)
                 stats.market = self.special_stat_mapper(stats.market, league)
                 game_data.odds.append(stats)
                 # game_data.odds.append(PredictionLiquidityStats(**prediction_data))
@@ -118,10 +118,10 @@ class Prophetx(PredictionLiquidityBase):
 
         return game_data
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         api_key = os.getenv("PROPHETX_API_KEY")
         if not api_key:
-            return None
+            raise ValueError("PROPHETX_API_KEY is not set in the environment variables.")
 
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             new_headers = {"Authorization": api_key}
@@ -165,17 +165,21 @@ class Prophetx(PredictionLiquidityBase):
                     if data:
                         game_data.append(data)
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=game_data)
+            if not game_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
+
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=game_data,
+                key_name=self.book_data.name
             )
 
-            await self.market_chunk_processor(mapped_data=mapped_data, book_name=self.book_data.name)
-
-            return mapped_data
+            return game_data
 
 
 

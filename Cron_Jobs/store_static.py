@@ -1,52 +1,24 @@
 """Used to store static data into Redis Database"""
-from Monitoring.monitoring import init_sentry
-init_sentry()
+from sqlalchemy.orm import sessionmaker
+from Database.base_db import sync_engine
+from Redis.redis_manager import RedisSyncManager
+from Database.Sportsbooks.sportsbook_db import LeagueMapper, StatMapper
+
+def store_static():
+    redis_instance = RedisSyncManager(database=7)
+    engine = sync_engine()
+    Session = sessionmaker(bind=engine)
+
+    with Session() as session:
+        static_mapping = StatMapper.get_mapping(db_session=session)
+        league_mapping = LeagueMapper.get_mapping(db_session=session)
 
 
-import asyncio
-from Database.database import Database
-from Redis.redis_manager import RedisAsyncManager
-
-
-async def store_static(database_instance: Database, table_name: str, redis_instance: RedisAsyncManager):
-    stored_data = database_instance.fetch_all(table_name=table_name)
-
-    if table_name == "league_mapper":
-        mapped_data = {
-            record[0]: {
-                "raw_name": record[0],
-                "mapped_name": record[1],
-                "sport": record[3]
-            }
-            for record in stored_data
-        }
-
-    elif table_name == "stat_mapper":
-        mapped_data = {
-            record[0]: record[1]
-            for record in stored_data
-        }
-    else:
-        return
-
-    await redis_instance.store_data(
-        key_name=table_name,
-        data_to_store=mapped_data,
-        key_expiration=1200  # 20 Minutes
-    )
-
+    redis_instance.store_data("stat_mapper", static_mapping)
+    redis_instance.store_data("league_mapper", league_mapping)
 
 if __name__ == "__main__":
-    db = Database()
-    redis_instance = RedisAsyncManager(database=11)
-    tables = ["stat_mapper", "league_mapper"]
-    async def main():
-        for table in tables:
-            await store_static(database_instance=db, table_name=table, redis_instance=redis_instance)
-
-        await redis_instance.close_for_shutdown()
-
-    asyncio.run(main())
+    store_static()
 
 
 

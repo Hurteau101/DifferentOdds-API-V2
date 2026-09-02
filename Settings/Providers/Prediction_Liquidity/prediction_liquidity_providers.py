@@ -28,7 +28,10 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
             job_type=RedisSelector.AUTH,
             refresh_interval=86400, # 24 Hours
             job_active=True,
-            auth_redis_key="4cx_auth_token"
+            auth_redis_key="4cx_auth_token",
+            base_file_path=LiquidityProvider.base_file_path,
+            class_name="FourcxAuth",
+            file_name="fourcx_auth",
         ),
         class_name="FourCX",
         file_name="fourcx",

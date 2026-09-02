@@ -1,12 +1,11 @@
 import asyncio
 import re
-import urllib.parse
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 from rapidfuzz import process, fuzz
 from Books.Bases.pph_base import PPHBookBase
-from Redis.redis_manager import RedisAsyncManager
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -46,11 +45,6 @@ class Buckeye1(PPHBookBase):
         super().__init__(book_name="buckeye1")
         self.team_dict = {}
 
-    async def load_cookies(self) -> dict | None:
-        """Extracts the cookies from Redis."""
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("buckeye1_cookies")
-
     # Need the wager int for future POST. Generated on the form page and changes every time, so we have to scrape it each time we run the book
     async def _get_wager_int(self, session: CurlAsyncSession):
         form_response = await session.get(
@@ -69,6 +63,7 @@ class Buckeye1(PPHBookBase):
 
     def _moneyline_type(self, market_data: dict, market_name: str, **kwargs) -> SportsbookStats:
         return SportsbookStats(
+            static_mapping=self.static_mapping,
             market=market_name,
             bet_team=market_data.get("team", ""),
             line=None,
@@ -106,6 +101,7 @@ class Buckeye1(PPHBookBase):
         direction = direction_mapper.get(raw_direction.lower(), None)
 
         return SportsbookStats(
+            static_mapping=self.static_mapping,
             market=market_name,
             bet_team=market_data.get("team", "") if kwargs.get("is_team", False) else None,
             line=float(line) if line else None,
@@ -123,6 +119,7 @@ class Buckeye1(PPHBookBase):
         line, odds = data[0], data[1]
 
         return SportsbookStats(
+            static_mapping=self.static_mapping,
             market=market_name,
             bet_team=market_data.get("team", ""),
             line=float(line) if line else None,
@@ -300,8 +297,8 @@ class Buckeye1(PPHBookBase):
         return games
 
 
-    async def run_book(self):
-        cookies = await self.load_cookies()
+    async def run_book(self) -> list | None:
+        cookies = await self.auth_redis_manager.get_data(self.auth_id_name)
 
         if not cookies:
             return
@@ -309,7 +306,12 @@ class Buckeye1(PPHBookBase):
         async with CurlAsyncSession(impersonate="safari15_5", cookies=cookies) as session:
             wager_int = await self._get_wager_int(session)
             if not wager_int:
-                return
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.MISC,
+                    error_message="No wager details found"
+                )
+                return None
 
             tasks = [
                 session.post(
@@ -336,7 +338,12 @@ class Buckeye1(PPHBookBase):
             ])
 
             if not results:
-                return
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No data returned from API"
+                )
+                return None
 
             event_data = {}
 
@@ -354,15 +361,12 @@ class Buckeye1(PPHBookBase):
 
             buckeye_data = list(event_data.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_data)
-
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=buckeye_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            return buckeye_data
 
 
 

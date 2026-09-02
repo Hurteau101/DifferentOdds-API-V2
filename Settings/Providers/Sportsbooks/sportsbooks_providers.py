@@ -8,6 +8,7 @@ from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJo
 class SportsbooksProvider(BaseProvider):
     base_file_path = "Books.Sportsbooks"
 
+
 SPORTSBOOKS_PROVIDERS = [
     SportsbooksProvider(
         title="Bet105",
@@ -32,13 +33,19 @@ SPORTSBOOKS_PROVIDERS = [
             refresh_interval=86400,  # 24 Hours
             job_active=True,
             requires_auth=True,
-            mapper_redis_key="kibl_mapper_data"
+            mapper_redis_key="bet105_mapper_data",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="Bet105Mapper",
+            file_name="bet105_mapping",
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
             refresh_interval=82800, # 23 Hours
             job_active=True,
-            auth_redis_key="kibl_auth_token"
+            auth_redis_key="bet105_auth_token",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="Bet105Auth",
+            file_name="bet105_auth",
         ),
         class_name="Bet105",
         file_name="bet105",
@@ -64,7 +71,10 @@ SPORTSBOOKS_PROVIDERS = [
             job_type=RedisSelector.AUTH,
             refresh_interval=900,  # 15 minutes
             job_active=True,
-            auth_redis_key="sts_cookies"
+            auth_redis_key="sts_cookies",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="STSAuth",
+            file_name="sts_auth",
         ),
         class_name="STS",
         file_name="sts",
@@ -86,7 +96,10 @@ SPORTSBOOKS_PROVIDERS = [
             job_type=RedisSelector.AUTH,
             refresh_interval=900,  # 15 minutes
             job_active=True,
-            auth_redis_key="ace_cookies"
+            auth_redis_key="ace_cookies",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="AceAuth",
+            file_name="ace_auth",
         ),
         class_name="Ace",
         file_name="ace",
@@ -128,7 +141,10 @@ SPORTSBOOKS_PROVIDERS = [
             job_type=RedisSelector.AUTH,
             refresh_interval=900,  # 15 minutes
             job_active=True,
-            auth_redis_key="metallic_token"
+            auth_redis_key="metallic_token",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="MetallicAuth",
+            file_name="metallic_auth",
         ),
         class_name="Metallic",
         file_name="metallic",
@@ -167,7 +183,10 @@ SPORTSBOOKS_PROVIDERS = [
             job_type=RedisSelector.AUTH,
             refresh_interval=900,  # 15 minutes
             job_active=True,
-            auth_redis_key="buckeye_2_auth_token"
+            auth_redis_key="buckeye_2_auth_token",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="Buckeye2Auth",
+            file_name="buckeye2_auth",
         ),
         class_name="Buckeye2",
         file_name="buckeye_2",
@@ -185,12 +204,15 @@ SPORTSBOOKS_PROVIDERS = [
             'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
         },
         method="POST",
-        is_active=True,
+        is_active=False,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
             refresh_interval=900,  # 15 minutes
-            job_active=True,
-            auth_redis_key="buckeye1_cookies"
+            job_active=False,
+            auth_redis_key="buckeye1_cookies",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="Buckeye1Auth",
+            file_name="buckeye1_auth",
         ),
         class_name="Buckeye1",
         file_name="buckeye_1",

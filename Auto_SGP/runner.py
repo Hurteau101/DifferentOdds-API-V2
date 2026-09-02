@@ -47,12 +47,12 @@ class AutoSGP(APICaller):
         """Factory method to create an instance of AutoSGP and set up configurations"""
         production_environment = is_production()
 
-        endpoint_redis = RedisSyncManager(database=10)
-        redis_previously_stored_instance = RedisSyncManager(database=9)
-        previously_sent_discord_redis = RedisSyncManager(database=12)
+        endpoint_redis = RedisSyncManager(database=3)
+        redis_previously_stored_instance = RedisSyncManager(database=4)
+        previously_sent_discord_redis = RedisSyncManager(database=5)
         redis_book_mapped_ids_instance = RedisAsyncManager(database=2)
-        redis_book_auth_instance = RedisAsyncManager(database=5)
-        bettorodds_redis_instance = RedisSyncManager(database=8)
+        redis_book_auth_instance = RedisAsyncManager(database=1)
+        bettorodds_redis_instance = RedisSyncManager(database=6)
         discord_sgp = DiscordSGP(production=production_environment)
 
 
@@ -86,7 +86,7 @@ class AutoSGP(APICaller):
         book_config = BookConfiguration.get_book_info(
             book_type="sgp",
             remove_non_active=True,
-            key_names={"name": "book_key", "class_name": "class_name", "class_path": "class_path", "has_sgp": "has_sgp", "curl_impersonation": "impersonate"}
+            key_names={"name": "book_key", "class_name": "class_name", "class_path": "class_path", "curl_impersonation": "impersonate"}
         )
 
         book = next((
@@ -147,9 +147,9 @@ class AutoSGP(APICaller):
             task_results = await asyncio.gather(*tasks)
 
             valid_odds = {
-                book_name: odds.get("american")
+                book_name: odds.get("american_odds")
                 for book_name, odds in task_results
-                if isinstance(odds, dict) and odds.get("american") is not None
+                if isinstance(odds, dict) and odds.get("american_odds") is not None
             }
 
             if len(valid_odds) <= 1:
@@ -307,8 +307,12 @@ class AutoSGP(APICaller):
                             "market_name": slip.get("stat"),
                             "date": combo[0]["date"],
                             "event_name": combo[0]["event"],
-                            "selection_name": f"{slip.get('player', '')} {slip.get('side', '')} {slip.get('line', '')}".strip(),
-                            "line": slip.get("line")
+                            "line": slip.get("line"),
+                            "player": slip.get("player"),
+                            "side": slip.get("side"),
+                            # "selection_name": f"{slip.get('player', '')} {slip.get('side', '')} {slip.get('line', '')}".strip(),
+                            "prop_key": slip.get("prop_key"),
+                            "event_key": slip.get("event_key"),
                         })
                         individual_odds[book].append(data["american_odds"])
 
@@ -368,7 +372,7 @@ class AutoSGP(APICaller):
                     legs.append({
                         "game_key": game_key,
                         "event_league": l["league"],
-                        "event_date": datetime.fromisoformat(l["date"].replace("Z", "+00:00")),
+                        "event_date": l["date"],
                         "event_name": l["event"],
                         "leg_number": l["leg_number"],
                         "normalized_name": l["normalized"],

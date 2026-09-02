@@ -1,91 +1,90 @@
 import asyncio
 import re
-from Books.Bases.sgp_book_base import SGPBookBase
+from typing import Counter
+
+from Bases.mapper_base import MapperBase
+from Books.Bases.sgp_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class BovadaSGP(SGPBookBase):
-    def __init__(self, mapped_ids_redis_instance, **kwargs):
-        super().__init__(category="SGP", book_name="bovada",
-                         mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(category="SGP", book_name="bovada", **kwargs)
 
-    def _verify_line(self, selection_list: list, current_entries: dict):
-        selections = {
-            selection.get("outcomeId", ''): selection.get("points")
-            for selection in selection_list
-        }
+    def _rebuild_additional_data(self, additional_data: list):
+        """Rebuilds the additional data"""
+        modified_data = []
 
-        return current_entries == selections
+        for data in additional_data:
+            if data.get("prop_key") and data.get("event_key"):
+                modified_data.append({"event_key": data.get("event_key"), "prop_key": data.get("prop_key")})
+            else:
+                split_event_name = data.get("event_name").split(" vs ")
+                event_name = "_vs_".join(sorted(split_event_name)).replace(" ", "_").lower()
+                event_date = data.get("date")
+                event_key = "_".join([event_name, event_date]).replace(" ", "_").lower()
+                prop_key = MapperBase.build_prop_key(side=data.get("side"), line=data.get("line"), player=data.get("player"), stat=data.get("market_name"))
+
+                modified_data.append({"event_key": event_key, "prop_key": f"{prop_key}".lower()})
 
 
-    async def _create_param_string(self) -> dict | None:
-        """Creates params for API call"""
-        mapped_ids = await self.load_mapped_ids(key_name="bovada_ids")
+        return modified_data
 
-        if not mapped_ids:
+    def _build_params(self, mapped_ids: dict, additional_data: list) -> dict | None:
+        event_name_count = Counter(item.get("event_name") for item in additional_data if item.get("event_name"))
+        date_count = Counter(item.get("date") for item in additional_data if item.get("date"))
+
+        if len(event_name_count) != 1 or len(date_count) != 1:
             return None
 
-        additional_data = self.sgp_data.get("event_data", [])
-        merged_data = [mapped | additional for mapped, additional in zip(self.link_data, additional_data)]
-
-        sgp_data = {
-            "outcome_ids": [],
-            "lines": {}
+        additional_data = self._rebuild_additional_data(additional_data=additional_data)
+        outcomes = {
+            "outcomeId": []
         }
 
-        for index, merged in enumerate(merged_data, start=1):
-            found = mapped_ids.get(merged.get("event_id", '').lower())
+        for data in additional_data:
+            event_key = data.get("event_key")
+            prop_key = data.get("prop_key")
+
+            found = mapped_ids.get(event_key, {}).get(prop_key)
             if not found:
-                continue
+                return None
 
-            outcome_found = found.get(merged.get("market_name", '').lower(), {}).get(
-                merged.get("selection_name", '').lower())
+            outcome_id = found.get("id")
+            if not outcome_id:
+                return None
 
-            if not outcome_found:
-                continue
+            outcomes["outcomeId"].append(f"A:{outcome_id}")
 
-            line = outcome_found.get("line")
-            # print(line)
-            # print(merged)
-            # if line:
-            #     print(line)
-            #     merged_line = float(merged.get("line", 0))
-            #
-            #     if float(merged.get("line")) != merged_line:
-            #         continue
-
-            outcome_id = outcome_found.get("outcome_id")
-
-            if outcome_id:
-                sgp_data["outcome_ids"].append(("outcomeId", f"A:{outcome_id}"))
-                sgp_data["lines"].update({outcome_id: float(line) if line else 0.0})
-
-
-        if len(sgp_data["outcome_ids"]) != len(self.link_data):
-            return None
-
-        return sgp_data
+        return outcomes
 
 
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self, session):
-        params = await self._create_param_string()
+    async def run_book(self, session) -> dict | None:
+        mapped_ids = await self.mapper_redis_manager.get_data(key_name=self.mapper_id_name)
+        additional_data = self.sgp_data.get("event_data", [])
+
+        if not mapped_ids or not additional_data:
+            return None
+
+        params = self._build_params(mapped_ids=mapped_ids, additional_data=additional_data)
+
         if not params:
             return None
+
 
         api_data = await self.api_caller(
             session=session,
             url=self.book_data.url.get("sgp_url"),
             method=self.book_data.method,
             headers=self.book_data.headers,
-            params=params.get("outcome_ids", []),
-            ssl=False
+            params=params,
+            default_headers=False
         )
 
         if not api_data:
-            return
+            return None
 
         sgp_dict = next((
             bet
@@ -95,12 +94,6 @@ class BovadaSGP(SGPBookBase):
         ), {})
 
         if sgp_dict.get("numWays") !=  len(self.links):
-            return None
-
-
-        has_same_lines = self._verify_line(selection_list=api_data.get("selections", {}).get("selection"), current_entries=params.get("lines", {}))
-
-        if not has_same_lines:
             return None
 
         american_odds = sgp_dict.get("totalPriceFormattedMap", {}).get("AMERICAN")
@@ -123,14 +116,31 @@ if __name__ == "__main__":
                     "https://www.bovada.lv/sports/baseball/mlb/seattle-mariners-cleveland-guardians-202606261910",
                     "https://www.bovada.lv/sports/baseball/mlb/seattle-mariners-cleveland-guardians-202606261910",
                 ],
-                'event_data': [
-                    {'market_name': 'Moneyline', 'selection_name': 'Cleveland Guardians'},
-                    {'market_name': 'Total Runs', 'selection_name': 'Under 7.5'}
+                "event_data": [
+                    {
+                        "market_name": "Player Runs",
+                        "date": "2026-09-01T22:45:00Z",
+                        "event_name": "Boston Red Sox vs Seattle Mariners",
+                        "line": "0.5",
+                        "player": "Josh Naylor",
+                        "side": "Over",
+                        "prop_key": "0.5_josh_naylor_over_player_runs",
+                        "event_key": "boston_red_sox_vs_seattle_mariners_2026-09-01t22:45:00z"
+                    },
+                    {
+                        "market_name": "Player Runs",
+                        "date": "2026-09-01T22:45:00Z",
+                        "event_name": "Boston Red Sox vs Seattle Mariners",
+                        "line": "0.5",
+                        "player": "Caleb Durbin",
+                        "side": "Over",
+                        "prop_key": "0.5_caleb_durbin_over_player_runs",
+                        "event_key": "boston_red_sox_vs_seattle_mariners_2026-09-01t22:45:00z"
+                    }
                 ]
             }
 
-            redis_mapped = RedisAsyncManager(database=2)
-            book = BovadaSGP(mapped_ids_redis_instance=redis_mapped, sgp_data=sgp_data)
+            book = BovadaSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)
             print(data)
 

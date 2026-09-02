@@ -1,59 +1,80 @@
 import asyncio
-from dotenv import load_dotenv
-from Books.Bases.sgp_book_base import SGPBookBase
+from Bases.mapper_base import MapperBase
+from Books.Bases.sgp_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
 import os
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class FliffSGP(SGPBookBase):
-    load_dotenv()
     def __init__(self, mapped_ids_redis_instance, **kwargs):
         super().__init__(category="SGP", book_name="fliff",
                          mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
 
+
+    def _rebuild_additional_data(self, additional_data: list) -> list | None:
+        """Rebuilds the additional data"""
+        modified_data = []
+
+        if not self.link_data:
+            return None
+
+        event_id = self.link_data[0].get("event_id")
+
+        for data in additional_data:
+            if data.get("prop_key"):
+                modified_data.append({"event_key": event_id, "prop_key": data.get("prop_key")})
+            else:
+                prop_key = MapperBase.build_prop_key(side=data.get("side"), line=data.get("line"), player=data.get("player"), stat=data.get("market_name"))
+                modified_data.append({"event_key": event_id, "prop_key": f"{prop_key}".lower()})
+
+
+        return modified_data
+
+
     async def create_payload(self, sgp_token, location_token):
-        mapped_ids = await self.load_mapped_ids(key_name="fliff_ids")
+        mapped_ids = await self.mapper_redis_manager.get_data(key_name=self.mapper_id_name)
 
         if not mapped_ids:
             return None
 
-        additional_data = self.sgp_data.get("event_data", [])
-        merged_data = [mapped|additional for mapped, additional in zip(self.link_data, additional_data)]
+
+        additional_data = self._rebuild_additional_data(additional_data=self.sgp_data.get("event_data", []))
+
+        if not additional_data:
+            return None
+
 
         proposal_keys = []
         proposal_conflict_keys = {}
 
 
-        for data in merged_data:
-            event_id = data.get("event_id")
-            market_name = data.get("market_name")
-            selection_name = data.get("selection_name")
-            proposal_key = mapped_ids.get(event_id, {}).get(market_name.lower(), {}).get(selection_name.lower())
+        for data in additional_data:
+            event_key = data.get("event_key")
+            prop_key = data.get("prop_key")
 
-            if not proposal_key:
-                break
+            found = mapped_ids.get(event_key, {}).get(prop_key)
+            if not found:
+                return None
 
-            proposal_keys.append(proposal_key)
-            proposal_conflict_keys[proposal_key] = event_id
+            key = found.get("id")
+            proposal_keys.append(key)
+            proposal_conflict_keys[key] = self.link_data[0].get("event_id")
 
-        if len(self.link_data) != len(proposal_keys) or len(self.link_data) != len(proposal_conflict_keys):
-            return None
 
         return {
             "header": {
-                "device_x_id": "android.48e0c8468226f089",
                 "product_code": 10,
-                "app_x_version": "5.12.4.286",
-                "app_install_token": "U1ZOLx7mzZ",
+                "device_x_id": "web.41e71aca97c561d67611edc1da8f47b3",
+                "app_x_version": "5.0.34.285",
+                "app_install_token": "eGGpUCqUIu",
                 "auth_token": sgp_token,
-                "conn_id": 2,
+                "conn_id": 34,
                 "platform": "prod",
-                "usa_state_code": "ND",
-                "usa_state_code_source": "ipOrigin=2702|regionCode=ND|meta=successGetRegionCode|geocodeOrigin=2702|regionCode=ND|meta=successGetRegionCode",
-                "xtag": "meta_2",
+                "usa_state_code": "FL",
+                "usa_state_code_source": "ipOrigin=2702|regionCode=FL|meta=successGetRegionCode|geocodeOrigin=2702|regionCode=FL|meta=successGetRegionCode",
+                "xtag": "",
                 "country_code": "US",
-                "af_uid": "1776830401233-1374000387539042131",
-                "authorization": "",
+                "af_uid": "no_appsflyer_uid_for_web",
                 "location_token": location_token,
             },
             "invocation": {
@@ -63,18 +84,17 @@ class FliffSGP(SGPBookBase):
                     "proposal_fkey_to_conflict_fkey": proposal_conflict_keys
                 }
             },
-            "x_invocations": None
+            "x_invocations": None,
         }
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
-        tokens = await self.load_auth_token(key_name="fliff_auth_token")
+        tokens = await self.auth_redis_manager.get_data(key_name=self.auth_id_name)
+
         if not tokens:
             return None
 
         access_token = tokens.get("access_token")
-
         location_token = tokens.get("location_token")
 
         sgp_token = os.getenv("FLIFF_SGP_TOKEN")
@@ -83,6 +103,7 @@ class FliffSGP(SGPBookBase):
             return None
 
         payload = await self.create_payload(sgp_token=sgp_token, location_token=location_token)
+
         if not payload:
             return None
 
@@ -108,9 +129,8 @@ class FliffSGP(SGPBookBase):
             headers={
                 "device_x_id": "android.48e0c8468226f089",
                 "product_code": "10",
-                "app_x_version": "5.12.4.286",
                 "app_install_token": "U1ZOLx7mzZ",
-                "auth_token": "fobj__sb_user_profile__1106610",
+                "auth_token": sgp_token,
                 "conn_id": "2",
                 "platform": "prod",
                 "usa_state_code": "ND",
@@ -149,12 +169,30 @@ if __name__ == "__main__":
             sgp_data = {
                 'book_name': 'fliff',
                 'links': [
-                    "https://sports.getfliff.com/markets?eventId=386070_c_p_203_prematch",
-                    "https://sports.getfliff.com/markets?eventId=386070_c_p_203_prematch"
+                    "https://sports.getfliff.com/markets?eventId=410962_c_p_203_prematch",
+                    "https://sports.getfliff.com/markets?eventId=410962_c_p_203_prematch"
                 ],
-                'event_data': [
-                    {'market_name': 'Moneyline', 'selection_name': 'mil brewers'},
-                    {'market_name': 'Total Runs', 'selection_name': 'Under 7.5'}
+                "event_data": [
+                    {
+                        "market_name": "Total Runs",
+                        "date": "2026-09-02T20:10:00Z",
+                        "event_name": "Boston Red Sox vs Seattle Mariners",
+                        "line": "8.5",
+                        "player": "",
+                        "side": "Under",
+                        "prop_key": "8.5_total_runs_under",
+                        "event_key": "boston_red_sox_vs_seattle_mariners_2026-09-02t20:10:00z"
+                    },
+                    {
+                        "market_name": "Moneyline",
+                        "date": "2026-09-02T20:10:00Z",
+                        "event_name": "Boston Red Sox vs Seattle Mariners",
+                        "line": "",
+                        "player": "",
+                        "side": "Seattle Mariners",
+                        "prop_key": "moneyline_seattle_mariners",
+                        "event_key": "boston_red_sox_vs_seattle_mariners_2026-09-02t20:10:00z"
+                    }
                 ]
             }
 

@@ -1,14 +1,13 @@
 import asyncio
 from curl_cffi import AsyncSession as CurlAsyncSession
-from Books.Bases.sgp_book_base import SGPBookBase
+from Books.Bases.sgp_base import SGPBookBase
 
 class DraftkingsSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(category="SGP", book_name="draftkings", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self, session):
+    async def run_book(self, session) -> dict | None:
         selections = [
             { "id": link.get("outcome_id") }
             for link in self.link_data
@@ -48,7 +47,13 @@ class DraftkingsSGP(SGPBookBase):
 if __name__ == "__main__":
     async def main():
         async with CurlAsyncSession(impersonate="safari15_5") as session:
-            sgp_data = {'book_name': 'draftkings', 'links': ['https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83722837O11950_1', 'https://sportsbook.draftkings.com/event/33742178?outcomes=0OU83681931O23450_1']}
+            sgp_data = {
+                'book_name': 'draftkings',
+                'links': [
+                    "https://sportsbook.draftkings.com/event/34599443?outcomes=0QA365526010%232267250591_13L84240Q1-1570309299Q20",
+                    "https://sportsbook.draftkings.com/event/34599443?outcomes=0QA365525887%232267250594_13L84240Q1-811205453Q20"
+                ]
+            }
 
             book = DraftkingsSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)

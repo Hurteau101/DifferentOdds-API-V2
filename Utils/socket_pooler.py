@@ -110,7 +110,7 @@ class SocketHelper:
 
         self.headers = headers or {}
 
-        self.proxies = os.getenv("RESIDENTIAL_PROXIES", "").split(",") if os.getenv("RESIDENTIAL_PROXIES") else []
+        self.proxies = os.getenv("PROXY_CHEAP_RESIDENTIAL_PROXIES", "").split(",") if os.getenv("PROXY_CHEAP_RESIDENTIAL_PROXIES") else []
         self._proxy_cycle = cycle(self.proxies) if self.proxies else None
 
 
@@ -153,9 +153,9 @@ class SocketHelper:
     async def send(self, payload: dict, use_proxy: bool = True):
         proxy_list = []
         if use_proxy:
-            proxy_list = [p for p in os.getenv("RESIDENTIAL_PROXIES", "").split(",") if p]
+            proxy_list = [p for p in os.getenv("PROXY_CHEAP_RESIDENTIAL_PROXIES", "").split(",") if p]
             if not proxy_list:
-                raise ValueError("RESIDENTIAL_PROXIES environment variable is not set.")
+                raise ValueError("PROXY_CHEAP_RESIDENTIAL_PROXIES environment variable is not set.")
 
         attempts = proxy_list if use_proxy else [None]
 

@@ -30,8 +30,8 @@ class ESPNMapper(APICaller):
         overrides = {
             "Athletics": "Oakland Athletics",
             "Athletics Athletics": "Oakland Athletics",
-
         }
+
         return overrides.get(name, name)
 
     async def run_mapping(self):
@@ -69,6 +69,7 @@ class ESPNMapper(APICaller):
                 }
 
         if mapping:
+
             await redis_instance.store_data(
                 key_name="espn_mapping",
                 data_to_store=mapping,

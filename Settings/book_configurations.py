@@ -47,7 +47,8 @@ class BookConfiguration:
             {
                 key_names.get(field.name, field.name): getattr(category, field.name)
                 for field in fields(category)
-                if field.name in key_names and (not remove_non_active or category.is_active)
+                if field.name in key_names
             }
             for category in NAMES_MAPPER.get(book_type.upper(), [])
+            if not remove_non_active or category.is_active
         ]

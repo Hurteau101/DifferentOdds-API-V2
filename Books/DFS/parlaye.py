@@ -1,6 +1,6 @@
-import asyncio
-from Books.Bases.dfs_book_base import DFSBookBase
-from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
+from Settings.Models.dfs_models import DFSStats
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -41,6 +41,7 @@ class Parlaye(DFSBookBase):
             ),
             odds=[
                 DFSStats(
+                    static_mapping=self.static_mapping,
                     player_name=player_name,
                     player_team=team_a,
                     stat_type=game_data.get("pick_type"),
@@ -59,7 +60,7 @@ class Parlaye(DFSBookBase):
         )
 
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_data = await self.api_caller(
                 session=session,
@@ -69,6 +70,11 @@ class Parlaye(DFSBookBase):
             )
 
             if not api_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
+                )
                 return None
 
             events = {}
@@ -80,16 +86,22 @@ class Parlaye(DFSBookBase):
 
             parlaye_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=parlaye_data)
+            if not parlaye_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=parlaye_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            return parlaye_data
 
 if __name__ == "__main__":
+    import asyncio
     parlaye = Parlaye()
     asyncio.run(parlaye.run_book())

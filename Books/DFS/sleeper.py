@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
-from Books.Bases.dfs_book_base import DFSBookBase
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -70,6 +71,7 @@ class Sleeper(DFSBookBase):
             solo_game=False if all([team_a, team_b]) else True,
             odds=[
                 DFSStats(
+                    static_mapping=self.static_mapping,
                     player_name=player_name,
                     player_team=player_team,
                     future=True if "szn" in league.lower() else False,
@@ -90,7 +92,7 @@ class Sleeper(DFSBookBase):
             return response["data"]
         return response
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             tasks = [
                 self.api_caller(session=session, url=self.book_data.url.get("main_url"), method=self.book_data.method),
@@ -126,6 +128,11 @@ class Sleeper(DFSBookBase):
             combined_lines = self.extract_data(main_lines) + self.extract_data(alternate_lines)
 
             if not combined_lines:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
+                )
                 return None
 
             combined_game_data = self.extract_data(game_data) + self.extract_data(season_data)
@@ -142,15 +149,20 @@ class Sleeper(DFSBookBase):
 
             sleeper_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=sleeper_data)
+            if not sleeper_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=sleeper_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            return sleeper_data
 
 if __name__ == "__main__":
     sleeper = Sleeper()

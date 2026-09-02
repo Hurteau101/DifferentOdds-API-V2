@@ -1,5 +1,6 @@
 import asyncio
-from Books.Bases.dfs_book_base import DFSBookBase
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -110,7 +111,6 @@ class Epicks(DFSBookBase):
 
         stat_type = stat_info.get("name_std").lower()
 
-
         return GameData(
             league=projections.get("league").lower(),
             game_key=team_data.get("team_key"),
@@ -123,6 +123,7 @@ class Epicks(DFSBookBase):
             ),
             odds=[
                 DFSStats(
+                    static_mapping=self.static_mapping,
                     player_name=projections.get("subject_std"),
                     player_team=team_data.get("player_team"),
                     stat_type=stat_type,
@@ -143,7 +144,7 @@ class Epicks(DFSBookBase):
             solo_game=False if all([team_data.get("team_a"), team_data.get("team_b")]) else True,
         )
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             league_data = await self.api_caller(
                 session=session,
@@ -152,6 +153,11 @@ class Epicks(DFSBookBase):
             )
 
             if not league_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
+                )
                 return None
 
             leagues = self._extract_leagues(league_data)
@@ -165,6 +171,11 @@ class Epicks(DFSBookBase):
             combined_data = [item for sublist in data for item in sublist if item] # Flatten the list and remove None entries
 
             if not combined_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API combined data found"
+                )
                 return None
 
             events_dict = {}
@@ -182,15 +193,20 @@ class Epicks(DFSBookBase):
 
             epicks_data = list(events_dict.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=epicks_data)
+            if not epicks_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=epicks_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            return epicks_data
 
 if __name__ == "__main__":
     epicks = Epicks()

@@ -39,8 +39,6 @@ def clean_and_normalize(string_name: str):
 
     return unidecode(string_name).strip()
 
-
-
 def convert_to_utc(date_time_str) -> str | None:
     """Convert the date to UTC format"""
     if date_time_str is None:
@@ -55,7 +53,6 @@ def convert_to_utc(date_time_str) -> str | None:
 def cache_time(date_time_str) -> str | None:
     """Convert the date to UTC format and cache the result"""
     return convert_to_utc(date_time_str)
-
 
 def ordinal_formatter(market_name):
     """Format the string if it is an ordinal market, otherwise return the original string."""
@@ -77,3 +74,63 @@ def is_production():
         raise RuntimeError("Environment not set")
 
     return bool(is_prod.lower() == "true")
+
+def decimal_to_american(decimal):
+    """Convert decimal odds back to American odds."""
+    if not decimal or decimal == 1.0:
+        return None
+
+    if decimal >= 2.0:
+        return (decimal - 1) * 100
+    else:
+        return -100 / (decimal - 1)
+
+def american_to_decimal(odds):
+    """Convert American odds to decimal odds."""
+    if odds is None:
+        return None
+
+    if odds > 0:
+        return 1 + (odds / 100)
+    else:
+        return 1 + (100 / abs(odds))
+
+def percentage_to_american_odds(probability):
+    """
+    Convert a decimal probability to rounded American odds.
+
+    Args:
+        probability (float): Decimal probability between 0 and 1.
+
+    Returns:
+        int: Rounded American odds (negative for probabilities > 0.5).
+
+    Examples:
+        >>> percentage_to_american_odds(0.25)
+        300
+    """
+    if probability > 0.5:
+        odds = -(100 * probability) / (1 - probability)
+    else:
+        odds = (100 * (1 - probability)) / probability
+
+    return round(odds)
+
+def convert_probability_to_american_odds(probability_str: str | float):
+    """Converts a probability to American odds."""
+    probability = float(probability_str)
+
+    if not 0 <= probability <= 1:
+        return None
+
+    if probability == 0:
+        return None
+    if probability == 1:
+        return None
+
+    if probability > 0.5:
+        american_odds = -(100 * probability) / (1 - probability)
+    else:
+        american_odds = (100 * (1 - probability)) / probability
+
+    return round(american_odds)

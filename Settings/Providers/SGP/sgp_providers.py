@@ -7,8 +7,6 @@ class SGPMapper:
     url: dict
     method: str
     headers: Optional[dict] = None
-    is_active: Optional[bool] = False
-
 
 @dataclass
 class SGPProvider(BaseProvider):
@@ -23,7 +21,7 @@ SGP_PROVIDERS = [
         title="FanDuel Sportsbook",
         name="fanduel",
         url={
-            "sgp_url": "https://sib.az.sportsbook.fanduel.com/api/sports/fixedodds/transactional/v1/implyBets?pricePolicy=SUGGESTED"
+            "sgp_url": "https://sib.nj.sportsbook.fanduel.com/api/sports/fixedodds/transactional/v1/implyBets"
 
         },
         regex={
@@ -32,13 +30,13 @@ SGP_PROVIDERS = [
         },
         headers={
             'Origin': 'https://sportsbook.fanduel.com',
+            'Accept': 'application/json',
             'Connection': 'keep-alive',
             'Referer': 'https://sportsbook.fanduel.com/',
             'X-Application': 'FhMFpcPWXMeyZxOx',
         },
         method="GET",
         is_active=True,
-        has_sgp=True,
         class_name="FanduelSGP",
         file_name="fanduel_sgp",
         mapper_job_dict=MapperJobDict(
@@ -46,19 +44,21 @@ SGP_PROVIDERS = [
             refresh_interval=600, # 10 Minutes
             job_active=True,
             requires_auth=False,
-            mapper_redis_key="fanduel_ids"
+            mapper_redis_key="fanduel_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="FanduelMapper",
+            file_name="fanduel_mapper",
         ),
         mapping=SGPMapper(
             url={
                 "event_id_url": "https://api.sportsbook.fanduel.com/ips/stats/eventIds",
-                "sgp_markets": "https://api.sportsbook.fanduel.com/sbapi/event-page?_ak=FhMFpcPWXMeyZxOx&eventId={event_id}&tab=same-game-parlay-&",
-                "additional_id_url": "https://api.sportsbook.fanduel.com/sbapi/content-managed-page?_ak=FhMFpcPWXMeyZxOx&page=SPORT&eventTypeId={event_type}"
+                "sgp_markets": "https://api.sportsbook.fanduel.com/sbapi/event-page",
+                "additional_id_url": "https://api.sportsbook.fanduel.com/sbapi/content-managed-page"
             },
             headers={
-                'X-Sportsbook-Region': 'AZ',
+                'X-Sportsbook-Region': 'NJ',
             },
             method="GET",
-            is_active=True
         )
     ),
     SGPProvider(
@@ -77,7 +77,6 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=True,
-        has_sgp=True,
         class_name="BetmgmSGP",
         file_name="betmgm_sgp",
         mapper_job_dict=MapperJobDict(
@@ -85,7 +84,11 @@ SGP_PROVIDERS = [
             refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=False,
-            mapper_redis_key="betmgm_ids"
+            mapper_redis_key="betmgm_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="BetMgmMapper",
+            file_name="betmgm_mapper",
+
         ),
         mapping=SGPMapper(
             url={
@@ -97,7 +100,6 @@ SGP_PROVIDERS = [
                 'Origin': 'https://www.on.betmgm.ca',
             },
             method="GET",
-            is_active=True
         )
     ),
     SGPProvider(
@@ -113,7 +115,6 @@ SGP_PROVIDERS = [
             "selection_id": r'"selectionId":"(\d+)"',
         },
         method="WS",
-        has_sgp=True,
         is_active=True,
         class_name="FanaticsSGP",
         file_name="fanactics_sgp",
@@ -129,7 +130,6 @@ SGP_PROVIDERS = [
             "event_id": r"event/(\d+)?",
         },
         method="GET",
-        has_sgp=True,
         is_active=True,
         class_name="KambiSGP",
         file_name="kambi_sgp",
@@ -151,7 +151,6 @@ SGP_PROVIDERS = [
               'Content-Type': 'application/json',
         },
         method="POST",
-        has_sgp=True,
         is_active=True,
         class_name="DraftkingsSGP",
         file_name="draftkings_sgp",
@@ -167,7 +166,6 @@ SGP_PROVIDERS = [
         },
         method="WS",
         is_active=True,
-        has_sgp=True,
         class_name="HardrockSGP",
         file_name="hardrock_sgp",
     ),
@@ -188,8 +186,7 @@ SGP_PROVIDERS = [
             'Referer': 'https://novig.com/',
             'TE': 'trailers'
         },
-        is_active=False,
-        has_sgp=True,
+        is_active=True,
         class_name="NovigSGP",
         file_name="novig_sgp",
     ),
@@ -204,19 +201,24 @@ SGP_PROVIDERS = [
         },
         method="POST",
         is_active=True,
-        has_sgp=True,
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
             refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=True,
-            mapper_redis_key="onyx_ids"
+            mapper_redis_key="onyx_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="OnyxMapper",
+            file_name="onyx_mapper",
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
             refresh_interval=25200,  # 7 Hours
             job_active=True,
-            auth_redis_key="onyx_auth"
+            auth_redis_key="onyx_auth",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="OnyxAuth",
+            file_name="onyx_auth",
         ),
         class_name="OnyxSGP",
         file_name="onyx_sgp",
@@ -238,7 +240,6 @@ SGP_PROVIDERS = [
                 'Connection': 'keep-alive',
             },
             method="GET",
-            is_active=True
         )
     ),
     SGPProvider(
@@ -253,10 +254,8 @@ SGP_PROVIDERS = [
         headers={
             'Content-Type': 'application/json'
         },
-
         method="POST",
-        is_active=False,
-        has_sgp=True,
+        is_active=True,
         class_name="ProphetxSGP",
         file_name="prophetx_sgp",
     ),
@@ -283,7 +282,6 @@ SGP_PROVIDERS = [
         },
         method="POST",
         is_active=True,
-        has_sgp=True,
         class_name="ThescoreSGP",
         file_name="thescore_sgp",
     ),
@@ -311,8 +309,7 @@ SGP_PROVIDERS = [
             "select_id": r'selectionIds=([0-9a-fA-F-]+)',
         },
         method="POST",
-        is_active=False,
-        has_sgp=True,
+        is_active=True,
         class_name="CaesarsSGP",
         file_name="caesar_sgp",
         mapper_job_dict=MapperJobDict(
@@ -320,13 +317,19 @@ SGP_PROVIDERS = [
             refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=True,
-            mapper_redis_key="caesar_mapped_ids"
+            mapper_redis_key="caesar_mapped_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="CaesarMapper",
+            file_name="caesar_mapper",
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
             refresh_interval=600,  # 10 Minutes
             job_active=True,
-            auth_redis_key="caesar_auth"
+            auth_redis_key="caesar_auth",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="CaesarAuth",
+            file_name="caesars_auth",
         ),
         mapping=SGPMapper(
             url={
@@ -344,7 +347,6 @@ SGP_PROVIDERS = [
                 'Connection': 'keep-alive',
             },
             method="GET",
-            is_active=False
         )
     ),
     SGPProvider(
@@ -358,7 +360,6 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=False,
-        has_sgp=True,
         class_name="",
         file_name="",
         mapping=SGPMapper(
@@ -378,7 +379,6 @@ SGP_PROVIDERS = [
                 "Origin": "https://www.betonline.ag",
             },
             method="POST",
-            is_active=False
         )
     ),
     SGPProvider(
@@ -395,7 +395,7 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=True,
-        has_sgp=True,
+        curl_impersonation="firefox",
         class_name="BetwaySGP",
         file_name="betway_sgp",
         mapper_job_dict=MapperJobDict(
@@ -403,7 +403,10 @@ SGP_PROVIDERS = [
             refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=False,
-            mapper_redis_key="betway_mapped_ids"
+            mapper_redis_key="betway_mapped_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="BetwayMapper",
+            file_name="betway_mapper",
         ),
         mapping=SGPMapper(
             url={
@@ -413,13 +416,19 @@ SGP_PROVIDERS = [
                 "event_details": "https://betway.com/g/services/api/events/v2/GetEventDetails"
             },
             headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
                 'Content-Type': 'application/json',
                 'Origin': 'https://betway.com',
                 'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'Priority': 'u=0',
                 'TE': 'trailers'
             },
             method="POST",
-            is_active=True
         )
     ),
     SGPProvider(
@@ -433,7 +442,6 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=False,
-        has_sgp=True,
         class_name="",
         file_name="",
         mapping=SGPMapper(
@@ -453,14 +461,14 @@ SGP_PROVIDERS = [
                 'TE': 'trailers',
             },
             method="POST",
-            is_active=False
         )
     ),
     SGPProvider(
         title="Fliff Sportsbook",
         name="fliff",
         url={
-            "sgp_url": "https://m-c811.app.getfliff.com/fc_mobile_api_private"
+            "sgp_url": "https://m-c811.app.getfliff.com/fc_mobile_api_private",
+            "auth_url": "https://m-c701.app.getfliff.com/api/v1/oauth2/token/"
         },
         headers={
             'x-dd-request-code': 'access_token_auth',
@@ -471,7 +479,6 @@ SGP_PROVIDERS = [
         },
         method="POST",
         is_active=True,
-        has_sgp=True,
         class_name="FliffSGP",
         file_name="fliff_sgp",
         mapper_job_dict=MapperJobDict(
@@ -479,13 +486,19 @@ SGP_PROVIDERS = [
             refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=True,
-            mapper_redis_key="fliff_ids"
+            mapper_redis_key="fliff_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="FliffMapper",
+            file_name="fliff_mapper",
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
             refresh_interval=180,  # 10 Minutes
             job_active=True,
-            auth_redis_key="fliff_auth"
+            auth_redis_key="fliff_auth",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="FliffAuth",
+            file_name="fliff_auth",
         ),
         mapping=SGPMapper(
             url={
@@ -498,7 +511,6 @@ SGP_PROVIDERS = [
                 'Referer': 'https://sports.getfliff.com/',
             },
             method="POST",
-            is_active=True
         )
     ),
     SGPProvider(
@@ -510,8 +522,8 @@ SGP_PROVIDERS = [
         headers={
             'Referer': 'https://services.ozoon.eu/',
             'content-type': 'application/json',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Connection': 'keep-alive',
-            'Priority': 'u=4',
             'Pragma': 'no-cache',
             'Cache-Control': 'no-cache',
             'TE': 'trailers',
@@ -521,7 +533,6 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=True,
-        has_sgp=True,
         class_name="BovadaSGP",
         file_name="bovada_sgp",
         mapper_job_dict=MapperJobDict(
@@ -529,7 +540,10 @@ SGP_PROVIDERS = [
             refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=False,
-            mapper_redis_key="bovada_ids"
+            mapper_redis_key="bovada_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="BovadaMapper",
+            file_name="bovada_mapper",
         ),
         mapping=SGPMapper(
             url={
@@ -539,13 +553,11 @@ SGP_PROVIDERS = [
                 'Referer': 'https://services.ozoon.eu/',
                 'content-type': 'application/json',
                 'Connection': 'keep-alive',
-                'Priority': 'u=4',
                 'Pragma': 'no-cache',
                 'Cache-Control': 'no-cache',
                 'TE': 'trailers',
             },
             method="GET",
-            is_active=True
         )
     ),
 
@@ -560,7 +572,6 @@ SGP_PROVIDERS = [
         },
         method="GET",
         is_active=False,
-        has_sgp=True,
         class_name="RebetSGP",
         file_name="rebet_sgp",
         mapping=SGPMapper(
@@ -576,14 +587,13 @@ SGP_PROVIDERS = [
                 'Referer': 'https://play.rebet.app/',
             },
             method="GET",
-            is_active=True
         )
     ),
     SGPProvider(
         title="Prop Builder",
-        name="prop_builder",
+        name="prop builder",
         url={
-            "sgp_url": "https://bv2-us.digitalsportstech.com/api/v2/odds/acca"
+            "sgp_url": "https://bv2-us.digitalsportstech.com/api/v2/odds/acca",
         },
         headers={
             'Origin': 'https://troya.xyz',
@@ -593,8 +603,7 @@ SGP_PROVIDERS = [
         regex={
         },
         method="POST",
-        is_active=False,
-        has_sgp=True,
+        is_active=True,
         class_name="PropBuilderSGP",
         file_name="prop_builder_sgp",
         mapper_job_dict=MapperJobDict(
@@ -602,7 +611,10 @@ SGP_PROVIDERS = [
             refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=False,
-            mapper_redis_key="prop_builder_mapped_ids"
+            mapper_redis_key="prop_builder_mapped_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="PropBuilderMapper",
+            file_name="prop_builder_mapper",
         ),
         mapping=SGPMapper(
             url={
@@ -610,13 +622,25 @@ SGP_PROVIDERS = [
                 "game_url": "https://bv2-us.digitalsportstech.com/api/sgmGames?sb=betus",
                 "market_url": "https://bv2-us.digitalsportstech.com/api/grouped-markets/v2/map?sb=betus&legacy=1",
                 "props_base": "https://bv2-us.digitalsportstech.com/api/",
-                "game_details_url": "https://bv2-us.digitalsportstech.com/api/gfm/gamesByGfm"
+                "game_details_url": "https://bv2-us.digitalsportstech.com/api/gfm/gamesByGfm",
+                "security_url": "https://bv2-us.digitalsportstech.com/api/security/challenge"
             },
             headers={
             },
             method="GET",
-            is_active=True
         )
+    ),
+    SGPProvider(
+        title="Underdog Fantasy",
+        name="underdog",
+        url={
+            "sgp_url": "https://api.underdogfantasy.com/v2/entry_slips/estimate"
+        },
+        method="GET",
+        headers={},
+        is_active=True,
+        class_name="UnderdogSGP",
+        file_name="underdog_sgp",
     ),
 ]
 

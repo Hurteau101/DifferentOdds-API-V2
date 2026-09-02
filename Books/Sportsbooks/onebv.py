@@ -5,7 +5,7 @@ import pytz
 from rapidfuzz import process, fuzz
 from datetime import datetime, timezone
 from Books.Bases.pph_base import PPHBookBase
-from External_Book_Mapping.SGP.betway_mapper import get_static_mapping
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Settings.Models.base_models import TeamData, GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 import asyncio
@@ -29,7 +29,7 @@ class OneBv(PPHBookBase):
 
     def __init__(self):
         super().__init__(book_name="1bv")
-        self.stat_mapping = get_static_mapping()
+        self.stat_mapping = self.static_mapping.get("static_mapping", {})
         # Contains the proper team names, as game lines section is the only section
         # that will have the proper team names, so we want to store here, so they can be referenced for the other sections,
         # that don't have the proper team names.
@@ -43,8 +43,6 @@ class OneBv(PPHBookBase):
             method=self.book_data.method,
             headers=self.book_data.headers
         )
-
-
 
         return token_data.get("AppToken", None) if isinstance(token_data, dict) else None
 
@@ -154,6 +152,7 @@ class OneBv(PPHBookBase):
             team_name = team_a if team_a.lower() in current_dict_name else team_b
 
             odds.append(SportsbookStats(
+                static_mapping=self.stat_mapping,
                 market=mapped_market_name,
                 bet_team=team_name if "team totals" in market_name.lower() else None,
                 line=abs(float(total_line)),
@@ -285,17 +284,27 @@ class OneBv(PPHBookBase):
         return game_data if game_data.odds else None
 
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             app_token: str | None = await self.get_app_token()
 
             if not app_token:
-                return
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.AUTH,
+                    error_message="No app token found"
+                )
+                return None
 
             player_token = await self.get_player_token(app_token=app_token)
 
             if not player_token:
-                return
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.AUTH,
+                    error_message="No player token found"
+                )
+                return None
 
             raw_league_data = await self.api_caller(
                 url=self.book_data.url.get("leagues_url"),
@@ -339,6 +348,14 @@ class OneBv(PPHBookBase):
             # Flatten the list of events from the tasks and convert to a list if its not.
             events = [event for task in tasks for event in (task if isinstance(task, list) else [task])]
 
+            if not events:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No market data found"
+                )
+                return None
+
             events = list(chain.from_iterable(
                 league["EVENTS"]
                 for item in events
@@ -359,19 +376,21 @@ class OneBv(PPHBookBase):
 
             onebv_data = list(event_data.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=onebv_data)
+            if not onebv_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
-            # print(self.extract_market_names(mapped_data))
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=onebv_data,
+                key_name=self.book_data.name
             )
 
-
-            return mapped_data
-
+            return onebv_data
 
 
 if __name__ == "__main__":

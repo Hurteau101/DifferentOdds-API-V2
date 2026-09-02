@@ -1,8 +1,8 @@
 import os
 from typing import Dict
-from Books.Bases.dfs_book_base import DFSBookBase
 import asyncio
-from Monitoring.monitoring import create_sentry_message
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
@@ -125,6 +125,7 @@ class Chalkboard(DFSBookBase):
             ),
             odds=[
                 DFSStats(
+                    static_mapping=self.static_mapping,
                     player_name=player_name,
                     player_team=player_team,
                     future=False,
@@ -196,19 +197,17 @@ class Chalkboard(DFSBookBase):
         for c in count:
             print(f"{c}: {int(int(count[c]) / 2)}")
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         redis_client = RedisAsyncManager(database=5)
         access_token = await redis_client.get_data("chalkboard_access_token")
 
         if not access_token:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="auth_failure",
-                message="Couldn't retrieve Chalkboard access token from Redis.",
-                level="error"
+            insert_log(
+                key_name=self.book_data.title,
+                error_type=ErrorTypes.AUTH,
+                error_message="No access token found"
             )
-
-            return
+            return None
 
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             headers = {
@@ -233,6 +232,11 @@ class Chalkboard(DFSBookBase):
             merged_data = [result for result in results if result]
 
             if not merged_data:
+                insert_log(
+                    key_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
+                )
                 return None
 
             events = {}
@@ -244,12 +248,18 @@ class Chalkboard(DFSBookBase):
                         self.add_to_events(events, player_data, GameData)
 
             chalkboard_data = list(events.values())
-            mapped_data = await self.map_runner(session=session, sportsbook_data=chalkboard_data)
+
+            if not chalkboard_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=chalkboard_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            return chalkboard_data

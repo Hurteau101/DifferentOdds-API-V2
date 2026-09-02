@@ -1,15 +1,6 @@
-from dataclasses import dataclass, field, fields
-from typing import Optional, TypedDict, Dict
-from Redis.redis_manager import static_mapping_service
+from dataclasses import dataclass, field, InitVar
+from typing import Optional, TypedDict
 from Utils.helpers import clean_structure, cache_time
-
-def get_static_mapping():
-    return static_mapping_service.get()
-
-# TODO:
-# Remove player_name and stat_type from DFS Model -> There name will be market & bet_player.
-# As well remove market & bet_player from Sportsbook model
-
 
 class OddsFormat(TypedDict, total=False):
     american_odds: float # Books Using this: (PrizePicks, Underdog, ParlayPlay)
@@ -17,15 +8,16 @@ class OddsFormat(TypedDict, total=False):
 
 @dataclass
 class Stats:
+    static_mapping: InitVar[dict]
     line: float | None
     bet_type: str | None
     future: bool
     odds_format: Optional[OddsFormat] = field(default=None)
     live: bool = False
 
-    def __post_init__(self):
-        self.player_name = clean_structure(self.player_name)
-        self.player_team = clean_structure(self.bet_team)
+    def __post_init__(self, static_mapping: dict):
+        if self.bet_type:
+            self.bet_type = static_mapping.get("static_mapping", {}).get(self.bet_type.lower(), self.bet_type)
 
 
 @dataclass
@@ -50,7 +42,6 @@ class GameData:
     solo_game: Optional[bool] = None
 
     def __post_init__(self):
-        self.league = get_static_mapping().get("leagues", {}).get(self.league.lower(), {}).get("mapped_name", self.league.upper())
         self.start_date = cache_time(self.start_date)
 
         # Work on a better solution.

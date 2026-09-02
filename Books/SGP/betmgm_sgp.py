@@ -1,20 +1,23 @@
 import asyncio
-from Books.Bases.sgp_book_base import SGPBookBase
+from Books.Bases.sgp_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
 from curl_cffi import AsyncSession as CurlAsyncSession
+from loguru import logger
 
 class BetmgmSGP(SGPBookBase):
-    def __init__(self, sgp_data: dict, mapped_ids_redis_instance, **kwargs):
-        super().__init__(category="SGP", book_name="betmgm",
-                         sgp_data=sgp_data, mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
-
+    def __init__(self, sgp_data: dict, **kwargs):
+        super().__init__(category="SGP", book_name="betmgm", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
-    async def run_book(self, session):
-        mapped_ids = await self.load_mapped_ids(key_name="betmgm_ids")
+    async def run_book(self, session: CurlAsyncSession | None = None) -> dict | None:
+        mapped_ids = await self.mapper_redis_manager.get_data(self.mapper_id_name)
+        import json
+        with open("betmgm_ids.json", "w") as f:
+            json.dump(mapped_ids, f, indent=2)
+
 
         if not mapped_ids:
+            logger.error("No mapped ids found")
             return None
 
         payload = self._create_payload(mapped_ids)
@@ -63,10 +66,9 @@ class BetmgmSGP(SGPBookBase):
             if not bet_id:
                 continue
 
-            mapped = mapped_data.get(str(-int(bet_id)), {}) or mapped_data.get(str(bet_id), {})
+            mapped = mapped_data.get(bet_id, {})
             # If it's not part of the SGP Eligibility, then we must check the parent section.
             # The parent section will contain the milestone. Example 2+, 3+ etc. This is already pre-mapped.
-            # if not mapped.get("is_sgp_eligible"):
             if mapped.get("parent_data", {}):
                 mapped = mapped.get("parent_data", {})
                 bet_id = mapped.get("bet_id")
@@ -81,7 +83,7 @@ class BetmgmSGP(SGPBookBase):
                         "fixtureId": mapped.get("fixture_id") if mapped.get("source") == "V1" else mapped.get(
                             "fixture_id_v2"),
                         "gameId": int(mapped.get("game_id")) if mapped.get("game_id") else None,
-                        "resultId": -int(bet_id),
+                        "resultId": bet_id,
                         "useLiveFallback": False,
                         "pickGroupId": mapped.get("group_id"),
                     }
@@ -104,17 +106,12 @@ if __name__ == "__main__":
     async def main():
         async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {'book_name': 'betmgm', 'links': [
-                # "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=6:36475-2689474-4040918&type=Single",
-                "https://sports.{state}.betmgm.com/en/sports/events/19830358?options=19830358-1545685425-2261318407&type=Single",
-                "https://sports.{state}.betmgm.com/en/sports/events/19830358?options=19830358-1545685441-2261318439&type=Single",
+                "https://sports.{state}.betmgm.com/en/sports/events/19888186?options=2:7827687-203886485-779526886&type=Single",
+                "https://sports.{state}.betmgm.com/en/sports/events/19888186?options=2:7827687-203886657-779527230&type=Single"
             ]}
 
-            redis_mapped = RedisAsyncManager(database=2)
-            book = BetmgmSGP(mapped_ids_redis_instance=redis_mapped, sgp_data=sgp_data)
+            book = BetmgmSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)
             print(data)
 
     asyncio.run(main())
-
-
-# "https://sports.{state}.betmgm.com/en/sports/events/19025410?options=6:36475-2689474-4040918&type=Single",

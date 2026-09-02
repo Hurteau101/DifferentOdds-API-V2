@@ -5,9 +5,11 @@ from itertools import chain
 from typing import Callable
 from zoneinfo import ZoneInfo
 import aiohttp
-from urllib.parse import urlencode
 from dotenv import load_dotenv
+from requests_toolbelt.utils.formdata import urlencode
+
 from Books.Bases.pph_base import PPHBookBase
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import TeamData, GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
@@ -73,6 +75,7 @@ class Buckeye2(PPHBookBase):
 
             odds = spread_odds - (buy_points_amount * step)
             odds_list.append(SportsbookStats(
+                static_mapping=self.static_mapping,
                 market=market_name,
                 bet_team=bet_team,
                 line=new_spread,
@@ -109,6 +112,7 @@ class Buckeye2(PPHBookBase):
 
             odds = total_odds - (buy_points_amount * step)
             odds_list.append(SportsbookStats(
+                static_mapping=self.static_mapping,
                 market=market_name,
                 bet_team=None,
                 line=abs(float(new_total)),
@@ -158,6 +162,7 @@ class Buckeye2(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                static_mapping=self.static_mapping,
                 market=self.convert_spread_name(mapped_market_name, kwargs.get("league")),
                 bet_team=team,
                 line=float(spread_line),
@@ -198,6 +203,7 @@ class Buckeye2(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                static_mapping=self.static_mapping,
                 market=mapped_market_name,
                 bet_team=team_name,
                 line=abs(float(total_line)),
@@ -430,17 +436,16 @@ class Buckeye2(PPHBookBase):
 
         return market_data
 
-
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         username = os.getenv("BUCKEYE_2_USERNAME")
 
         if not username:
             raise ValueError("Missing required environment variable: BUCKEYE_2_USERNAME")
 
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
-            auth_token = await self.load_auth()
+            auth_token = await self.auth_redis_manager.get_data(self.auth_id_name)
+
             if not auth_token:
-                print("Auth Expired")
                 return None
 
             raw_leagues = await self.api_caller(
@@ -448,26 +453,11 @@ class Buckeye2(PPHBookBase):
                 method=self.book_data.method,
                 use_proxy=True,
                 headers={
-                    # 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-                    # 'Accept': '*/*',
-                    # 'Accept-Language': 'en-US,en;q=0.9',
-                    # 'Accept-Encoding': 'gzip, deflate',
-                    # 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    # 'X-Requested-With': 'XMLHttpRequest',
-                    # # 'Origin': 'https://wwcd.me',
-                    # 'Origin': 'https://www.247bettor.com',
-                    # 'Connection': 'keep-alive',
-                    # 'Referer': 'https://www.247bettor.com/sports.html?v=1778340204456',
-                    # # 'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
-                    # 'Sec-Fetch-Dest': 'empty',
-                    # 'Sec-Fetch-Mode': 'cors',
-                    # 'Sec-Fetch-Site': 'same-origin',
-                    # 'TE': 'trailers',
                     **self.book_data.headers,
                     "Authorization": f"Bearer {auth_token}"
                 },
-                # Ensure its urlencode, or pass a string, or else you won't get the proper data back.
-                json={
+
+                data=urlencode({
                     # "customerID": username,
                     "customerID": f"{username}_0",
                     "wagerType": "Straight",
@@ -476,7 +466,7 @@ class Buckeye2(PPHBookBase):
                     "operation": "Get_SportsLeagues",
                     "RRO": 1,
                     "agentSite": 0
-                }
+                })
             )
 
             leagues = [
@@ -496,6 +486,14 @@ class Buckeye2(PPHBookBase):
             ]
 
             results = await asyncio.gather(*raw_data)
+
+            if not results:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No data returned from API"
+                )
+                return None
 
             event_data = {}
 
@@ -538,8 +536,13 @@ class Buckeye2(PPHBookBase):
 
             buckeye_2_data = list(event_data.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_2_data)
-
+            if not buckeye_2_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             final_mapping = {}
 
@@ -548,15 +551,14 @@ class Buckeye2(PPHBookBase):
             # spelling when creating the event, so this causes BOS Celtivs vs TOR Raptors, until its ran through
             # map_runner where its properly mapped, but then the player mapping isn't already properly mapped, so you end
             # up with similar events that should be grouped together.
-            for mapped in mapped_data:
+            for mapped in buckeye_2_data:
                 self.add_to_events(final_mapping, mapped, GameData)
 
             final_data = list(final_mapping.values())
 
             await self.store_data(
-                database=self.redis_database,
                 data_to_store=final_data,
-                book_name=self.book_data.name
+                key_name=self.book_data.name
             )
 
             return final_data

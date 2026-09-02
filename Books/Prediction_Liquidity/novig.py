@@ -1,19 +1,17 @@
 import asyncio
 from datetime import datetime, timedelta
 import re
-from collections import defaultdict
 from itertools import chain
 from typing import Iterable
-
 from Books.Prediction_Liquidity.Helper.novig_api_helper import NovigApiHelper
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
-import aiohttp
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
-from Books.Bases.prediction_liquidity_base import PredictionLiquidityBase
+from Books.Bases.prediction_base import PredictionBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
-class Novig(PredictionLiquidityBase):
+class Novig(PredictionBookBase):
     def __init__(self):
         super().__init__(book_name="novig")
 
@@ -85,32 +83,6 @@ class Novig(PredictionLiquidityBase):
 
         return league_set
 
-
-    # def organize_orders(self, order_list: list, outcome_id: str):
-    #     open_orders = [o for o in order_list if o.get("status") == "OPEN"]
-    #
-    #     best_price = max(
-    #         (order["price"] for order in open_orders if order.get("price") is not None),
-    #         default=None
-    #     )
-    #
-    #     return [
-    #         {
-    #             "outcome_id": outcome_id,
-    #             "qty": order.get("qty"),
-    #             "decimal_price": order.get("price"),
-    #             "original_qty": order.get("originalQty"),
-    #             "created_at": order.get("created_at"),
-    #             "price": order.get("price"),
-    #             "american_price": self.price_to_american(order.get("price")),
-    #             "total_win": round(order.get("qty") / 100, 2),
-    #             "total_risk": round(order.get("price") * (order.get("qty") / 100), 2),
-    #             "liquidity_left": round(self.calculate_liquidity(order.get("qty"), order.get("price"))),
-    #             "is_best": order.get("price") == best_price
-    #         }
-    #         for order in open_orders
-    #     ]
-
     def organize_orders(self, order_list: list, outcome_id: str):
         open_orders = [o for o in order_list if o.get("status") == "OPEN"]
 
@@ -141,75 +113,7 @@ class Novig(PredictionLiquidityBase):
             for order in sorted(open_orders, key=lambda o: o.get("price") or 0, reverse=False)
         ]
 
-    # async def _filter_data(self, event_data: list, league_name: str):
-    #
-    #     merged = {}
-    #
-    #     for raw_event in event_data:
-    #         event_name = raw_event.get("description", "")
-    #         teams = re.split(r'\s*(?:vs|@)\s*', event_name)
-    #         event_obj = {
-    #             "event_name": event_name,
-    #             "league": league_name,
-    #             "start_date": raw_event.get("game", {}).get("scheduled_start"),
-    #             "team_data": {
-    #                 "team_a": teams[0] if len(teams) > 1 else None,
-    #                 "team_b": teams[1] if len(teams) > 1 else None,
-    #                 "team_a_abbreviation": None,
-    #                 "team_b_abbreviation": None
-    #             },
-    #             "odds": []
-    #         }
-    #
-    #         for market in raw_event.get("markets", []):
-    #             outcomes = market.get("outcomes", [])
-    #             if not outcomes:
-    #                 continue
-    #
-    #             market_name = market.get("type", "")
-    #             player = market.get("player", {}).get("full_name") if market.get("player") else None
-    #             line = market.get("strike") if market.get("strike") != 0 else None
-    #
-    #             for outcome in outcomes:
-    #                 orders = self.organize_orders(outcome.get("orders", []), outcome.get("id"))
-    #                 if not orders:
-    #                     continue
-    #
-    #                 bet_info = outcome.get("description")
-    #
-    #                 modified_info = (
-    #                     bet_info
-    #                     if not any(t.lower() in ["over", "under"] for t in bet_info.split())
-    #                     else bet_info.replace(str(line), "").strip()
-    #                 )
-    #
-    #                 if modified_info not in ["Over", "Under"]:
-    #                     cleaned_name = re.sub(r"\s[+-].*$", "", modified_info).lower()
-    #                     bet_team = teams[0] if (cleaned_name == teams[0].lower() or cleaned_name in teams[0].lower()) else teams[1]
-    #
-    #                 else:
-    #                     bet_team = None
-    #
-    #
-    #                 event_obj["odds"].append(
-    #                     {
-    #                         "market": market_name,
-    #                         "line": line,
-    #                         "player": player,
-    #                         "bet_team": bet_team,
-    #                         "bet_type": modified_info if modified_info in ["Over", "Under"] else None,
-    #                         "orders": orders
-    #                     }
-    #                 )
-    #
-    #         if event_obj["odds"]:
-    #             merged[raw_event.get("id")] = event_obj
-    #
-    #
-    #     return list(merged.values())
-
     async def _filter_data(self, event_data: list, league_name: str):
-
         merged = {}
 
         for raw_event in event_data:
@@ -260,6 +164,7 @@ class Novig(PredictionLiquidityBase):
                         bet_team = None
 
                     stats = PredictionLiquidityStats(
+                            static_mapping=self.static_mapping,
                             line=line,
                             bet_type=modified_info if modified_info in ["over", "under"] else None,
                             market=market_name,
@@ -272,19 +177,6 @@ class Novig(PredictionLiquidityBase):
 
                     stats.market = self.special_stat_mapper(stats.market, league_name)
                     event_obj.odds.append(stats)
-
-                    # event_obj.odds.append(
-                    #     PredictionLiquidityStats(
-                    #         line=line,
-                    #         bet_type=modified_info if modified_info in ["over", "under"] else None,
-                    #         market=market_name,
-                    #         liquidity_data=orders,
-                    #         bet_player=player,
-                    #         bet_team=bet_team,
-                    #         player_team=None,
-                    #         future=False,
-                    #     )
-                    # )
 
             if event_obj.odds:
                 merged[raw_event.get("id")] = event_obj
@@ -320,60 +212,18 @@ class Novig(PredictionLiquidityBase):
         event_data = markets.get("data", {}).get("event", [])
         return await self._filter_data(event_data, league_name=league_name)
 
-    # async def convert_to_dataclass(self, event_data):
-    #     games = []
-    #
-    #     for event in event_data:
-    #         odds_list = []
-    #
-    #         for selection_name, market in event.get("markets", {}).items():
-    #             liquidity_entries = [
-    #                 {
-    #                     "odds_format": OddsFormat(
-    #                         american_odds=odd["odds_format"].get("american_odds"),
-    #                         decimal_odds=odd["odds_format"].get("decimal_odds"),
-    #                     ),
-    #                     "liquidity": odd.get("liquidity"),
-    #                     "price": odd.get("price"),
-    #                     "is_best": odd.get("is_best"),
-    #                 }
-    #                 for odd in market.get("odds", [])
-    #             ]
-    #
-    #             stat = PredictionLiquidityStats(
-    #                 line=market.get("line"),
-    #                 bet_type=market.get("bet_type"),
-    #                 future=False,
-    #                 live=False,
-    #                 market=market.get("market"),
-    #                 liquidity_data=liquidity_entries,
-    #                 bet_player=None,
-    #                 bet_team=None,
-    #                 player_team=None,
-    #             )
-    #
-    #             odds_list.append(stat)
-    #
-    #         game = GameData(
-    #             league=event.get("league"),
-    #             start_date=event.get("start_date"),
-    #             game_key=event.get("game_key"),
-    #             team_data=TeamData(**event.get("team_data")),
-    #             odds=odds_list,
-    #             solo_game=False,
-    #         )
-    #
-    #         games.append(game)
-    #
-    #     return games
-
-
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             leagues = await self.get_leagues(session=session,
                                              excluded_leagues=["ENTERTAINMENT", "HOT", "CUSTOM", "LIVE"])
 
             if not leagues:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No leagues found"
+                )
+
                 return None
 
             novig_api_helper = NovigApiHelper()
@@ -408,20 +258,21 @@ class Novig(PredictionLiquidityBase):
             )
 
             game_data = list(chain.from_iterable(filter(None, market_data)))
-            leagues = set()
-            stat_types = set()
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=game_data)
+            if not game_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name,
+                data_to_store=game_data,
+                key_name=self.book_data.name,
             )
 
-            await self.market_chunk_processor(mapped_data=mapped_data, book_name=self.book_data.name)
-
-            return mapped_data
+            return game_data
 
 if __name__ == "__main__":
     book = Novig()

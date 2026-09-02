@@ -4,8 +4,8 @@ import re
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from Books.Bases.pph_base import PPHBookBase
-from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import TeamData, GameData, OddsFormat, get_static_mapping
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Settings.Models.base_models import TeamData, GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from itertools import chain
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -35,13 +35,7 @@ class Ace(PPHBookBase):
         # that don't have the proper team names.
         self.league_dict = {}
 
-        self.stat_mapping = get_static_mapping().get("stats", {})
-
-
-    async def load_cookies(self) -> dict | None:
-        """Extracts the cookies from Redis."""
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("ace_cookies")
+        self.stat_mapping = self.static_mapping.get("static_mapping", {})
 
     def build_league_ids(self, raw_leagues: dict, exclude_player_props: bool = True, league_filter: bool = True,
                          filter_markets: bool = True, excluded_markets: bool = True) -> dict:
@@ -144,6 +138,7 @@ class Ace(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                static_mapping=self.static_mapping,
                 market=mapped_market_name,
                 bet_team=None,
                 line=0.5,
@@ -189,6 +184,7 @@ class Ace(PPHBookBase):
                 team_name = None
 
             odds.append(SportsbookStats(
+                static_mapping=self.static_mapping,
                 market=mapped_market_name,
                 bet_team=team_name,
                 line=abs(float(total_line)),
@@ -369,14 +365,13 @@ class Ace(PPHBookBase):
         return game_data
 
 
-    async def run_book(self):
-        cookies = await self.load_cookies()
+    async def run_book(self) -> list | None:
+        cookies = await self.auth_redis_manager.get_data(self.auth_id_name)
         if not cookies:
-            return
+            return None
 
         async with CurlAsyncSession(impersonate=self.impersonate, cookies=cookies) as session:
-            espn_redis = RedisAsyncManager(database=8)
-            espn_mapping = await espn_redis.get_data("espn_mapping")
+            espn_mapping = await self.espn_redis.get_data("espn_mapping") or {}
 
             raw_leagues = await self.api_caller(
                 session=session,
@@ -399,7 +394,12 @@ class Ace(PPHBookBase):
             )
 
             if not markets:
-                return
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No market data found"
+                )
+                return None
 
             league_list = chain.from_iterable(markets.get("result", {}).get("listLeagues", []))
 
@@ -427,7 +427,14 @@ class Ace(PPHBookBase):
 
             betvegas_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=betvegas_data)
+            if not betvegas_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
+
 
             final_mapping = {}
 
@@ -436,15 +443,14 @@ class Ace(PPHBookBase):
             # spelling when creating the event, so this causes BOS Celtivs vs TOR Raptors, until its ran through
             # map_runner where its properly mapped, but then the player mapping isn't already properly mapped, so you end
             # up with similar events that should be grouped together.
-            for mapped in mapped_data:
+            for mapped in betvegas_data:
                 self.add_to_events(final_mapping, mapped, GameData)
 
             final_data = list(final_mapping.values())
 
             await self.store_data(
-                database=self.redis_database,
                 data_to_store=final_data,
-                book_name=self.book_data.name
+                key_name=self.book_data.name
             )
 
             return final_data

@@ -1,14 +1,16 @@
-import asyncio
 import re
 from collections import defaultdict
-from Books.Bases.dfs_book_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, TeamData, OddsFormat
 from curl_cffi import AsyncSession as CurlAsyncSession
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
+
 
 class Underdog(DFSBookBase):
     def __init__(self):
         super().__init__(book_name="underdog")
+
 
     def _mapper(self, api_data: dict) -> dict:
         """Map the different sections of the API data to their respective dictionaries."""
@@ -187,6 +189,7 @@ class Underdog(DFSBookBase):
 
         return [
             DFSStats(
+                static_mapping=self.static_mapping,
                 player_name=player_name,
                 player_team=player_team,
                 stat_type=line.get("display_stat"),
@@ -198,7 +201,8 @@ class Underdog(DFSBookBase):
                     market_type=check_half_market(line.get("display_stat")),
                     odds_type=set_payout_label(float(option.get("payout_multiplier", 0))),
                     multiplier=float(option.get("payout_multiplier")),
-                    player_id=option.get("id")
+                    player_id=option.get("id"),
+                    group_id=option.get("over_under_line_id"),
                 ),
                 odds_format=OddsFormat(
                     american_odds=float(option.get("american_price")),
@@ -238,7 +242,6 @@ class Underdog(DFSBookBase):
 
         grouped_stats = stats.get(line_id)
 
-
         stat_details = self._extract_stats(league, grouped_stats, player_details.get("player_name"), game_details.get("player_team"))
 
         return GameData(
@@ -276,7 +279,7 @@ class Underdog(DFSBookBase):
 
         return grouped_stats
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_data = await self.api_caller(
                 session=session,
@@ -286,6 +289,11 @@ class Underdog(DFSBookBase):
             )
 
             if not api_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
+                )
                 return None
 
             mapped_data = self._mapper(api_data)
@@ -299,16 +307,22 @@ class Underdog(DFSBookBase):
 
             underdog_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=underdog_data)
+            if not underdog_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                key_name=self.book_data.name,
+                data_to_store=underdog_data,
             )
 
-            return mapped_data
+            return underdog_data
 
 if __name__ == "__main__":
+    import asyncio
     ud = Underdog()
     asyncio.run(ud.run_book())

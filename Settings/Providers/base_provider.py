@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from importlib import metadata
 from typing import Optional, Dict
 from typing import ClassVar
 
@@ -21,7 +22,12 @@ class BaseJobDict:
     refresh_interval: int
     job_active: bool
     redis_db: Optional[int] = field(default=None, init=False)
-
+    file_name: str
+    class_name: str
+    base_file_path: str
+    # This will be created in post init, taking the base + path - Will allow us to dynamically extract the class instance.
+    # With the help of the class name.
+    class_path: Optional[str] = field(default=None, init=False)
 
     def __post_init__(self):
         self.redis_db = RedisSelector[self.job_type.name].redis_db
@@ -31,11 +37,18 @@ class BaseJobDict:
 class AuthJobDict(BaseJobDict):
     auth_redis_key: str
 
+    def __post_init__(self):
+        self.class_path = f"{self.base_file_path}.Authentication.{self.file_name}"
+
 # Handles Mapper Job Information (Primarily used for APScheduler)
 @dataclass
 class MapperJobDict(BaseJobDict):
     requires_auth: bool
     mapper_redis_key: str
+
+    def __post_init__(self):
+        self.class_path = f"{self.base_file_path}.Mapping.{self.file_name}"
+
 
 
 @dataclass
@@ -53,7 +66,6 @@ class BaseProvider:
     class_path: Optional[str] = field(default=None, init=False)
     headers: Optional[Dict] = None
     is_active: Optional[bool] = False
-    has_sgp: bool = False
     curl_impersonation: Optional[str] = "chrome"
     auth_job_dict: Optional[AuthJobDict] = None
     mapper_job_dict: Optional[MapperJobDict] = None
