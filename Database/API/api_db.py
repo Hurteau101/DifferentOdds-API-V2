@@ -64,15 +64,6 @@ if __name__ == "__main__":
 
     with Session.begin() as session:
         test = APIKeys.get_api_keys(session)
-        
-
-        # api_key = APIKeys(
-        #     client="Test",
-        #     api_key="DiaNpT0g7VhhQPU1ZH7vf5b1hb6J1SGk"
-        # )
-        #
-        # session.add(api_key)
-
 
 
 
