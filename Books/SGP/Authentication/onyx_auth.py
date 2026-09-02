@@ -15,7 +15,7 @@ class OnyxAuth(AuthBase):
     EMAIL_CLIENT_BASE_URL = "https://api.mail.tm"
 
     def __init__(self):
-        super().__init__(book_name="onyx odds", category="sgp")
+        super().__init__(book_name="onyx odds", category="sgp", precalculated_additional_time=3600)
 
     async def _extract_otp(self):
         async with aiohttp.ClientSession() as session:
@@ -164,7 +164,7 @@ class OnyxAuth(AuthBase):
                         await self.store_data(
                             key_name=self.auth_id_name,
                             data_to_store=auth_token,
-                            expiration_time=27000
+                            expiration_time=self.pre_calculated_redis_expiration
                         )
 
                         return True

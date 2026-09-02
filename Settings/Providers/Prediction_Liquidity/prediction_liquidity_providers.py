@@ -1,5 +1,4 @@
-from typing import Optional
-from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector, APSchedulerDetails
 from dataclasses import dataclass
 
 
@@ -26,12 +25,16 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
         is_active=True,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=86400, # 24 Hours
             job_active=True,
             auth_redis_key="4cx_auth_token",
             base_file_path=LiquidityProvider.base_file_path,
             class_name="FourcxAuth",
             file_name="fourcx_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="prediction_fourcx_auth",
+                interval=82800,
+                name="Prediction Fourcx Auth",
+            )
         ),
         class_name="FourCX",
         file_name="fourcx",

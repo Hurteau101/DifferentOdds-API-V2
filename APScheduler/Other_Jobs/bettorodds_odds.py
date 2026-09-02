@@ -266,7 +266,7 @@ def load_bettorodds(limit: str="all", retry_amount: int = 3):
                 redis_instance.store_data(
                     key_name="bettorodds_odds",
                     data_to_store=bettorodds_data,
-                    key_expiration=120000
+                    key_expiration=360
                 )
 
                 return None

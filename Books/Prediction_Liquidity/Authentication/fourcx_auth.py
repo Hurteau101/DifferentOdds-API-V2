@@ -5,7 +5,7 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 
 class FourcxAuth(AuthBase):
     def __init__(self):
-        super().__init__(book_name="4cx", category="prediction_liquidity")
+        super().__init__(book_name="4cx", category="prediction_liquidity", precalculated_additional_time=3600)
 
     async def run_auth(self) -> bool:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
@@ -45,7 +45,7 @@ class FourcxAuth(AuthBase):
             await self.store_data(
                 key_name=self.auth_id_name,
                 data_to_store=auth,
-                expiration_time=5270400  # 61 Days
+                expiration_time=self.pre_calculated_redis_expiration
             )
 
             return True

@@ -7,7 +7,7 @@ from loguru import logger
 
 class Bet105Mapper(MapperBase):
     def __init__(self):
-        super().__init__(book_name="bet105", category="sportsbooks")
+        super().__init__(book_name="bet105", category="sportsbooks", precalculated_additional_time=3600)
 
     async def get_leagues(self, session: CurlAsyncSession, auth_header: dict) -> dict:
         """Get the list of supported leagues"""
@@ -134,7 +134,7 @@ class Bet105Mapper(MapperBase):
             await self.store_data(
                 key_name=self.mapper_id_name,
                 data_to_store=mapped_data,
-                expiration_time=90000 # 25 Hour Expiration
+                expiration_time=self.pre_calculated_redis_expiration
             )
 
             return True

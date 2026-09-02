@@ -143,7 +143,7 @@ class CaesarMapper(MapperBase):
                 await self.store_data(
                     key_name=self.mapper_id_name,
                     data_to_store=mapping,
-                    expiration_time=800
+                    expiration_time=self.pre_calculated_redis_expiration
                 )
 
                 return True

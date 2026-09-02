@@ -8,6 +8,8 @@ from Utils.helpers import clean_structure
 # TODO:
 #### RENAME FILE
 
+#### IF USING THIS FILE - CHANGE REDIS DB
+
 class FindMapper:
     def __init__(self):
         self.db = Database()

@@ -302,7 +302,7 @@ class FliffMapper(MapperBase):
             await self.store_data(
                 key_name=self.mapper_id_name,
                 data_to_store=mapped_ids,
-                expiration_time=900
+                expiration_time=self.pre_calculated_redis_expiration
             )
 
             return True

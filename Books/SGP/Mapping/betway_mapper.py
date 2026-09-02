@@ -153,7 +153,7 @@ class BetwayMapper(MapperBase):
         stat_mapping = mapping.get("stats", {})
 
         espn_mapping_redis_instance = RedisSyncManager(database=8)
-        espn_mapping = espn_mapping_redis_instance.get_data(key_name="espn_mapping")
+        espn_mapping = espn_mapping_redis_instance.get_data(key_name="espn_mapping") or {}
 
         final_map = {}
 
@@ -297,7 +297,7 @@ class BetwayMapper(MapperBase):
             await self.store_data(
                 key_name=self.mapper_id_name,
                 data_to_store=mapping,
-                expiration_time=900
+                expiration_time=self.pre_calculated_redis_expiration
             )
 
             return True

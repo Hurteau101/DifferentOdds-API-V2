@@ -1,5 +1,5 @@
 from typing import Optional
-from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJobDict, RedisSelector
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJobDict, RedisSelector, APSchedulerDetails
 from dataclasses import dataclass
 
 @dataclass
@@ -13,7 +13,6 @@ class SGPProvider(BaseProvider):
     regex: Optional[dict] = None
     mapping: Optional[SGPMapper] = None
     base_file_path = "Books.SGP"
-
 
 
 SGP_PROVIDERS = [
@@ -41,13 +40,17 @@ SGP_PROVIDERS = [
         file_name="fanduel_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=600, # 10 Minutes
             job_active=True,
             requires_auth=False,
             mapper_redis_key="fanduel_ids",
             base_file_path=SGPProvider.base_file_path,
             class_name="FanduelMapper",
             file_name="fanduel_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_fanduel_mapper",
+                interval=600,
+                name="SGP FanDuel Mapper",
+            )
         ),
         mapping=SGPMapper(
             url={
@@ -81,13 +84,17 @@ SGP_PROVIDERS = [
         file_name="betmgm_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=False,
             mapper_redis_key="betmgm_ids",
             base_file_path=SGPProvider.base_file_path,
             class_name="BetMgmMapper",
             file_name="betmgm_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_betmgm_mapper",
+                interval=600,
+                name="SGP BetMGM Mapper",
+            )
 
         ),
         mapping=SGPMapper(
@@ -203,22 +210,30 @@ SGP_PROVIDERS = [
         is_active=True,
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=True,
             mapper_redis_key="onyx_ids",
             base_file_path=SGPProvider.base_file_path,
             class_name="OnyxMapper",
             file_name="onyx_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_onyx_mapper",
+                interval=600,
+                name="SGP Onyx Mapper",
+            )
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=25200,  # 7 Hours
             job_active=True,
             auth_redis_key="onyx_auth",
             base_file_path=SGPProvider.base_file_path,
             class_name="OnyxAuth",
             file_name="onyx_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_onyx_auth",
+                interval=21600,
+                name="SGP Onyx Auth",
+            )
         ),
         class_name="OnyxSGP",
         file_name="onyx_sgp",
@@ -314,22 +329,30 @@ SGP_PROVIDERS = [
         file_name="caesar_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=True,
             mapper_redis_key="caesar_mapped_ids",
             base_file_path=SGPProvider.base_file_path,
             class_name="CaesarMapper",
             file_name="caesar_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_caesar_mapper",
+                interval=600,
+                name="SGP Caesar Mapper",
+            )
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=600,  # 10 Minutes
             job_active=True,
             auth_redis_key="caesar_auth",
             base_file_path=SGPProvider.base_file_path,
             class_name="CaesarAuth",
             file_name="caesars_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_caesar_auth",
+                interval=540,
+                name="SGP Caesar Auth",
+            )
         ),
         mapping=SGPMapper(
             url={
@@ -400,13 +423,17 @@ SGP_PROVIDERS = [
         file_name="betway_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=False,
             mapper_redis_key="betway_mapped_ids",
             base_file_path=SGPProvider.base_file_path,
             class_name="BetwayMapper",
             file_name="betway_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_betway_mapper",
+                interval=600,
+                name="SGP Betway Mapper",
+            )
         ),
         mapping=SGPMapper(
             url={
@@ -483,22 +510,30 @@ SGP_PROVIDERS = [
         file_name="fliff_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=True,
             mapper_redis_key="fliff_ids",
             base_file_path=SGPProvider.base_file_path,
             class_name="FliffMapper",
             file_name="fliff_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_fliff_mapper",
+                interval=720,
+                name="SGP Fliff Mapper",
+            )
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=180,  # 10 Minutes
             job_active=True,
             auth_redis_key="fliff_auth",
             base_file_path=SGPProvider.base_file_path,
             class_name="FliffAuth",
             file_name="fliff_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_fliff_auth",
+                interval=200,
+                name="SGP Fliff Auth",
+            )
         ),
         mapping=SGPMapper(
             url={
@@ -537,13 +572,17 @@ SGP_PROVIDERS = [
         file_name="bovada_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=False,
             mapper_redis_key="bovada_ids",
             base_file_path=SGPProvider.base_file_path,
             class_name="BovadaMapper",
             file_name="bovada_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_bovada_mapper",
+                interval=600,
+                name="SGP Bovada Mapper",
+            )
         ),
         mapping=SGPMapper(
             url={
@@ -608,13 +647,17 @@ SGP_PROVIDERS = [
         file_name="prop_builder_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=600,  # 10 Minutes
             job_active=True,
             requires_auth=False,
             mapper_redis_key="prop_builder_mapped_ids",
             base_file_path=SGPProvider.base_file_path,
             class_name="PropBuilderMapper",
             file_name="prop_builder_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_prop_builder_mapper",
+                interval=600,
+                name="SGP Prop Builder Mapper",
+            )
         ),
         mapping=SGPMapper(
             url={

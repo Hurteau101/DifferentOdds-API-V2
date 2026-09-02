@@ -2,8 +2,7 @@ import pytest
 from Redis.redis_manager import RedisAsyncManager
 from Settings.book_configurations import BookConfiguration
 import itertools
-
-from Tests.helper import get_class_instance
+from Utils.helpers import get_class_instance
 
 SPECIFIC_BOOKS = []
 

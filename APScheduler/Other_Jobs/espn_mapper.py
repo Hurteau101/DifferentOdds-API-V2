@@ -21,9 +21,8 @@ class ESPNMapper(APICaller):
         {"espn_league": "wnba", "sport": "basketball"},
     ]
 
-    def __init__(self, session: CurlAsyncSession):
+    def __init__(self):
         super().__init__()
-        self.session = session
         self.semaphore = asyncio.Semaphore(10)
 
     def _normalize_team_name(self, name: str) -> str:
@@ -35,46 +34,47 @@ class ESPNMapper(APICaller):
         return overrides.get(name, name)
 
     async def run_mapping(self):
-        leagues, results = await self._get_teams()
+        async with CurlAsyncSession(impersonate="chrome") as session:
+            leagues, results = await self._get_teams(session=session)
 
-        redis_instance = RedisAsyncManager(database=8)
+            redis_instance = RedisAsyncManager(database=8)
 
-        mapping = {}
+            mapping = {}
 
-        for index, league in enumerate(leagues):
-            league_name = league.get("abbreviation")
+            for index, league in enumerate(leagues):
+                league_name = league.get("abbreviation")
 
-            teams = {
-                self._normalize_team_name(team.get("team", {}).get("displayName")): team.get("team", {}).get("id")
-                for team in league.get("teams", [])
-            }
-
-            abbreviations = {
-                self._normalize_team_name(team.get("team", {}).get("displayName")): team.get("team", {}).get(
-                    "abbreviation")
-                for team in league.get("teams", [])
-            }
-
-            sport = results[index]["sports"][0]["slug"]
-            schedules = await self._get_schedule(team_ids=list(teams.values()), sport=sport, league=league_name)
-            players = await self._get_players(team_ids=list(teams.values()), sport=sport, league=league_name)
-
-            for team_name, team_id in teams.items():
-                mapping.setdefault(league_name, {})[team_name] = {
-                    "id": team_id,
-                    "team_name": team_name,
-                    "abbreviation": abbreviations.get(team_name),
-                    "players": players.get(team_id, []),
-                    "schedule": schedules.get(team_id, [])
+                teams = {
+                    self._normalize_team_name(team.get("team", {}).get("displayName")): team.get("team", {}).get("id")
+                    for team in league.get("teams", [])
                 }
 
-        if mapping:
+                abbreviations = {
+                    self._normalize_team_name(team.get("team", {}).get("displayName")): team.get("team", {}).get(
+                        "abbreviation")
+                    for team in league.get("teams", [])
+                }
 
-            await redis_instance.store_data(
-                key_name="espn_mapping",
-                data_to_store=mapping,
-                key_expiration=21600 # 6 Hours
-            )
+                sport = results[index]["sports"][0]["slug"]
+                schedules = await self._get_schedule(team_ids=list(teams.values()), sport=sport, league=league_name, session=session)
+                players = await self._get_players(team_ids=list(teams.values()), sport=sport, league=league_name, session=session)
+
+                for team_name, team_id in teams.items():
+                    mapping.setdefault(league_name, {})[team_name] = {
+                        "id": team_id,
+                        "team_name": team_name,
+                        "abbreviation": abbreviations.get(team_name),
+                        "players": players.get(team_id, []),
+                        "schedule": schedules.get(team_id, [])
+                    }
+
+            if mapping:
+
+                await redis_instance.store_data(
+                    key_name="espn_mapping",
+                    data_to_store=mapping,
+                    key_expiration=21600 # 6 Hours
+                )
 
     async def call_with_semaphore(self, semaphore: asyncio.Semaphore, session, url, method, headers=None, data=None, use_proxy=False):
         async with semaphore:
@@ -88,10 +88,10 @@ class ESPNMapper(APICaller):
             )
 
 
-    async def _get_players(self, team_ids: list, sport: str, league: str):
+    async def _get_players(self, team_ids: list, sport: str, league: str, session: CurlAsyncSession):
         tasks = [
             self.call_with_semaphore(
-                session=self.session,
+                session=session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams/{team_id}/roster?limit=5000",
                 method="GET",
                 use_proxy=True,
@@ -121,10 +121,10 @@ class ESPNMapper(APICaller):
         return player_mapping
 
 
-    async def _get_schedule(self, team_ids: list, sport: str, league: str) -> dict:
+    async def _get_schedule(self, team_ids: list, sport: str, league: str, session: CurlAsyncSession) -> dict:
         tasks = [
             self.call_with_semaphore(
-                session=self.session,
+                session=session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams/{team_id}/schedule",
                 method="GET",
                 use_proxy=True,
@@ -166,7 +166,7 @@ class ESPNMapper(APICaller):
         return schedule_mapping
 
 
-    async def _get_teams(self) -> tuple:
+    async def _get_teams(self, session: CurlAsyncSession) -> tuple:
         """
         Teams mapping function to get ESPN team IDs.
         :return: Returns a dictionary of team names to ESPN IDs
@@ -174,7 +174,7 @@ class ESPNMapper(APICaller):
 
         raw_teams = [
             self.call_with_semaphore(
-                session=self.session,
+                session=session,
                 url=f"https://site.api.espn.com/apis/site/v2/sports/{teams['sport']}/{teams['espn_league']}/teams?limit=5000",
                 method="GET",
                 use_proxy=True,
@@ -197,12 +197,8 @@ class ESPNMapper(APICaller):
 
 
 if __name__ == "__main__":
-    async def main():
-        async with CurlAsyncSession(impersonate="chrome") as session:
-            espn = ESPNMapper(session=session)
-            await espn.run_mapping()
-
-    asyncio.run(main())
+    espn = ESPNMapper()
+    asyncio.run(espn.run_mapping())
 
 
 

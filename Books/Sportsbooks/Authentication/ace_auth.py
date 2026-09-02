@@ -36,7 +36,7 @@ class AceAuth(AuthBase):
             await self.store_data(
                 key_name=self.auth_id_name,
                 data_to_store=session.cookies.get_dict(),
-                expiration_time=1200  # 20 Minutes
+                expiration_time=self.pre_calculated_redis_expiration
             )
 
             return True

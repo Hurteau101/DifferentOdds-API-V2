@@ -56,7 +56,7 @@ class ChalkboardAuth(AuthBase):
             await self.store_data(
                 key_name=self.auth_id_name,
                 data_to_store=auth,
-                expiration_time=5270400  # 61 Days
+                expiration_time=self.pre_calculated_redis_expiration
             )
 
             return True

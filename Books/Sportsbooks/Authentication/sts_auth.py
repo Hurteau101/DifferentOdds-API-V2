@@ -51,8 +51,8 @@ class STSAuth(AuthBase):
                         logger.error(f"Proxy {ip}:{port} - missing required cookies, trying next.")
                         continue
 
-                    await self.store_data(key_name=self.auth_id_name, data_to_store=cookies, expiration_time=1200)
-                    await self.store_data(key_name="sts_proxy", data_to_store=proxy, expiration_time=1200)
+                    await self.store_data(key_name=self.auth_id_name, data_to_store=cookies, expiration_time=self.pre_calculated_redis_expiration)
+                    await self.store_data(key_name="sts_proxy", data_to_store=proxy, expiration_time=self.pre_calculated_redis_expiration)
                     return True
 
             except Exception as e:

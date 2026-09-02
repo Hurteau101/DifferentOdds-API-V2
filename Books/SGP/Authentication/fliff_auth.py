@@ -8,7 +8,7 @@ import json
 
 class FliffAuth(AuthBase):
     def __init__(self):
-        super().__init__(book_name="fliff", category="sgp")
+        super().__init__(book_name="fliff", category="sgp", precalculated_additional_time=60)
         self.basic_auth = os.getenv("COMMON_FLIFF_BASIC_AUTH_TOKEN")
         if not self.basic_auth:
             raise ValueError("FLIFF_BASIC_AUTH_TOKEN must be set in environment variables.")
@@ -233,7 +233,7 @@ class FliffAuth(AuthBase):
                         "access_token": token_data["access_token"],
                         "location_token": location_token,
                     },
-                    expiration_time=200 # 3 Minutes
+                    expiration_time=self.pre_calculated_redis_expiration # 3 Minutes
                 )
 
                 return True
@@ -257,7 +257,7 @@ class FliffAuth(AuthBase):
                     "refresh_token": refresh_token.get("refresh_token"),
                     "location_token": location_token,
                 },
-                expiration_time=200  # 3 Minutes
+                expiration_time=self.pre_calculated_redis_expiration
             )
 
             return True

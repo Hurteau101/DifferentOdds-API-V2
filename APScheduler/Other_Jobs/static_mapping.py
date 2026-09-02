@@ -4,7 +4,7 @@ from Database.base_db import sync_engine
 from Redis.redis_manager import RedisSyncManager
 from Database.Sportsbooks.sportsbook_db import LeagueMapper, StatMapper
 
-def store_static():
+def store_static_mapping():
     redis_instance = RedisSyncManager(database=7)
     engine = sync_engine()
     Session = sessionmaker(bind=engine)
@@ -14,11 +14,11 @@ def store_static():
         league_mapping = LeagueMapper.get_mapping(db_session=session)
 
 
-    redis_instance.store_data("stat_mapper", static_mapping)
-    redis_instance.store_data("league_mapper", league_mapping)
+    redis_instance.store_data(key_name="stat_mapper", data_to_store=static_mapping, key_expiration=780)
+    redis_instance.store_data(key_name="league_mapper", data_to_store=league_mapping, key_expiration=780)
 
 if __name__ == "__main__":
-    store_static()
+    store_static_mapping()
 
 
 

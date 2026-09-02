@@ -1,13 +1,14 @@
 import os
 from dataclasses import dataclass
 from dotenv import load_dotenv
-from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector, APSchedulerDetails
 
 load_dotenv()
 
 @dataclass
 class DFSProvider(BaseProvider):
     base_file_path = "Books.DFS"
+    base_interval = 180
 
 
 # List of DFS providers with their configurations.
@@ -188,12 +189,16 @@ DFS_PROVIDERS = [
         is_active=False,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=3600, # 1 Hour
             job_active=True,
             auth_redis_key="chalkboard_access_token",
             base_file_path=DFSProvider.base_file_path,
             class_name="ChalkboardAuth",
             file_name="chalkboard_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="dfs_chalkboard_auth",
+                interval=1620,
+                name="DFS Chalkboard Auth",
+            )
         ),
         class_name="Chalkboard",
         file_name="chalkboard",

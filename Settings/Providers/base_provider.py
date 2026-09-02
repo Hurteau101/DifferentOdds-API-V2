@@ -16,11 +16,21 @@ class RedisSelector(Enum):
     def redis_db(self) -> int:
         return self.value
 
+# Handles APScheduler Details
+@dataclass
+class APSchedulerDetails:
+    job_id: str
+    interval: int
+    name: str
+    coalesce: bool = False
+    max_instances: int = 1
+    misfire_grace_time: int = 300
+
 @dataclass
 class BaseJobDict:
     job_type: RedisSelector
-    refresh_interval: int
     job_active: bool
+    ap_scheduler: APSchedulerDetails
     redis_db: Optional[int] = field(default=None, init=False)
     file_name: str
     class_name: str
@@ -36,7 +46,6 @@ class BaseJobDict:
 @dataclass
 class AuthJobDict(BaseJobDict):
     auth_redis_key: str
-
     def __post_init__(self):
         self.class_path = f"{self.base_file_path}.Authentication.{self.file_name}"
 
@@ -48,7 +57,6 @@ class MapperJobDict(BaseJobDict):
 
     def __post_init__(self):
         self.class_path = f"{self.base_file_path}.Mapping.{self.file_name}"
-
 
 
 @dataclass
@@ -69,6 +77,7 @@ class BaseProvider:
     curl_impersonation: Optional[str] = "chrome"
     auth_job_dict: Optional[AuthJobDict] = None
     mapper_job_dict: Optional[MapperJobDict] = None
+    apscheduler_details: Optional[APSchedulerDetails] = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

@@ -11,7 +11,7 @@ class Bet105Auth(AuthBase):
     }
 
     def __init__(self):
-        super().__init__(book_name="bet105", category="sportsbooks")
+        super().__init__(book_name="bet105", category="sportsbooks", precalculated_additional_time=3600)
 
     def _extract_auth_refresh(self, response: dict):
         """Extract auth token, refresh token, and expiry from the response."""
@@ -88,14 +88,14 @@ class Bet105Auth(AuthBase):
                 await self.store_data(
                     key_name=self.auth_id_name,
                     data_to_store=auth,
-                    expiration_time=expiry  # 61 Days
+                    expiration_time=self.pre_calculated_redis_expiration
                 )
 
                 return True
 
 
             auth, refresh, expiry = await self.get_auth_from_refresh(session=session, refresh_token=previous_refresh_token)
-
+            print(auth)
             if not auth or not expiry:
                 insert_log(
                     book_name=self.book_data.title,
@@ -108,7 +108,7 @@ class Bet105Auth(AuthBase):
             await self.store_data(
                 key_name=self.auth_id_name,
                 data_to_store=auth,
-                expiration_time=82800  # 61 Days
+                expiration_time=self.pre_calculated_redis_expiration
             )
 
             return True

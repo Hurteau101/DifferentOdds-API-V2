@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
-
-from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJobDict, RedisSelector
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJobDict, RedisSelector, APSchedulerDetails
 
 
 @dataclass
@@ -30,22 +28,30 @@ SPORTSBOOKS_PROVIDERS = [
         is_active=True,
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            refresh_interval=86400,  # 24 Hours
             job_active=True,
             requires_auth=True,
             mapper_redis_key="bet105_mapper_data",
             base_file_path=SportsbooksProvider.base_file_path,
             class_name="Bet105Mapper",
             file_name="bet105_mapping",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_bet105_mapper",
+                interval=72000,
+                name="Sportsbook Bet105 Mapper",
+            )
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=82800, # 23 Hours
             job_active=True,
             auth_redis_key="bet105_auth_token",
             base_file_path=SportsbooksProvider.base_file_path,
             class_name="Bet105Auth",
             file_name="bet105_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_bet105_auth",
+                interval=72000,
+                name="Sportsbook Bet105 Auth",
+            )
         ),
         class_name="Bet105",
         file_name="bet105",
@@ -69,12 +75,17 @@ SPORTSBOOKS_PROVIDERS = [
         is_active=True,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=900,  # 15 minutes
             job_active=True,
             auth_redis_key="sts_cookies",
             base_file_path=SportsbooksProvider.base_file_path,
             class_name="STSAuth",
             file_name="sts_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_sts_auth",
+                interval=900,
+                name="Sportsbook STS Auth",
+            )
+
         ),
         class_name="STS",
         file_name="sts",
@@ -94,12 +105,16 @@ SPORTSBOOKS_PROVIDERS = [
         is_active=True,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=900,  # 15 minutes
             job_active=True,
             auth_redis_key="ace_cookies",
             base_file_path=SportsbooksProvider.base_file_path,
             class_name="AceAuth",
             file_name="ace_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_ace_auth",
+                interval=900,
+                name="Sportsbook Ace Auth",
+            )
         ),
         class_name="Ace",
         file_name="ace",
@@ -139,12 +154,16 @@ SPORTSBOOKS_PROVIDERS = [
         is_active=True,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=900,  # 15 minutes
             job_active=True,
             auth_redis_key="metallic_token",
             base_file_path=SportsbooksProvider.base_file_path,
             class_name="MetallicAuth",
             file_name="metallic_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_metallic_auth",
+                interval=900,
+                name="Sportsbook Metallic Auth",
+            )
         ),
         class_name="Metallic",
         file_name="metallic",
@@ -181,12 +200,16 @@ SPORTSBOOKS_PROVIDERS = [
         is_active=True,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=900,  # 15 minutes
             job_active=True,
             auth_redis_key="buckeye_2_auth_token",
             base_file_path=SportsbooksProvider.base_file_path,
             class_name="Buckeye2Auth",
             file_name="buckeye2_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_buckeye_2_auth",
+                interval=900,
+                name="Sportsbook Buckeye2 Auth",
+            )
         ),
         class_name="Buckeye2",
         file_name="buckeye_2",
@@ -207,12 +230,16 @@ SPORTSBOOKS_PROVIDERS = [
         is_active=False,
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            refresh_interval=900,  # 15 minutes
             job_active=False,
             auth_redis_key="buckeye1_cookies",
             base_file_path=SportsbooksProvider.base_file_path,
             class_name="Buckeye1Auth",
             file_name="buckeye1_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_buckeye_1_auth",
+                interval=900,
+                name="Sportsbook Buckeye1 Auth",
+            )
         ),
         class_name="Buckeye1",
         file_name="buckeye_1",
