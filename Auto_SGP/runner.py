@@ -643,7 +643,7 @@ class AutoSGP(APICaller):
         if not auto_filters:
             raise Exception("No active AutoSGP configs found.")
 
-        # auto_filters = self._add_random_filters(auto_filters)
+        auto_filters = self._add_random_filters(auto_filters)
 
         for filters in auto_filters:
             logger.info(f"-> Running {filters.get('unique_name')} [{' | '.join(filters.get('stat_types'))}]")
