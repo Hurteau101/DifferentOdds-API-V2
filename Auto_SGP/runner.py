@@ -243,7 +243,7 @@ class AutoSGP(APICaller):
         slips = []
 
         stat_types = [db_filter.lower() for db_filter in filter_dict.get("stat_types", [])]
-        use_multiple_teams = filter_dict.get("multiple_teams")
+
         max_uses = filter_dict.get("max_uses", 1)
         leg_uses = {}
 
@@ -287,6 +287,7 @@ class AutoSGP(APICaller):
                 for _ in range(max_uses):
                     # One shuffled slot per stat_type. Returns copies so duplicate stats don't pair with themselves.
                     slots = [random.sample(active_buckets[stat], len(active_buckets[stat])) for stat in stat_types]
+                    use_multiple_teams = bool(random.getrandbits(1))
 
                     for combo in zip(*slots):
                         # Ensure same player + stat isn't used. Ex. (Lebron James Over 5.5 Rebounds + Lebron James Under 5.5 Rebounds)

@@ -28,7 +28,6 @@ class AutoSGPConfigs(Base):
     league_name: Mapped[str] = mapped_column(ForeignKey("auto_sgp_league.league_name", ondelete="CASCADE"))
     league: Mapped["AutoSGPLeagues"] = relationship(back_populates="configs")
     stat_types: Mapped[List[str]] = mapped_column(ARRAY(String))
-    multiple_teams: Mapped[bool] = mapped_column(default=False)
     discord_min_ev: Mapped[float] = mapped_column()
     max_uses: Mapped[int] = mapped_column(default=1)
     is_active: Mapped[bool] = mapped_column(default=True)

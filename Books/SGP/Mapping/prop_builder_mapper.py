@@ -203,7 +203,6 @@ class PropBuilderMapper(MapperBase):
                     line = -float(game_line)
                     game_line = str(line)
 
-
                 return [team, game_line] if has_game_line is not None else [team]
 
 
