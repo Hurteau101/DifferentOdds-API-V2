@@ -1,6 +1,3 @@
-from Monitoring.monitoring import init_sentry
-init_sentry()
-
 from celery import Celery
 
 celery_app = Celery(
