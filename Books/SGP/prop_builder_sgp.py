@@ -127,8 +127,8 @@ if __name__ == "__main__":
                         "line": "2.5",
                         "player": "Shane Baz",
                         "side": "Under",
-                        "prop_key": "1.5_janson_junk_over_player_earned_runs",
-                        "event_key": "chicago_cubs_vs_miami_marlins_2026-09-04t23:10:00z"
+                        "prop_key": "2.5_player_earned_runs_shane_baz_under",
+                        "event_key": "baltimore_orioles_vs_boston_red_sox_2026-09-04t23:05:00z"
                     },
                     {
                         "market_name": "Run Line",
@@ -137,8 +137,8 @@ if __name__ == "__main__":
                         "line": "",
                         "player": "",
                         "side": "BOS +2.5",
-                        "prop_key": "1.5_mia_run_line",
-                        "event_key": "chicago_cubs_vs_miami_marlins_2026-09-04t23:10:00z"
+                        "prop_key": "8.5_total_runs_under",
+                        "event_key": "baltimore_orioles_vs_boston_red_sox_2026-09-04t23:05:00z"
                     }
                 ]
             }
