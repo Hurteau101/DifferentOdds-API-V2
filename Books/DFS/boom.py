@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData
+from Settings.Models.base_models import GameData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Boom(DFSBookBase):
@@ -84,7 +84,7 @@ class Boom(DFSBookBase):
 
                 stat_list.extend(
                     DFSStats(
-                        static_mapping=self.static_mapping,
+                        league=league,
                         player_name=player_name,
                         player_team=team_a,
                         stat_type=stat_type.lower(),
@@ -109,10 +109,8 @@ class Boom(DFSBookBase):
                 league=league,
                 game_key=team_key,
                 start_date=start_date,
-                team_data=TeamData(
-                    team_a=team_a,
-                    team_b=team_b,
-                ),
+                team_a=team_a,
+                team_b=team_b,
                 odds=stat_list,
                 solo_game=False if all([team_a, team_b]) else True,
             ))
@@ -160,6 +158,7 @@ class Boom(DFSBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return boom_data
 
 if __name__ == "__main__":

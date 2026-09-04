@@ -1,3 +1,4 @@
+import orjson
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -9,7 +10,7 @@ from Settings.book_configurations import BookConfiguration
 from Utils.request_caller import APICaller
 from loguru import logger
 import re
-
+from Internal_Mapping.static_mapping import static_mapping
 
 class BookBase(ABC):
     def __init__(self, book_category: str, book_name: str, redis_database: int | None, redis_expiration: int = 600):
@@ -22,7 +23,12 @@ class BookBase(ABC):
         self.impersonate = self._get_impersonate(book_name=book_name, category=book_category)
         self.api_instance = APICaller()
         self.api_caller = self.api_instance.api_caller
-        self.static_mapping = static_mapping_service.get()
+        self.mapping_redis_manager = RedisAsyncManager(database=9)
+
+
+    @staticmethod
+    def map_static_cache(name: str, mapping_):
+        pass
 
     def _get_impersonate(self, category: str, book_name: str):
         """Get the impersonate set in the book provider"""
@@ -101,10 +107,11 @@ class BookBase(ABC):
 
         if key not in events:
             events[key] = game_data_cls(
+                team_a=item.team_a,
+                team_b=item.team_b,
                 game_key=key,
                 league=item.league,
                 start_date=item.start_date,
-                team_data=item.team_data,
                 solo_game=item.solo_game,
                 odds=[],
             )
@@ -123,3 +130,29 @@ class BookBase(ABC):
                     await asyncio.sleep(delay * (attempt + 1))
 
             return None
+
+    async def flush_unmapped(self):
+        """Uploads the unmapped data to Redis"""
+        payload = {}
+
+        for category, names in static_mapping.unmapped.items():
+            for name in names:
+                payload[f"{category}:{name}"] = {
+                    "book": self.book_data.name,
+                    "category": category,
+                    "name": name,
+                }
+
+            names.clear()
+
+        if not payload:
+            return
+
+        pipeline = self.mapping_redis_manager.redis_client.pipeline()
+
+        for key, value in payload.items():
+            pipeline.set(key, orjson.dumps(value), ex=86400)
+
+        await pipeline.execute()
+
+

@@ -11,7 +11,7 @@ from requests_toolbelt.utils.formdata import urlencode
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import TeamData, GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -53,7 +53,7 @@ class Buckeye2(PPHBookBase):
 
     def calulate_spread_buy_points(self, spread_line: float | int, spread_odds: float,
                                    buy_points_amount: float | int, buy_points_max: float | int,
-                                   market_name: str, bet_team: str) -> list | None:
+                                   market_name: str, bet_team: str, league: str) -> list | None:
         """
         Calculates the new spread line and odds after applying the buy points for spread markets.
         :param spread_line: The original spread line.
@@ -75,7 +75,7 @@ class Buckeye2(PPHBookBase):
 
             odds = spread_odds - (buy_points_amount * step)
             odds_list.append(SportsbookStats(
-                static_mapping=self.static_mapping,
+                league=league,
                 market=market_name,
                 bet_team=bet_team,
                 line=new_spread,
@@ -88,7 +88,7 @@ class Buckeye2(PPHBookBase):
 
     def calulate_total_buy_points(self, total_line: float | int, total_odds: float,
                                    buy_points_amount: float | int, buy_points_max: float | int,
-                                   market_name: str, direction: str) -> list | None:
+                                   market_name: str, direction: str, league:str) -> list | None:
         """
         Calculates the new spread line and odds after applying the buy points for spread markets.
         :param total_line: The original total line.
@@ -112,7 +112,7 @@ class Buckeye2(PPHBookBase):
 
             odds = total_odds - (buy_points_amount * step)
             odds_list.append(SportsbookStats(
-                static_mapping=self.static_mapping,
+                league=league,
                 market=market_name,
                 bet_team=None,
                 line=abs(float(new_total)),
@@ -123,7 +123,7 @@ class Buckeye2(PPHBookBase):
 
         return odds_list
 
-    def spread_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
+    def spread_type(self, team_data: dict, game_data: dict, market_name: str, name_mapper_func: Callable,
                        home_spread_odds_name:str, away_spread_odds_name: str,
                     home_spread_value_name: str, away_spread_value_name: str,
                     base_market_mapper: dict, **kwargs) -> list:
@@ -141,9 +141,11 @@ class Buckeye2(PPHBookBase):
         """
         odds = []
 
+        league = kwargs.get("league")
+
         for team, line_key, odds_key in [
-            (team_data.team_a, home_spread_value_name, home_spread_odds_name),
-            (team_data.team_b, away_spread_value_name, away_spread_odds_name)
+            (team_data.get('team_a'), home_spread_value_name, home_spread_odds_name),
+            (team_data.get('team_b'), away_spread_value_name, away_spread_odds_name)
         ]:
 
             mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper, **kwargs)
@@ -162,8 +164,8 @@ class Buckeye2(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
-                static_mapping=self.static_mapping,
-                market=self.convert_spread_name(mapped_market_name, kwargs.get("league")),
+                league=league,
+                market=self.convert_spread_name(mapped_market_name, league),
                 bet_team=team,
                 line=float(spread_line),
                 bet_type=None,
@@ -173,7 +175,7 @@ class Buckeye2(PPHBookBase):
 
         return odds
 
-    def total_type(self, game_data: dict, market_name: str, **kwargs) -> list:
+    def total_type(self, game_data: dict, market_name: str, league: str, **kwargs) -> list:
         """
         Builds total type markets.
         :keyword games: The outer game data container that contains the team names, as the game dict doesn't contain this information.
@@ -203,7 +205,7 @@ class Buckeye2(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
-                static_mapping=self.static_mapping,
+                league=league,
                 market=mapped_market_name,
                 bet_team=team_name,
                 line=abs(float(total_line)),
@@ -249,20 +251,22 @@ class Buckeye2(PPHBookBase):
         if not found_schedule:
             return None
 
-        team_data = TeamData(
-            team_a=found_schedule.get("team"),
-            team_b=found_schedule.get("opponent")
-        )
+
+        team_a=found_schedule.get("team")
+        team_b=found_schedule.get("opponent")
+
 
         game_data = GameData(
             start_date=modified_date,
             league=league,
-            team_data=team_data,
-            game_key=self.generate_key([team_data.team_a, team_data.team_b, found_schedule.get("date")]),
+            team_a=team_a,
+            team_b=team_b,
+            game_key=self.generate_key([team_a, team_b, found_schedule.get("date")]),
             odds=[]
         )
 
         game_data.odds.extend(self.total_type(
+            league=league,
             game_data=event_data,
             market_name=market_name,
             bet_player=player_name,
@@ -278,21 +282,26 @@ class Buckeye2(PPHBookBase):
     def build_main_markets(self, event_data: dict, buy_points: dict | None):
         modified_date = self._convert_date(event_data.get("GameDateTime"))
 
-        team_data = TeamData(
-            team_a=event_data.get("Team1ID"),
-            team_b=event_data.get("Team2ID"),
-        )
+
+        team_dict = {
+            "team_a": event_data.get("Team1ID"),
+            "team_b": event_data.get("Team2ID")
+        }
+
+        league = event_data.get("SportSubType", '').strip()
 
         game_data = GameData(
             start_date=modified_date,
-            league=event_data.get("SportSubType", '').strip(),
-            team_data=team_data,
+            league=league,
+            team_a=team_dict.get("team_a"),
+            team_b=team_dict.get("team_b"),
             odds=[],
             game_key=self.generate_key([event_data.get("Team1ID"), event_data.get("Team2ID"), modified_date]),
         )
 
         game_data.odds.extend(self.moneyline_type(
-            team_data=team_data,
+            league=league,
+            team_data=team_dict,
             game_data=event_data,
             market_name="",
             name_mapper_func=self.name_mapper,
@@ -303,7 +312,7 @@ class Buckeye2(PPHBookBase):
         ))
 
         spread_odds = self.spread_type(
-            team_data=team_data,
+            team_data=team_dict,
             game_data=event_data,
             market_name="",
             name_mapper_func=self.name_mapper,
@@ -321,11 +330,12 @@ class Buckeye2(PPHBookBase):
             for odd in spread_odds:
                 game_data.odds.extend(self.calulate_spread_buy_points(spread_line=odd.line, spread_odds=odd.odds_format.get("american_odds"),
                                                 buy_points_amount=buy_points["Spread"]["amount"],
-                                                buy_points_max=buy_points["Spread"]["max"], market_name=odd.market, bet_team=odd.bet_team))
+                                                buy_points_max=buy_points["Spread"]["max"], market_name=odd.market, bet_team=odd.bet_team, league=league))
 
         game_data.odds.extend(spread_odds)
 
         total_odds = self.total_type(
+            league=league,
             period_description=event_data.get("PeriodDescription", ''),
             game_data=event_data,
             market_name="",
@@ -339,7 +349,7 @@ class Buckeye2(PPHBookBase):
                 additional_odds = self.calulate_total_buy_points(
                     total_line=odd.line, total_odds=odd.odds_format.get("american_odds"),
                     buy_points_amount=buy_points["Total"]["amount"], buy_points_max=buy_points["Total"]["max"],
-                    market_name=odd.market, direction=odd.bet_type
+                    market_name=odd.market, direction=odd.bet_type, league=league
                 )
 
                 if additional_odds:
@@ -348,8 +358,9 @@ class Buckeye2(PPHBookBase):
         game_data.odds.extend(total_odds)
 
         # Home Team Team Total
-        for index, team in enumerate([team_data.team_a, team_data.team_b], start=1):
+        for index, team in enumerate([team_dict.get("team_a"), team_dict.get("team_b")], start=1):
             game_data.odds.extend(self.total_type(
+                league=league,
                 period_description=event_data.get("PeriodDescription", ''),
                 game_data=event_data,
                 market_name="",
@@ -561,6 +572,7 @@ class Buckeye2(PPHBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return final_data
 
 

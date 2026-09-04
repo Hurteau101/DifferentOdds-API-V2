@@ -23,7 +23,7 @@ class BovadaMapper(MapperBase):
 
     def __init__(self):
         super().__init__(book_name="bovada", category="sgp")
-        self.static_mapper = self.static_mapping.get("static_mapping", {})
+        self.static_mapper = self.static_mapping_manager.get("static_mapping") or {}
 
 
     def _extract_other_stat_types(self, stat_type_original: str, bucket: dict, market: dict, outcomes: list) -> tuple | None:

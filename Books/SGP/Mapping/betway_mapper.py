@@ -149,8 +149,7 @@ class BetwayMapper(MapperBase):
         tasks = [process_mapping(event_id, semaphore) for event_id in event_ids]
         results = await asyncio.gather(*tasks)
 
-        mapping = self.static_mapping.get("static_mapping", {})
-        stat_mapping = mapping.get("stats", {})
+        stat_mapping = self.static_mapping_manager.get("static_mapping")
 
         espn_mapping_redis_instance = RedisSyncManager(database=8)
         espn_mapping = espn_mapping_redis_instance.get_data(key_name="espn_mapping") or {}

@@ -1,7 +1,7 @@
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData
+from Settings.Models.base_models import GameData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Betr(DFSBookBase):
@@ -204,7 +204,7 @@ class Betr(DFSBookBase):
 
                 bet_options = [
                     DFSStats(
-                        static_mapping=self.static_mapping,
+                        league=league,
                         player_name=player_name,
                         player_team=player_team,
                         stat_type=stat_type_helper(projection.get("label")),
@@ -228,10 +228,8 @@ class Betr(DFSBookBase):
                     league=league,
                     game_key=team_names.get("team_key"),
                     start_date=game_date,
-                    team_data=TeamData(
-                        team_a=team_names.get("team_a"),
-                        team_b=team_names.get("team_b"),
-                    ),
+                    team_a=team_names.get("team_a"),
+                    team_b=team_names.get("team_b"),
                     odds=stats,
                     solo_game=solo_game
                 )
@@ -260,11 +258,8 @@ class Betr(DFSBookBase):
         if game.get("status") != "SCHEDULED":
             return None
 
-        # Import here and in Dataclass as this does require the leagues to be mapped prior dataclass creation.
-        static_mapping = self.static_mapping.get("league_mapper", {})
 
-        league = static_mapping.get(game.get("league").lower(), {}).get("mapped_name", game.get("league").upper())
-
+        league = game.get("league").lower()
         game_date = game.get("date")
 
         # Conditional check as Solo and Team games have a different structure.
@@ -337,6 +332,7 @@ class Betr(DFSBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return betr_data
 
 if __name__ == "__main__":

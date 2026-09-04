@@ -1,11 +1,9 @@
 from typing import TypedDict, Dict, Optional
-from Settings.Models.base_models import Stats
-from dataclasses import dataclass, field
+from Settings.Models.base_models import Stats, map_teams
+from dataclasses import dataclass, field, InitVar
 from Books.Bases.mapper_base import MapperBase
-
-
 from Utils.helpers import clean_structure
-
+from Internal_Mapping.static_mapping import static_mapping
 
 class Discounts(TypedDict, total=False):
     discount_name : str # Books Using this: (PrizePicks, Ownerbox)
@@ -27,6 +25,7 @@ class OptionalStatInformation(TypedDict, total=False):
 # Use kw_only - As inheritance restriction.
 @dataclass(kw_only=True)
 class DFSStats(Stats):
+    league: InitVar[str]
     player_name: str
     player_team: str
     stat_type: str
@@ -36,16 +35,20 @@ class DFSStats(Stats):
     combo: Optional[bool] = False
     prop_key: Optional[str] = field(default=None)
 
-    def __post_init__(self, static_mapping: dict):
-        super().__post_init__(static_mapping)
+    def __post_init__(self, league: str):
         self.player_name = clean_structure(self.player_name)
-        self.player_team = clean_structure(self.player_team)
-        modified_stat_type = self.stat_type.replace("Player ", "").lower()
-        if modified_stat_type:
-            self.stat_type = static_mapping.get("static_mapping", {}).get(modified_stat_type, modified_stat_type)
-            self.prop_key = MapperBase.build_prop_key(
-                stat=f"Player {self.stat_type}",
-                side=self.bet_type,
-                line=str(self.line),
-                player=self.player_name,
-            )
+
+        player_team, _, _ = map_teams(self.player_team, league)
+        self.player_team = player_team
+
+        if self.stat_type:
+            self.stat_type = self.stat_type.lower().replace("player", '')
+
+        self.stat_type = static_mapping.stat_look_up(self.stat_type)
+
+        self.prop_key = MapperBase.build_prop_key(
+            stat=f"Player {self.stat_type}",
+            side=self.bet_type,
+            line=str(self.line),
+            player=self.player_name,
+        )

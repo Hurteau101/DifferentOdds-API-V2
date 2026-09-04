@@ -5,7 +5,7 @@ from itertools import chain
 from typing import Iterable
 from Books.Prediction_Liquidity.Helper.novig_api_helper import NovigApiHelper
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
 from Books.Bases.prediction_base import PredictionBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -129,7 +129,8 @@ class Novig(PredictionBookBase):
                 league=league_name,
                 start_date=start_date_minus_5,
                 game_key=event_name,
-                team_data=TeamData(team_a=teams[0], team_b=teams[1]),
+                team_a=teams[0],
+                team_b=teams[1],
                 odds=[],
             )
 
@@ -164,7 +165,7 @@ class Novig(PredictionBookBase):
                         bet_team = None
 
                     stats = PredictionLiquidityStats(
-                            static_mapping=self.static_mapping,
+                            league=league_name,
                             line=line,
                             bet_type=modified_info if modified_info in ["over", "under"] else None,
                             market=market_name,
@@ -272,6 +273,7 @@ class Novig(PredictionBookBase):
                 key_name=self.book_data.name,
             )
 
+            await self.flush_unmapped()
             return game_data
 
 if __name__ == "__main__":

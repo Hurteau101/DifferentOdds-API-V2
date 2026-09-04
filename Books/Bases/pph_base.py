@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Callable
 from rapidfuzz import process, fuzz
 from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import TeamData, OddsFormat, GameData
+from Settings.Models.base_models import OddsFormat, GameData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Books.Bases.sportsbook_base import SportsbooksBookBase
 
@@ -11,7 +11,7 @@ class PPHBookBase(SportsbooksBookBase):
     def __init__(self, book_name: str):
         super().__init__(book_name=book_name)
 
-    def spread_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
+    def spread_type(self, team_data: dict, game_data: dict, market_name: str, name_mapper_func: Callable,
                        home_spread_odds_name:str, away_spread_odds_name: str,
                     home_spread_value_name: str, away_spread_value_name: str,
                     base_market_mapper: dict, **kwargs) -> list:
@@ -30,8 +30,8 @@ class PPHBookBase(SportsbooksBookBase):
         odds = []
 
         for team, line_key, odds_key in [
-            (team_data.team_a, home_spread_value_name, home_spread_odds_name),
-            (team_data.team_b, away_spread_value_name, away_spread_odds_name)
+            (team_data.get("team_a"), home_spread_value_name, home_spread_odds_name),
+            (team_data.get("team_b"), away_spread_value_name, away_spread_odds_name)
         ]:
 
             mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper, **kwargs)
@@ -45,7 +45,7 @@ class PPHBookBase(SportsbooksBookBase):
                 continue
 
             odds.append(SportsbookStats(
-                static_mapping=self.static_mapping,
+                league=league,
                 market=self.convert_spread_name(mapped_market_name, league),
                 bet_team=team,
                 line=float(spread_line),
@@ -57,8 +57,8 @@ class PPHBookBase(SportsbooksBookBase):
         return odds
 
 
-    def moneyline_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
-                       home_odds_name:str, away_odds_name: str, base_market_mapper: dict, **kwargs) -> list:
+    def moneyline_type(self, team_data: dict, game_data: dict, market_name: str, name_mapper_func: Callable,
+                       home_odds_name:str, away_odds_name: str, base_market_mapper: dict, league: str, **kwargs) -> list:
         """
         Builds moneyline type markets for a given game and team data.
         :param team_data: The team data for the game, containing the team names.
@@ -71,7 +71,7 @@ class PPHBookBase(SportsbooksBookBase):
         """
         odds = []
 
-        for team, odds_key in [(team_data.team_a, home_odds_name), (team_data.team_b, away_odds_name)]:
+        for team, odds_key in [(team_data.get("team_a"), home_odds_name), (team_data.get("team_b"), away_odds_name)]:
             mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper, **kwargs)
 
             moneyline_odds = game_data.get(odds_key)
@@ -79,7 +79,7 @@ class PPHBookBase(SportsbooksBookBase):
                 continue
 
             odds.append(SportsbookStats(
-                static_mapping=self.static_mapping,
+                league=league,
                 market=mapped_market_name,
                 bet_team=team,
                 line=None,
@@ -92,7 +92,7 @@ class PPHBookBase(SportsbooksBookBase):
 
 
     # Other books can override this function as needed, as different books have different ways of mapping.
-    def total_type(self, game_data: dict, market_name: str, **kwargs) -> list:
+    def total_type(self, game_data: dict, market_name: str, league: str, **kwargs) -> list:
         """Builds total type markets"""
         return []
 

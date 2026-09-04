@@ -2,7 +2,7 @@ import asyncio
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData
+from Settings.Models.base_models import GameData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class DraftKingsPickSix(DFSBookBase):
@@ -232,12 +232,10 @@ class DraftKingsPickSix(DFSBookBase):
                         start_date=markets.get("start_date"),
                         solo_game=False,
                         game_key=markets.get("game_key"),
-                        team_data=TeamData(
-                            team_a=markets.get("team_a"),
-                            team_a_abbreviation=markets.get("team_a_abbreviation"),
-                            team_b=markets.get("team_b"),
-                            team_b_abbreviation=markets.get("team_b_abbreviation"),
-                        ),
+                        team_a=markets.get("team_a"),
+                        team_a_abbreviation=markets.get("team_a_abbreviation"),
+                        team_b=markets.get("team_b"),
+                        team_b_abbreviation=markets.get("team_b_abbreviation"),
                         odds=[]
                     )
 
@@ -250,7 +248,7 @@ class DraftKingsPickSix(DFSBookBase):
 
                     market_data[player_key].odds.append(
                         DFSStats(
-                            static_mapping=self.static_mapping,
+                            league=markets.get("league"),
                             player_name=markets.get("player_name"),
                             player_team=markets.get("player_team"),
                             stat_type=stat["stat_type"],
@@ -355,6 +353,7 @@ class DraftKingsPickSix(DFSBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return picksix_data
 
 if __name__ == "__main__":

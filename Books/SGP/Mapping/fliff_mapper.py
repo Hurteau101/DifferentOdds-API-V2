@@ -34,7 +34,7 @@ class FliffMapper(MapperBase):
     }
     def __init__(self):
         super().__init__(book_name="fliff", category="sgp")
-        self.mapping = self.static_mapping.get("static_mapping", {})
+        self.mapping = self.static_mapping_manager.get("static_mapping") or {}
 
     def _extract_primary_conflict_keys(self, league_data: dict) -> set:
         return set(

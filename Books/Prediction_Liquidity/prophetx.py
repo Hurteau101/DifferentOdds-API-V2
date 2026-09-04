@@ -4,7 +4,7 @@ import re
 from itertools import batched
 from Books.Bases.prediction_base import PredictionBookBase
 from LoggingHelper.logging_helper import ErrorTypes, insert_log
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -52,12 +52,10 @@ class Prophetx(PredictionBookBase):
             league=league,
             start_date=event_information.get("start_date"),
             game_key=event_information.get("event_name"),
-            team_data=TeamData(
-                team_a=event_information.get("teams", {}).get("home", {}).get("name"),
-                team_b=event_information.get("teams", {}).get("away", {}).get("name"),
-                team_a_abbreviation=event_information.get("teams", {}).get("home", {}).get("abbreviation"),
-                team_b_abbreviation=event_information.get("teams", {}).get("away", {}).get("abbreviation"),
-            ),
+            team_a=event_information.get("teams", {}).get("home", {}).get("name"),
+            team_b=event_information.get("teams", {}).get("away", {}).get("name"),
+            team_a_abbreviation=event_information.get("teams", {}).get("home", {}).get("abbreviation"),
+            team_b_abbreviation=event_information.get("teams", {}).get("away", {}).get("abbreviation"),
             odds=[],
         )
         for market in market_data:
@@ -110,7 +108,7 @@ class Prophetx(PredictionBookBase):
                 if not prediction_data["liquidity_data"]:
                     continue
 
-                stats = PredictionLiquidityStats(**prediction_data, static_mapping=self.static_mapping)
+                stats = PredictionLiquidityStats(**prediction_data, league=league)
                 stats.market = self.special_stat_mapper(stats.market, league)
                 game_data.odds.append(stats)
                 # game_data.odds.append(PredictionLiquidityStats(**prediction_data))
@@ -179,6 +177,7 @@ class Prophetx(PredictionBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return game_data
 
 

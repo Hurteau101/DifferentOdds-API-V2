@@ -2,7 +2,7 @@ from datetime import datetime
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats
-from Settings.Models.base_models import GameData, TeamData
+from Settings.Models.base_models import GameData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
@@ -42,7 +42,7 @@ class Drafters(DFSBookBase):
 
             stats = [
                 DFSStats(
-                    static_mapping=self.static_mapping,
+                    league=league,
                     player_name=player_name,
                     player_team=player_team,
                     future=True if "season" in player.get("bid_stats_name").lower() else False,
@@ -61,10 +61,8 @@ class Drafters(DFSBookBase):
                     league=league,
                     game_key=team_key,
                     start_date=start_date,
-                    team_data=TeamData(
-                        team_a=team_a,
-                        team_b=team_b,
-                    ),
+                    team_a=team_a,
+                    team_b=team_b,
                     odds=stats,
                     solo_game=False if all([team_a, team_b]) else True,
                 )
@@ -129,6 +127,7 @@ class Drafters(DFSBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return drafters_data
 
 if __name__ == "__main__":

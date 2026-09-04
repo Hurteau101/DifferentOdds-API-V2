@@ -15,6 +15,7 @@ class ErrorTypes(StrEnum):
     NO_EXTRACTION_DATA = "Extraction Error"
     ESPN_NO_DATA = "ESPN API Response Error"
     MISC = "Misc Error"
+    BILLING = "Billing Error"
 
 def production_log(book_name: str, error_type: ErrorTypes, error_message: str):
     if not all([book_name, error_type, error_message]):

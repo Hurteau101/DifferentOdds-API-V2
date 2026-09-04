@@ -2,7 +2,7 @@ import asyncio
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
@@ -115,15 +115,13 @@ class Epicks(DFSBookBase):
             league=projections.get("league").lower(),
             game_key=team_data.get("team_key"),
             start_date=start_date,
-            team_data=TeamData(
-                team_a=team_data.get("team_a"),
-                team_a_abbreviation=team_data.get("team_a_abbreviation"),
-                team_b=team_data.get("team_b"),
-                team_b_abbreviation=team_data.get("team_b_abbreviation"),
-            ),
+            team_a=team_data.get("team_a"),
+            team_a_abbreviation=team_data.get("team_a_abbreviation"),
+            team_b=team_data.get("team_b"),
+            team_b_abbreviation=team_data.get("team_b_abbreviation"),
             odds=[
                 DFSStats(
-                    static_mapping=self.static_mapping,
+                    league=projections.get("league").lower(),
                     player_name=projections.get("subject_std"),
                     player_team=team_data.get("player_team"),
                     stat_type=stat_type,
@@ -206,6 +204,7 @@ class Epicks(DFSBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return epicks_data
 
 if __name__ == "__main__":
