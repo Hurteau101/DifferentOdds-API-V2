@@ -10,7 +10,7 @@ import uuid
 
 class PropBuilderMapper(MapperBase):
     def __init__(self):
-        super().__init__(book_name="prop builder", category="sgp")
+        super().__init__(book_name="prop builder*", category="sgp")
         self.ignore_stats = ["ppd", "specials", "all markets", "acca", "field", "h2h", "h2h", "pops"]
         self.spread_types = ["spread", "run line", "puck line", "point spread"]
         self.special_team_mapping = {
@@ -169,10 +169,10 @@ class PropBuilderMapper(MapperBase):
             "wnba": "point spread",
         }
 
-        if "spread" in stat_name.lower():
+        if any(stat for stat in ["spread", "point spread"] if stat in stat_name.lower()):
             found_mapper = mapper.get(league)
             if found_mapper:
-                return stat_name.replace("spread", found_mapper)
+                return stat_name.replace("point spread", found_mapper).replace("spread", found_mapper)
 
         return stat_name
 
@@ -195,9 +195,15 @@ class PropBuilderMapper(MapperBase):
 
 
                 team = inner_mapper.get(game_type)
-                return [team, game_line] if game_line is not None else [team]
-                # key = f"{team}_{game_line}" if line is not None else team
-                # return key.lower().replace(" ", "_")
+
+                has_game_line = game_line is not None and str(game_line) != "None"
+
+                if has_game_line:
+                    # Their spread lines are backwards.
+                    game_line = str(-float(game_line))
+
+                return [team, game_line] if has_game_line is not None else [team]
+
 
 
             if game_type in ["over", "under"]:
@@ -275,7 +281,7 @@ class PropBuilderMapper(MapperBase):
                 "game_id": game_id,
                 "test_game_id": test_game_id,
                 "statistic": raw_stat_name,
-                "condition_value": line,
+                "condition_value": -line if current_stat_name in self.spread_types else line,
                 "decimal_odds": decimal_odds,
                 "american_odds": american_odds,
                 "team_1": team_1_name,
@@ -362,9 +368,9 @@ class PropBuilderMapper(MapperBase):
         mapping = {}
         seen = set()
 
-        static_mapping = self.static_mapping_manager.get("static_mapping") or {}
+        stat_mapping = self.static_mapping_manager.get("static_mapping") or {}
 
-        stat_mapping = static_mapping.get("stats", {})
+        # stat_mapping = static_mapping.get("stats", {})
 
 
         for league, data in response:
@@ -419,6 +425,7 @@ class PropBuilderMapper(MapperBase):
         ]
 
         response = await asyncio.gather(*tasks)
+
         game_ids = {}
 
         for game_list in response:
@@ -460,6 +467,7 @@ class PropBuilderMapper(MapperBase):
         ]
 
         responses = await asyncio.gather(*tasks)
+
         game_details = {}
 
         for data in responses:
@@ -518,6 +526,7 @@ class PropBuilderMapper(MapperBase):
         ]
 
         responses = await asyncio.gather(*tasks)
+
 
         market_data = {}
 
@@ -596,3 +605,4 @@ class PropBuilderMapper(MapperBase):
 if __name__ == "__main__":
     prop_builder = PropBuilderMapper()
     asyncio.run(prop_builder.run_mapper())
+

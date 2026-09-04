@@ -15,7 +15,7 @@ celerybeat-schedule
 todo
 **/driver_fixing.lock
 downloaded_files/
-
+wsl-venv/
 
 
 

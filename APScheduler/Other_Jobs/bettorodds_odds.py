@@ -14,7 +14,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 SPREAD_PATTERN = re.compile(r'[+-]\d')
-
+SPREAD_SIDE_PATTERN = re.compile(r'^([A-Z]{2,3})\s+([+-]\d+(?:\.\d+)?)$')
+SKIPPED_PROPS = ["odd/even"]
 
 def _input_team(game_details: dict, league: str, espn_mapping: dict, split_match: list):
     """In charge of adding the team name to the game details"""
@@ -117,7 +118,7 @@ def _load_prop_builder(event_key: str, prop_key: str, prop_builder_ids: dict, fe
         return
 
     feed.update({
-        "prop builder": {
+        "prop builder*": {
             "american_odds": found.get("american_odds"),
             "bet_link": '',
         }
@@ -147,6 +148,10 @@ def configure_data(bettorodds_data: dict) -> dict:
     valid_books = _get_valid_books()
 
     for game_details in bettorodds_data.values():
+        if game_details.get("one_way", True) or any(prop in game_details.get("Prop", '').lower() for prop in SKIPPED_PROPS):
+            continue
+
+
         league = game_details.get("League", "N/A")
         split_match = game_details.get("Match", '').split(" vs ")
 
@@ -165,11 +170,17 @@ def configure_data(bettorodds_data: dict) -> dict:
         line = game_details.get("Line", '')
         prop = game_details.get("Prop", '')
 
-
         for side in book_feed:
-            normalized_raw = f"{player} {side} {line} {prop}"
+            modified_side = side
+
+            # Required for building prop key, as on spreads, the line and side are combined which causes
+            # the prop key to be incorrect.
+            if match := SPREAD_SIDE_PATTERN.match(side):
+                modified_side, line = match.groups()
+
+            normalized_raw = f"{player} {modified_side} {line} {prop}"
             unique_stat = f"{game_details.get('Player', '')} {game_details.get('Prop', '').replace('Player', '')}"
-            prop_key = MapperBase.build_prop_key(stat=prop, side=side, line=line, player=player)
+            prop_key = MapperBase.build_prop_key(stat=prop, side=modified_side, line=line, player=player)
 
             feed = book_feed.get(side)
 
