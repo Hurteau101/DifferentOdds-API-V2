@@ -5,7 +5,7 @@ from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Redis.redis_manager import RedisAsyncManager
 
 class Chalkboard(DFSBookBase):
@@ -117,15 +117,13 @@ class Chalkboard(DFSBookBase):
             league=league,
             start_date=start_date,
             game_key=team_key,
-            team_data=TeamData(
-                team_a=team_a,
-                team_b=team_b,
-                team_a_abbreviation=team_a_abbreviation,
-                team_b_abbreviation=team_b_abbreviation
-            ),
+            team_a=team_a,
+            team_b=team_b,
+            team_a_abbreviation=team_a_abbreviation,
+            team_b_abbreviation=team_b_abbreviation,
             odds=[
                 DFSStats(
-                    static_mapping=self.static_mapping,
+                    league=league,
                     player_name=player_name,
                     player_team=player_team,
                     future=False,
@@ -198,12 +196,12 @@ class Chalkboard(DFSBookBase):
             print(f"{c}: {int(int(count[c]) / 2)}")
 
     async def run_book(self) -> list | None:
-        redis_client = RedisAsyncManager(database=5)
-        access_token = await redis_client.get_data("chalkboard_access_token")
+        redis_client = RedisAsyncManager(database=1)
+        access_token = await redis_client.get_data(self.book_data.auth_job_dict.auth_redis_key)
 
         if not access_token:
             insert_log(
-                key_name=self.book_data.title,
+                book_name=self.book_data.title,
                 error_type=ErrorTypes.AUTH,
                 error_message="No access token found"
             )
@@ -233,7 +231,7 @@ class Chalkboard(DFSBookBase):
 
             if not merged_data:
                 insert_log(
-                    key_name=self.book_data.title,
+                    book_name=self.book_data.title,
                     error_type=ErrorTypes.API_NO_DATA,
                     error_message="No API data found"
                 )
@@ -262,4 +260,5 @@ class Chalkboard(DFSBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return chalkboard_data

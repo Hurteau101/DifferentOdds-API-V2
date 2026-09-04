@@ -8,7 +8,7 @@ from trio import Semaphore
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -68,7 +68,7 @@ class Metallic(PPHBookBase):
 
         return league_ids
 
-    def extract_teams(self, team_list: list) -> TeamData | None:
+    def extract_teams(self, team_list: list) -> dict | None:
         """Extract Team Data"""
         if len(team_list) != 2:
             return None
@@ -77,11 +77,14 @@ class Metallic(PPHBookBase):
 
         team_a, team_b = (re.sub(r'\s*.{3}#.*', '', team) for team in [raw_team_a, raw_team_b])
 
-        return TeamData(team_a=team_a, team_b=team_b)
+        return {
+            "team_a": team_a,
+            "team_b": team_b
+        }
 
-    def _moneyline_type(self, market_name: str, market_data: dict, **kwargs) -> SportsbookStats:
+    def _moneyline_type(self, market_name: str, market_data: dict, league: str, **kwargs) -> SportsbookStats:
         return SportsbookStats(
-            static_mapping=self.static_mapping,
+            league=kwargs.get("league"),
             market=market_name,
             bet_team=kwargs.get("team", None),
             line=None,
@@ -95,7 +98,7 @@ class Metallic(PPHBookBase):
         market_name = self.convert_spread_name(market_name=market_name, league=league)
 
         return SportsbookStats(
-            static_mapping=self.static_mapping,
+            league=league,
             market=market_name,
             bet_team=kwargs.get("team", None),
             line=market_data.get("p", None),
@@ -113,7 +116,7 @@ class Metallic(PPHBookBase):
 
 
         return SportsbookStats(
-            static_mapping=self.static_mapping,
+            league=kwargs.get("league"),
             market=market_name,
             bet_team=kwargs.get("team", None) if "team" in market_name.lower() else None,
             line=market_data.get("p", None),
@@ -143,7 +146,7 @@ class Metallic(PPHBookBase):
         return handler(market_name=market_name, market_data=market_data, team=team, **kwargs)
 
 
-    def build_markets(self, event_data: dict, league_dict: dict) -> list:
+    def build_markets(self, event_data: dict, league_dict: dict) -> list | None:
         sport_id = event_data.get("sc", {}).get("spid", -1)
         period_id = event_data.get("sc", {}).get("p", -1)
         sport_subtype = event_data.get("sc", {}).get("l", "")
@@ -191,12 +194,13 @@ class Metallic(PPHBookBase):
                 if not team_data:
                     return None
 
-                game_key = self.generate_key([team_data.team_a, team_data.team_b, game_date])
+                game_key = self.generate_key([team_data.get("team_a"), team_data.get("team_b"), game_date])
 
                 game = GameData(
                     start_date=game_date,
                     league=self.INTERNAL_LEAGUE_MAPPER.get(found_league_dict.get("league").lower(), found_league_dict.get("league")),
-                    team_data=team_data,
+                    team_a=team_data.get("team_a"),
+                    team_b=team_data.get("team_b"),
                     odds=[],
                     game_key=game_key
                 )
@@ -320,6 +324,7 @@ class Metallic(PPHBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return metalic_data
 
 

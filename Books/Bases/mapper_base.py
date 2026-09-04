@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from Books.Bases.book_base import BookBase
 from Redis.redis_manager import RedisAsyncManager
-
+from Redis.redis_manager import static_mapping_service
 
 class MapperBase(BookBase):
     def __init__(self, category: str, book_name: str, redis_expiration: int = 800, precalculated_additional_time: int = 180):
@@ -9,6 +9,7 @@ class MapperBase(BookBase):
         self.mapper_id_name = self.book_data.mapper_job_dict.mapper_redis_key
         self.pre_calculated_redis_expiration = self.book_data.mapper_job_dict.ap_scheduler.interval + precalculated_additional_time
         self.redis_auth_manager = RedisAsyncManager(database=1)
+        self.static_mapping_manager = static_mapping_service.get()
         if not self.mapper_id_name:
             raise KeyError(f"Ensure {self.book_data.name} has a 'mapper_redis_key'")
 

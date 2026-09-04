@@ -3,7 +3,7 @@ import re
 from loguru import logger
 from Books.Bases.prediction_base import PredictionBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -121,10 +121,8 @@ class FourCX(PredictionBookBase):
             game_key=key,
             start_date=game_date,
             league=modified_league,
-            team_data=TeamData(
-                team_a=team_list[0],
-                team_b=team_list[1] if len(team_list) == 2 else None,
-            ),
+            team_a=team_list[0],
+            team_b=team_list[1] if len(team_list) == 2 else None,
             odds=[
                 PredictionLiquidityStats(
                     market=self._configure_market_name(ordinal=ordinal, event_name=game.get("eventName"), order=order, is_player_prop=True if "props" in league.lower() else False),
@@ -134,7 +132,7 @@ class FourCX(PredictionBookBase):
                     bet_player=game.get("eventName").split("(")[0].title().strip() if "props" in league.lower() else None,
                     player_team=teams.get(order.get("participantId")) if "props" in league.lower() else None,
                     future=False,
-                    static_mapping=self.static_mapping,
+                    league=league,
                     liquidity_data=[
                         LiquidityData(
                             odds_format=OddsFormat(american_odds=order.get("odds")),
@@ -228,6 +226,7 @@ class FourCX(PredictionBookBase):
                 key_name=self.book_data.name,
             )
 
+            await self.flush_unmapped()
             return game_list
 
 

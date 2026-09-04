@@ -1,7 +1,7 @@
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
@@ -35,13 +35,11 @@ class Parlaye(DFSBookBase):
             league=game_data.get("league"),
             game_key=team_key,
             start_date=start_date,
-            team_data=TeamData(
-                team_a=team_a,
-                team_b=team_b,
-            ),
+            team_a=team_a,
+            team_b=team_b,
             odds=[
                 DFSStats(
-                    static_mapping=self.static_mapping,
+                    league=game_data.get("league"),
                     player_name=player_name,
                     player_team=team_a,
                     stat_type=game_data.get("pick_type"),
@@ -99,6 +97,7 @@ class Parlaye(DFSBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return parlaye_data
 
 if __name__ == "__main__":

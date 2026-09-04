@@ -362,7 +362,7 @@ class PropBuilderMapper(MapperBase):
         mapping = {}
         seen = set()
 
-        static_mapping = self.static_mapping.get("static_mapping", {})
+        static_mapping = self.static_mapping_manager.get("static_mapping") or {}
 
         stat_mapping = static_mapping.get("stats", {})
 

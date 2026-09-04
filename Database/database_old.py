@@ -27,37 +27,6 @@ class Database:
         )
 
 
-    def _fernet_creator(self) -> Fernet:
-        """Creates the Fernet Key instance used for encryption/decryption"""
-        fernet_key = os.getenv('FERNET_KEY')
-        if not fernet_key:
-            raise ValueError("FERNET_KEY environment variable is not set.")
-
-        fernet = Fernet(fernet_key.encode())
-        return fernet
-
-    def _decoder(self, key: str) -> str:
-        """Decodes a string using Fernet encryption"""
-        fernet = self._fernet_creator()
-        return fernet.decrypt(key.encode()).decode()
-
-    def _encrypter(self, key: str) -> str:
-        """Encrypts a string using Fernet encryption"""
-        fernet = self._fernet_creator()
-        return fernet.encrypt(key.encode()).decode()
-
-
-    def get_api_keys(self) -> list:
-        self.cursor.execute("SELECT api_key, client FROM api_keys")
-        api_keys = self.cursor.fetchall()
-        return [
-            {
-                "client": api["client"],
-                "api_key": self._decoder(api["api_key"])
-            }
-            for api in api_keys
-        ]
-
     def create_table(self, table_creator_func: Callable):
         """Creates a table in the database using the provided table creator function."""
         sql = table_creator_func()
@@ -98,28 +67,6 @@ class Database:
         # return [item.decode('utf-8') for row in self.cursor.fetchall() for item in row]
         return self.cursor.fetchall()
 
-
-    def create_api_key(self, client_str: str):
-        def client_exist():
-            self.cursor.execute("SELECT EXISTS(SELECT 1 FROM api_keys WHERE client=%s)", (client_str,))
-            return self.cursor.fetchone()[0]
-
-        if not client_str:
-            raise ValueError("Client string cannot be empty.")
-
-        does_client_exist = client_exist()
-        if does_client_exist:
-            raise ValueError("API key for this client already exists.")
-
-        api_key = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))
-        encrypt_key = self._encrypter(api_key)
-
-        self.cursor.execute(
-            "INSERT INTO api_keys (client, api_key) VALUES (%s, %s)",
-            (client_str, encrypt_key)
-        )
-
-        self.connection.commit()
 
     def reload_teams(self) -> list:
         """Re-loads all teams from the database."""

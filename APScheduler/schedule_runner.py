@@ -1,5 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+
+from APScheduler.Other_Jobs.verification_mapping import VerificationMapping
 from Settings.book_configurations import BookConfiguration
 from itertools import chain
 from datetime import datetime, timedelta
@@ -141,6 +143,18 @@ class BaseScheduleRunner:
             misfire_grace_time=120,
         )
 
+    def _store_cached_verification_mapping(self, scheduler: AsyncIOScheduler):
+        vm = VerificationMapping()
+        scheduler.add_job(
+            vm.controller,
+            trigger=IntervalTrigger(days=1),
+            name="verification_mapping_job",
+            coalesce=True,
+            max_instances=1,
+            next_run_time=datetime.now(),
+            misfire_grace_time=120,
+        )
+
     def _store_api_key_job(self, scheduler: AsyncIOScheduler):
         scheduler.add_job(
             store_api_keys,
@@ -181,6 +195,7 @@ class BaseScheduleRunner:
         self._store_static_mapping(scheduler=scheduler)
         self._store_espn_mapper(scheduler=scheduler)
         self._store_bettorodds_job(scheduler=scheduler)
+        self._store_cached_verification_mapping(scheduler=scheduler)
 
         scheduler.start()
 

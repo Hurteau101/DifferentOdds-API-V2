@@ -1,6 +1,6 @@
 import re
 from Settings.Models.dfs_models import DFSStats, Discounts, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData
+from Settings.Models.base_models import GameData
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -77,7 +77,7 @@ class Prizepicks(DFSBookBase):
             }
         } for bet in bet_direction]
 
-    def _extract_data(self, game_details: dict, player_info_map: dict, static_league_mapping: dict) -> GameData | None:
+    def _extract_data(self, game_details: dict, player_info_map: dict) -> GameData | None:
         """Extract all the player data"""
         player_id = game_details.get("relationships", {}).get("new_player", {}).get("data", {}).get("id")
         team_id = player_info_map.get(player_id, {}).get("relationships", {}).get("team_data", {}).get("data", {}).get(
@@ -98,9 +98,7 @@ class Prizepicks(DFSBookBase):
         player_name = player_information.get("display_name", "") if player_information.get("display_name") != "" \
             else player_information.get("name", "")
 
-        raw_league = player_information.get("league").upper() if player_information.get("league") else None
-
-        league = static_league_mapping.get(raw_league.lower(), {}).get("mapped_name", raw_league.upper())
+        league = player_information.get("league").upper() if player_information.get("league") else None
 
         projection_id = game_details.get("id")
         start_date = game_information.get("start_time")
@@ -118,7 +116,7 @@ class Prizepicks(DFSBookBase):
 
         stats = [
             DFSStats(
-                static_mapping=self.static_mapping,
+                league=league,
                 player_name=player_name,
                 player_team=team,
                 combo=combo,
@@ -139,17 +137,15 @@ class Prizepicks(DFSBookBase):
                 )
             )
 
-            for stat in self._process_stats(game_information, raw_league, projection_id)
+            for stat in self._process_stats(game_information, league, projection_id)
         ]
 
         return GameData(
             league=league,
             game_key=team_key,
             start_date=start_date,
-            team_data=TeamData(
-                team_a=team,
-                team_b=opponent,
-            ),
+            team_a=team,
+            team_b=opponent,
             solo_game=True if league in Prizepicks.SOLO_GAMES else False,
             odds=stats,
         )
@@ -172,11 +168,10 @@ class Prizepicks(DFSBookBase):
                 return None
 
             player_info_map, team_info_map = self._map_info(api_data)
-            static_mapping = self.static_mapping.get("league_mapper", {})
 
             events = {}
             for game_details in api_data.get("data", []):
-                player_data = self._extract_data(game_details, player_info_map, static_mapping)
+                player_data = self._extract_data(game_details, player_info_map)
                 if player_data:
                     self.add_to_events(events, player_data, GameData)
 
@@ -195,6 +190,7 @@ class Prizepicks(DFSBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return prizepick_data
 
 if __name__ == "__main__":

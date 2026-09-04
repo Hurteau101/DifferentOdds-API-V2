@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from curl_cffi import AsyncSession as CurlAsyncSession
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
@@ -64,7 +64,7 @@ class Underdog(DFSBookBase):
         return None
 
 
-    def _extract_team_games(self, game_section: dict, team_id:str) -> dict:
+    def _extract_team_games(self, game_section: dict, team_id:str, league: str) -> dict:
         """Extract Team Game Details """
         reversed_index = ("MASL", "ESPORTS", "UNRIVALED", "VAL", "LOL", "CS", "DOTA", "CS2")
 
@@ -96,12 +96,16 @@ class Underdog(DFSBookBase):
         team_b_abbrev = abbreviation_split.get("team_b") if abbreviation_split else None
 
         player_team = home_team if team_id == home_team_id else away_team
-        generate_key = Underdog.generate_key([home_team, away_team, game_section.get("scheduled_at")])
+        generate_key = Underdog.generate_key([
+            home_team,league,
+            away_team,league,
+            game_section.get("scheduled_at")
+        ])
 
         return {"team_a": home_team, "team_b": away_team, "player_team": player_team, "team_a_abbreviation": team_a_abbrev,
                 "team_b_abbreviation": team_b_abbrev, "team_key": generate_key}
 
-    def _extract_solo_games(self, game_section: dict, player_name: str) -> dict:
+    def _extract_solo_games(self, game_section: dict, player_name: str, league) -> dict:
         """Extract Solo Game Details"""
         valid_split = self._split_teams(game_section.get("title").replace(".", ""))
         if valid_split:
@@ -126,14 +130,14 @@ class Underdog(DFSBookBase):
             "team_key": game_key,
         }
 
-    def _get_game_details(self, game_section: dict, game_type: str, player_name: str, team_id: str) -> dict:
+    def _get_game_details(self, game_section: dict, game_type: str, player_name: str, team_id: str, league: str) -> dict:
         """Get the game details for Solo Games and Team Games"""
         full_details = {
             "start_date": game_section.get("scheduled_at"),
         }
 
         if game_type == "Game":
-            team_data = self._extract_team_games(game_section, team_id)
+            team_data = self._extract_team_games(game_section, team_id, league)
 
             # Underdog API sometimes bugs, so extra check
             if not team_data:
@@ -142,7 +146,7 @@ class Underdog(DFSBookBase):
             team_data["solo_game"] = False
             full_details.update(**team_data)
         else:
-            solo_data = self._extract_solo_games(game_section, player_name)
+            solo_data = self._extract_solo_games(game_section, player_name, league)
 
             # Underdog API sometimes bugs, so extra check
             if not solo_data:
@@ -189,7 +193,7 @@ class Underdog(DFSBookBase):
 
         return [
             DFSStats(
-                static_mapping=self.static_mapping,
+                league=league,
                 player_name=player_name,
                 player_team=player_team,
                 stat_type=line.get("display_stat"),
@@ -227,34 +231,36 @@ class Underdog(DFSBookBase):
         if game_type.lower() not in ["sologame", "game"]:
             return None
 
+        league = player_details.get("league")
+
         game_details = self._get_game_details(
             game_section=map_data.get("team_games").get(game_id) if game_type == "Game" else map_data.get(
                 "solo_games").get(game_id),
             game_type=game_type,
             player_name=player_details.get("player_name"),
             team_id=player_details.get("team_id") if game_type == "Game" else None,
+            league=league
         )
 
         if not game_details:
             return None
 
-        league = player_details.get("league")
+        player_team = game_details.get("player_team")
 
         grouped_stats = stats.get(line_id)
 
-        stat_details = self._extract_stats(league, grouped_stats, player_details.get("player_name"), game_details.get("player_team"))
+        stat_details = self._extract_stats(league=league, line_section=grouped_stats, player_name=player_details.get("player_name"),
+                                           player_team=player_team)
 
         return GameData(
-            league=player_details.get("league"),
+            league=league,
             start_date=game_details.get("start_date"),
             solo_game=game_details.get("solo_game"),
             game_key=game_details.get("team_key"),
-            team_data=TeamData(
-                team_a=game_details.get("team_a"),
-                team_b=game_details.get("team_b"),
-                team_a_abbreviation=game_details.get("team_a_abbreviation"),
-                team_b_abbreviation=game_details.get("team_b_abbreviation"),
-            ),
+            team_a=game_details.get("team_a"),
+            team_b=game_details.get("team_b"),
+            team_a_abbreviation=game_details.get("team_a_abbreviation"),
+            team_b_abbreviation=game_details.get("team_b_abbreviation"),
             odds=stat_details,
         )
 
@@ -320,6 +326,7 @@ class Underdog(DFSBookBase):
                 data_to_store=underdog_data,
             )
 
+            await self.flush_unmapped()
             return underdog_data
 
 if __name__ == "__main__":

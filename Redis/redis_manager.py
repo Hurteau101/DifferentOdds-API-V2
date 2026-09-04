@@ -324,6 +324,7 @@ class RedisStaticMappingService:
             self._cache = {
                 "static_mapping": self.redis.get_data("stat_mapper") or {},
                 "league_mapping": self.redis.get_data("league_mapper") or {},
+                "team_mapping": self.redis.get_data("team_mapper") or {},
             }
 
             self._last_loaded = now

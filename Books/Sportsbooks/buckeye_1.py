@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from rapidfuzz import process, fuzz
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
 from urllib.parse import urlencode
@@ -61,9 +61,9 @@ class Buckeye1(PPHBookBase):
     def line_formatter(self, line: str) -> str:
         return line.replace("½", ".5").replace("¼", ".25").replace("¾", ".75")
 
-    def _moneyline_type(self, market_data: dict, market_name: str, **kwargs) -> SportsbookStats:
+    def _moneyline_type(self, market_data: dict, market_name: str, league:str, **kwargs) -> SportsbookStats:
         return SportsbookStats(
-            static_mapping=self.static_mapping,
+            league=league,
             market=market_name,
             bet_team=market_data.get("team", ""),
             line=None,
@@ -85,7 +85,7 @@ class Buckeye1(PPHBookBase):
 
 
 
-    def _total_type(self, market_data: dict, market_name: str, **kwargs) -> SportsbookStats | None:
+    def _total_type(self, market_data: dict, market_name: str, league: str, **kwargs) -> SportsbookStats | None:
         data = self._extract_odds_line(market_data.get("odds", ""), has_direction=True)
         if len(data) != 3:
             return None
@@ -101,7 +101,7 @@ class Buckeye1(PPHBookBase):
         direction = direction_mapper.get(raw_direction.lower(), None)
 
         return SportsbookStats(
-            static_mapping=self.static_mapping,
+            league=league,
             market=market_name,
             bet_team=market_data.get("team", "") if kwargs.get("is_team", False) else None,
             line=float(line) if line else None,
@@ -111,7 +111,7 @@ class Buckeye1(PPHBookBase):
         )
 
 
-    def _spread_type(self, market_data: dict, market_name: str, **kwargs) -> SportsbookStats | None:
+    def _spread_type(self, market_data: dict, market_name: str, league: str, **kwargs) -> SportsbookStats | None:
         data = self._extract_odds_line(market_data.get("odds", ""))
         if len(data) != 2:
             return None
@@ -119,7 +119,7 @@ class Buckeye1(PPHBookBase):
         line, odds = data[0], data[1]
 
         return SportsbookStats(
-            static_mapping=self.static_mapping,
+            league=league,
             market=market_name,
             bet_team=market_data.get("team", ""),
             line=float(line) if line else None,
@@ -129,7 +129,7 @@ class Buckeye1(PPHBookBase):
         )
 
 
-    def market_controller(self, raw_market_name: str, market_data: dict):
+    def market_controller(self, raw_market_name: str, market_data: dict, league: str):
         mapper = {
             "moneyline": self._moneyline_type,
             "spread": self._spread_type,
@@ -158,7 +158,7 @@ class Buckeye1(PPHBookBase):
             return None
 
 
-        return handler(market_data=market_data, market_name=market_name, is_team=is_team)
+        return handler(market_data=market_data, market_name=market_name, is_team=is_team, league=league)
 
 
     @staticmethod
@@ -261,10 +261,8 @@ class Buckeye1(PPHBookBase):
             game_data = GameData(
                 start_date=start_date,
                 league=league,
-                team_data=TeamData(
-                    team_a=team_1_name,
-                    team_b=team_2_name,
-                ),
+                team_a=team_1_name,
+                team_b=team_2_name,
                 odds=[],
                 game_key=self.generate_key([team_1_name, team_2_name, start_date])
             )
@@ -366,6 +364,7 @@ class Buckeye1(PPHBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return buckeye_data
 
 

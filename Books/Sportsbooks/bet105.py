@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Iterator
 from Books.Bases.sportsbook_base import SportsbooksBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.helpers import convert_to_utc
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -216,6 +216,8 @@ class Bet105(SportsbooksBookBase):
 
         parent_dict = fixture.get("parent_data", {})
 
+        team_dict = {}
+
         if "props" in fixture.get("name").lower():
             teams = parent_dict.get("event_name").split(" vs ")
             if len(teams) != 2:
@@ -223,10 +225,8 @@ class Bet105(SportsbooksBookBase):
 
             key = Bet105.generate_key([teams[0], teams[1], parent_dict.get("start_date")])
 
-            team_data = TeamData(
-                team_a=teams[0].strip(),
-                team_b=teams[1].strip(),
-            )
+            team_dict.update({"team_a":teams[0].strip(), "team_b":teams[1].strip()})
+
         elif len(fixture.get("participants")) <= 2:
             teams = fixture.get("participants")
             team_list = [
@@ -237,12 +237,9 @@ class Bet105(SportsbooksBookBase):
             key = Bet105.generate_key([team_list[0], team_list[1], parent_dict.get("start_date")]) if len(teams) == 2 else (
                 Bet105.generate_key([team_list[0], parent_dict.get("start_date")]))
 
-            team_data = TeamData(
-                team_a=team_list[0].strip(),
-                team_b=team_list[1].strip() if len(teams) == 2 else None,
-            )
+            team_dict.update({"team_a":team_list[0].strip(), "team_b":team_list[1].strip() if len(teams) == 2 else None})
         else:
-            team_data = TeamData(team_a=None, team_b=None)
+            team_dict.update({"team_a": None, "team_b": None})
             key = f"{parent_dict.get('event_name')}_{parent_dict.get('start_date')}"
 
         bet_type = mapped_data.get("sides").get(str(market_data.get("side_id")))
@@ -272,10 +269,11 @@ class Bet105(SportsbooksBookBase):
             start_date=parent_dict.get("start_date"),
             game_key=key.replace(" ", "_"),
             league=parent_dict.get("league"),
-            team_data=team_data,
+            team_a=team_dict.get("team_a"),
+            team_b=team_dict.get("team_b"),
             odds=[
                 SportsbookStats(
-                    static_mapping=self.static_mapping,
+                    league=parent_dict.get("league"),
                     market=final_market,
                     odds_format=OddsFormat(american_odds=market_data.get("price_american")),
                     bet_team=bet_team,
@@ -342,6 +340,7 @@ class Bet105(SportsbooksBookBase):
                 key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return results
 
 

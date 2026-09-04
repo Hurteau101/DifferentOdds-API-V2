@@ -1,7 +1,6 @@
 import asyncio
 from Books.Bases.mapper_base import MapperBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Redis.redis_manager import RedisAsyncManager
 from curl_cffi import AsyncSession as CurlAsyncSession
 from loguru import logger
 
