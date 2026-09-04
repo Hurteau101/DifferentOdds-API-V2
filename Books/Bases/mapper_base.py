@@ -27,4 +27,4 @@ class MapperBase(BookBase):
         ]
 
         sorted_options = sorted(valid_options)
-        return "_".join(sorted_options).lower().replace(" ", "_")
+        return "_".join(sorted_options).lower().replace("+",'').replace(" ", "_")

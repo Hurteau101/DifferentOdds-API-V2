@@ -1,9 +1,11 @@
 import asyncio
 import statistics
+from collections import defaultdict
 from datetime import datetime, timezone
 import importlib
-import random
 import traceback
+import random
+from itertools import batched
 from Database.base_db import sync_engine
 from sqlalchemy import Engine
 from sqlalchemy.dialects.postgresql import insert
@@ -26,14 +28,16 @@ logger = logging.getLogger(__name__)
 
 class AutoSGP(APICaller):
     SLIP_LENGTH = 50
+    PRIORITY_BOOKS = {"prop builder*"}
 
-    def __init__(self, endpoint_redis: RedisSyncManager, previous_redis_instance: RedisSyncManager,
-                 previously_sent_discord_redis: RedisSyncManager, redis_book_mapped_ids_instance: RedisAsyncManager,
-                 redis_book_auth_instance: RedisAsyncManager, bettorodds_redis_instance: RedisSyncManager,
+    def __init__(self, endpoint_redis: RedisAsyncManager, previous_redis_instance: RedisAsyncManager,
+                 previously_sent_discord_redis: RedisAsyncManager, redis_book_mapped_ids_instance: RedisAsyncManager,
+                 redis_book_auth_instance: RedisAsyncManager, bettorodds_redis_instance: RedisSyncManager, previous_leg_uses: RedisSyncManager,
                  discord_sgp: DiscordSGP, engine: Engine):
         super().__init__()
         self.endpoint_redis = endpoint_redis
         self.previously_stored_redis_instance = previous_redis_instance
+        self.previous_leg_uses = previous_leg_uses
         self.previously_sent_discord_redis = previously_sent_discord_redis
         self.redis_book_mapped_ids_instance = redis_book_mapped_ids_instance
         self.redis_book_auth_instance = redis_book_auth_instance
@@ -47,9 +51,10 @@ class AutoSGP(APICaller):
         """Factory method to create an instance of AutoSGP and set up configurations"""
         production_environment = is_production()
 
-        endpoint_redis = RedisSyncManager(database=3)
-        redis_previously_stored_instance = RedisSyncManager(database=4)
-        previously_sent_discord_redis = RedisSyncManager(database=5)
+        endpoint_redis = RedisAsyncManager(database=3)
+        redis_previously_stored_instance = RedisAsyncManager(database=4)
+        previously_sent_discord_redis = RedisAsyncManager(database=5)
+        previous_leg_use = RedisSyncManager(database=7)
         redis_book_mapped_ids_instance = RedisAsyncManager(database=2)
         redis_book_auth_instance = RedisAsyncManager(database=1)
         bettorodds_redis_instance = RedisSyncManager(database=6)
@@ -62,7 +67,8 @@ class AutoSGP(APICaller):
                    redis_book_auth_instance=redis_book_auth_instance,
                    redis_book_mapped_ids_instance=redis_book_mapped_ids_instance,
                    bettorodds_redis_instance=bettorodds_redis_instance,
-                   discord_sgp=discord_sgp, engine=sync_engine()
+                   discord_sgp=discord_sgp, engine=sync_engine(),
+                   previous_leg_uses=previous_leg_use
                    )
 
     async def run_sgp_with_retry(self, book_name, book_cls, session, retry_times:int = 3) -> tuple:
@@ -86,7 +92,7 @@ class AutoSGP(APICaller):
         book_config = BookConfiguration.get_book_info(
             book_type="sgp",
             remove_non_active=True,
-            key_names={"name": "book_key", "class_name": "class_name", "class_path": "class_path", "curl_impersonation": "impersonate"}
+            key_names={"name": "book_key", "class_name": "class_name", "class_path": "class_path", "curl_impersonation": "impersonate", "alternate_name": "alternate_name"}
         )
 
         book = next((
@@ -133,8 +139,8 @@ class AutoSGP(APICaller):
 
                 class_instance = class_name(
                     sgp_data={"book_name": book_name, **book_data},
-                    mapped_ids_redis_instance=self.redis_book_mapped_ids_instance,
-                    auth_redis_instance=self.redis_book_auth_instance,
+                    # mapped_ids_redis_instance=self.redis_book_mapped_ids_instance,
+                    # auth_redis_instance=self.redis_book_auth_instance,
                 )
 
                 tasks.append(self.run_with_semaphore(
@@ -223,12 +229,13 @@ class AutoSGP(APICaller):
             "median_non_met_books": non_met_median,
         }
 
-    def create_slips(self, filtered_bettorodds_data: dict, previous_leg_keys: set, unique_name: str,
+    def create_slips(self, filtered_bettorodds_data: dict, previous_leg_keys: set, previous_leg_uses: dict, unique_name: str,
                      league: str, filter_dict: dict) -> list:
         """
         Creates slips based on the filters
         :param filtered_bettorodds_data: Bettorodds data filtered for the specific league.
         :param previous_leg_keys: Any previous redis keys.
+        :param previous_leg_uses: Stored use counts per leg key from previous runs.
         :param unique_name: Unique name for the filter.
         :param league: The league
         :param filter_dict: The filtered dictionary.
@@ -237,6 +244,8 @@ class AutoSGP(APICaller):
 
         stat_types = [db_filter.lower() for db_filter in filter_dict.get("stat_types", [])]
         use_multiple_teams = filter_dict.get("multiple_teams")
+        max_uses = filter_dict.get("max_uses", 1)
+        leg_uses = {}
 
         for game_name, game_data in filtered_bettorodds_data.items():
             buckets = {stat: [] for stat in stat_types}
@@ -255,81 +264,257 @@ class AutoSGP(APICaller):
                 if stat in buckets:
                     buckets[stat].append({"event": game_name, "league": league, **game})
 
-            # One shuffled slot per stat_type. Returns copies so duplicate stats don't pair with themselves.
-            slots = [random.sample(buckets[stat], len(buckets[stat])) for stat in stat_types]
-
-            for combo in zip(*slots):
-                # Ensure same player + stat isn't used. Ex. (Lebron James Over 5.5 Rebounds + Lebron James Under 5.5 Rebounds)
-                if len(set(leg["unique_stat"] for leg in combo)) != len(combo):
-                    continue
-
-                # Ensure 2 teams.
-                if use_multiple_teams and (len({leg["team"] for leg in combo}) < 2 or any(leg["team"] is None for leg in combo)):
-                    continue
-
-                common_books = set.intersection(*(set(leg["book_feed"]) for leg in combo))
-
-                payload_bucket = {book: {"links": [], "lines": {}, "event_data": []} for book in common_books}
-                individual_odds = {book: [] for book in common_books}
-                legs = []
-                fair_value = []
-
-                game_key = f"{'__'.join(sorted(str(leg['id']) for leg in combo))}___{unique_name}"
-
-                for index, slip in enumerate(combo, start=1):
-                    legs.append({
-                        "leg_number": index,
-                        "market_type": slip.get("stat"),
-                        "line": slip.get("line"),
-                        "direction": slip.get("side"),
-                        "team": slip.get("team"),
-                        "player_name": slip.get("player"),
-                        "normalized": slip.get("normalized_name"),
-                        "unique_stat": slip.get("unique_stat"),
-                        "id": slip["id"],
-                        "event": slip.get("event"),
-                        "date": slip.get("date"),
-                        "league": slip.get("league"),
-                        "nvig": slip.get("nvig"),
-                        "odds": {
-                            book_name: book_data.get("american_odds")
-                            for book_name, book_data in slip.get("book_feed", {}).items()
-                        }
+                    # Extract previous run so the cap carries across runs. Date is needed for the TTL.
+                    leg_uses.setdefault(leg_key, {
+                        "count": previous_leg_uses.get(leg_key, 0),
+                        "date": game.get("date"),
+                        "leg_id": leg_key,
                     })
 
-                    fair_value.append(slip.get("nvig"))
+            seen_keys = set()
 
-                    for book in common_books:
-                        data = slip["book_feed"][book]
-                        payload_bucket[book]["links"].append(data["bet_link"])
-                        payload_bucket[book]["lines"].update({data["bet_link"]:slip.get("line")})
-                        payload_bucket[book]["event_data"].append({
-                            "market_name": slip.get("stat"),
+            priority_buckets = {
+                stat: [leg for leg in bucket_legs if AutoSGP.PRIORITY_BOOKS & set(leg["book_feed"])]
+                for stat, bucket_legs in buckets.items()
+            }
+
+            # Priority books first, then everything. leg_uses carries over so priority legs aren't reused.
+            for active_buckets in (priority_buckets, buckets):
+                if not all(active_buckets.values()):
+                    continue
+
+                # How many times to re-loop. This allows for stat types to be used again but only the max of max_uses.
+                for _ in range(max_uses):
+                    # One shuffled slot per stat_type. Returns copies so duplicate stats don't pair with themselves.
+                    slots = [random.sample(active_buckets[stat], len(active_buckets[stat])) for stat in stat_types]
+
+                    for combo in zip(*slots):
+                        # Ensure same player + stat isn't used. Ex. (Lebron James Over 5.5 Rebounds + Lebron James Under 5.5 Rebounds)
+                        if len(set(leg["unique_stat"] for leg in combo)) != len(combo):
+                            continue
+
+                        # Ensure 2 teams.
+                        if use_multiple_teams and (len({leg["team"] for leg in combo}) < 2 or any(leg["team"] is None for leg in combo)):
+                            continue
+
+                        common_books = set.intersection(*(set(leg["book_feed"]) for leg in combo))
+                        if len(common_books) <= 1:
+                            continue
+
+                        payload_bucket = {book: {"links": [], "lines": {}, "event_data": []} for book in common_books}
+                        individual_odds = {book: [] for book in common_books}
+                        legs = []
+                        fair_value = []
+
+                        game_key = f"{'__'.join(sorted(str(leg['id']) for leg in combo))}___{unique_name}"
+
+                        if game_key in seen_keys or any(leg_uses[f"{leg['id']}__{unique_name}"]["count"] >= max_uses for leg in combo):
+                            continue
+
+                        seen_keys.add(game_key)
+
+                        for leg in combo:
+                            leg_uses[f"{leg['id']}__{unique_name}"]["count"] += 1
+
+                        for index, slip in enumerate(combo, start=1):
+                            legs.append({
+                                "leg_number": index,
+                                "market_type": slip.get("stat"),
+                                "line": slip.get("line"),
+                                "direction": slip.get("side"),
+                                "team": slip.get("team"),
+                                "player_name": slip.get("player"),
+                                "normalized": slip.get("normalized_name"),
+                                "unique_stat": slip.get("unique_stat"),
+                                "id": slip["id"],
+                                "event": slip.get("event"),
+                                "date": slip.get("date"),
+                                "league": slip.get("league"),
+                                "nvig": slip.get("nvig"),
+                                "odds": {
+                                    book_name: book_data.get("american_odds")
+                                    for book_name, book_data in slip.get("book_feed", {}).items()
+                                }
+                            })
+
+                            fair_value.append(slip.get("nvig"))
+
+                            for book in common_books:
+                                data = slip["book_feed"][book]
+                                payload_bucket[book]["links"].append(data["bet_link"])
+                                payload_bucket[book]["lines"].update({data["bet_link"]: slip.get("line")})
+                                payload_bucket[book]["event_data"].append({
+                                    "market_name": slip.get("stat"),
+                                    "date": combo[0]["date"],
+                                    "event_name": combo[0]["event"],
+                                    "line": slip.get("line"),
+                                    "player": slip.get("player"),
+                                    "side": slip.get("side"),
+                                    # "selection_name": f"{slip.get('player', '')} {slip.get('side', '')} {slip.get('line', '')}".strip(),
+                                    "prop_key": slip.get("prop_key"),
+                                    "event_key": slip.get("event_key"),
+                                })
+                                individual_odds[book].append(data["american_odds"])
+
+                        slips.append({
+                            "game_key": game_key,
+                            "event": combo[0]["event"],
                             "date": combo[0]["date"],
-                            "event_name": combo[0]["event"],
-                            "line": slip.get("line"),
-                            "player": slip.get("player"),
-                            "side": slip.get("side"),
-                            # "selection_name": f"{slip.get('player', '')} {slip.get('side', '')} {slip.get('line', '')}".strip(),
-                            "prop_key": slip.get("prop_key"),
-                            "event_key": slip.get("event_key"),
+                            "league": combo[0]["league"],
+                            "discord_sent": False,
+                            "legs": legs,
+                            "unique_filter_name": unique_name,
+                            "individual_odds": individual_odds,
+                            "fair_value": fair_value,
+                            "payload": payload_bucket,
                         })
-                        individual_odds[book].append(data["american_odds"])
 
-                slips.append({
-                    "game_key": game_key,
-                    "event": combo[0]["event"],
-                    "date": combo[0]["date"],
-                    "league": combo[0]["league"],
-                    "discord_sent": False,
-                    "legs": legs,
-                    "unique_filter_name": unique_name,
-                    "individual_odds": individual_odds,
-                    "fair_value": fair_value,
-                    "payload": payload_bucket,
-                })
+        if leg_uses:
+            self.previous_leg_uses.bulk_insert_individual(
+                data_to_store=leg_uses,
+                pipeline=self.previous_leg_uses.redis_client.pipeline()
+            )
 
         return slips
+
+    # def create_slips(self, filtered_bettorodds_data: dict, previous_leg_keys: set, previous_leg_uses: dict, unique_name: str,
+    #                  league: str, filter_dict: dict) -> list:
+    #     """
+    #     Creates slips based on the filters
+    #     :param filtered_bettorodds_data: Bettorodds data filtered for the specific league.
+    #     :param previous_leg_keys: Any previous redis keys.
+    #     :param previous_leg_uses: Stored use counts per leg key from previous runs.
+    #     :param unique_name: Unique name for the filter.
+    #     :param league: The league
+    #     :param filter_dict: The filtered dictionary.
+    #     """
+    #     slips = []
+    #
+    #     stat_types = [db_filter.lower() for db_filter in filter_dict.get("stat_types", [])]
+    #     use_multiple_teams = filter_dict.get("multiple_teams")
+    #     max_uses = filter_dict.get("max_uses", 1)
+    #     leg_uses = {}
+    #
+    #     for game_name, game_data in filtered_bettorodds_data.items():
+    #         buckets = {stat: [] for stat in stat_types}
+    #
+    #         for game in game_data:
+    #             if len(game.get("book_feed")) <= 1:
+    #                 continue
+    #
+    #             leg_key = f"{game.get('id')}__{unique_name}"
+    #
+    #             if leg_key in previous_leg_keys:
+    #                 continue
+    #
+    #             stat = game.get("stat", '').lower()
+    #
+    #             if stat in buckets:
+    #                 buckets[stat].append({"event": game_name, "league": league, **game})
+    #
+    #                 # Extract previous run so the cap carries across runs. Date is needed for the TTL.
+    #                 leg_uses.setdefault(leg_key, {
+    #                     "count": previous_leg_uses.get(leg_key, 0),
+    #                     "date": game.get("date"),
+    #                     "leg_id": leg_key,
+    #                 })
+    #
+    #         seen_keys = set()
+    #
+    #         # How many times to re-loop. This allows for stat types to be used again but only the max of max_uses.
+    #         for _ in range(max_uses):
+    #             # One shuffled slot per stat_type. Returns copies so duplicate stats don't pair with themselves.
+    #             slots = [random.sample(buckets[stat], len(buckets[stat])) for stat in stat_types]
+    #
+    #             for combo in zip(*slots):
+    #                 # Ensure same player + stat isn't used. Ex. (Lebron James Over 5.5 Rebounds + Lebron James Under 5.5 Rebounds)
+    #                 if len(set(leg["unique_stat"] for leg in combo)) != len(combo):
+    #                     continue
+    #
+    #                 # Ensure 2 teams.
+    #                 if use_multiple_teams and (len({leg["team"] for leg in combo}) < 2 or any(leg["team"] is None for leg in combo)):
+    #                     continue
+    #
+    #                 common_books = set.intersection(*(set(leg["book_feed"]) for leg in combo))
+    #
+    #                 if len(common_books) <= 1:
+    #                     continue
+    #
+    #                 payload_bucket = {book: {"links": [], "lines": {}, "event_data": []} for book in common_books}
+    #                 individual_odds = {book: [] for book in common_books}
+    #                 legs = []
+    #                 fair_value = []
+    #
+    #                 game_key = f"{'__'.join(sorted(str(leg['id']) for leg in combo))}___{unique_name}"
+    #
+    #                 if game_key in seen_keys or any(leg_uses[f"{leg['id']}__{unique_name}"]["count"] >= max_uses for leg in combo):
+    #                     continue
+    #
+    #                 seen_keys.add(game_key)
+    #
+    #                 for leg in combo:
+    #                     leg_uses[f"{leg['id']}__{unique_name}"]["count"] += 1
+    #
+    #                 for index, slip in enumerate(combo, start=1):
+    #                     legs.append({
+    #                         "leg_number": index,
+    #                         "market_type": slip.get("stat"),
+    #                         "line": slip.get("line"),
+    #                         "direction": slip.get("side"),
+    #                         "team": slip.get("team"),
+    #                         "player_name": slip.get("player"),
+    #                         "normalized": slip.get("normalized_name"),
+    #                         "unique_stat": slip.get("unique_stat"),
+    #                         "id": slip["id"],
+    #                         "event": slip.get("event"),
+    #                         "date": slip.get("date"),
+    #                         "league": slip.get("league"),
+    #                         "nvig": slip.get("nvig"),
+    #                         "odds": {
+    #                             book_name: book_data.get("american_odds")
+    #                             for book_name, book_data in slip.get("book_feed", {}).items()
+    #                         }
+    #                     })
+    #
+    #                     fair_value.append(slip.get("nvig"))
+    #
+    #                     for book in common_books:
+    #                         data = slip["book_feed"][book]
+    #                         payload_bucket[book]["links"].append(data["bet_link"])
+    #                         payload_bucket[book]["lines"].update({data["bet_link"]: slip.get("line")})
+    #                         payload_bucket[book]["event_data"].append({
+    #                             "market_name": slip.get("stat"),
+    #                             "date": combo[0]["date"],
+    #                             "event_name": combo[0]["event"],
+    #                             "line": slip.get("line"),
+    #                             "player": slip.get("player"),
+    #                             "side": slip.get("side"),
+    #                             # "selection_name": f"{slip.get('player', '')} {slip.get('side', '')} {slip.get('line', '')}".strip(),
+    #                             "prop_key": slip.get("prop_key"),
+    #                             "event_key": slip.get("event_key"),
+    #                         })
+    #                         individual_odds[book].append(data["american_odds"])
+    #
+    #                 slips.append({
+    #                     "game_key": game_key,
+    #                     "event": combo[0]["event"],
+    #                     "date": combo[0]["date"],
+    #                     "league": combo[0]["league"],
+    #                     "discord_sent": False,
+    #                     "legs": legs,
+    #                     "unique_filter_name": unique_name,
+    #                     "individual_odds": individual_odds,
+    #                     "fair_value": fair_value,
+    #                     "payload": payload_bucket,
+    #                 })
+    #
+    #     if leg_uses:
+    #         self.previous_leg_uses.bulk_insert_individual(
+    #             data_to_store=leg_uses,
+    #             pipeline=self.previous_leg_uses.redis_client.pipeline()
+    #         )
+    #
+    #     return slips
 
     def _store_history(self, endpoint_data: dict):
         """Stores the SGP results to the database for history tracking"""
@@ -401,6 +586,50 @@ class AutoSGP(APICaller):
                 smt_extra = insert(SGPExtraInfo).on_conflict_do_nothing(constraint="extra_unique_time_game_key")
                 session.execute(smt_extra, extra_info)
 
+    def _add_random_filters(self, auto_filters: list):
+        database_stat_types = defaultdict(set)
+        for auto_filter in auto_filters:
+            database_stat_types[auto_filter.get("league_name")].update(auto_filter.get("stat_types"))
+
+        bettorodds_data = self.bettorodds_redis_instance.get_data(key_name="bettorodds_odds") or {}
+        bettorodds_stat_types = defaultdict(set)
+
+        for league, league_data in bettorodds_data.items():
+            for props in league_data.values():
+                for prop in props:
+                    bettorodds_stat_types[league].add(prop.get("stat"))
+
+        new_stat_types = defaultdict(set)
+
+        for league, stat_types in bettorodds_stat_types.items():
+            found = database_stat_types.get(league)
+            if found:
+                result = stat_types.symmetric_difference(found)
+                new_stat_types[league].update(result)
+            else:
+                new_stat_types[league].update(stat_types)
+
+        new_stat_types = dict(new_stat_types)
+
+        for league, stat in new_stat_types.items():
+            random_leg_amount = random.randint(2, 6)
+            combos = [pair for pair in batched(stat, random_leg_amount) if len(pair) == random_leg_amount]
+
+            for combo in combos:
+                unique_name = f"{league}_{'_'.join(combo).replace(' ', '_')}".lower()
+
+                auto_filters.append({
+                    "unique_name": unique_name,
+                    "league_name": league,
+                    "stat_types": [*combo],
+                    "multiple_teams": bool(random.getrandbits(1)), # Random True or False
+                    "discord_min_ev": 15.0,
+                    "max_uses": random.randint(1, 3),
+                    "is_active": True,
+                })
+
+        return auto_filters
+
 
 
     async def runner(self):
@@ -412,6 +641,8 @@ class AutoSGP(APICaller):
 
         if not auto_filters:
             raise Exception("No active AutoSGP configs found.")
+
+        auto_filters = self._add_random_filters(auto_filters)
 
         for filters in auto_filters:
             logger.info(f"-> Running {filters.get('unique_name')} [{' | '.join(filters.get('stat_types'))}]")
@@ -427,8 +658,9 @@ class AutoSGP(APICaller):
                 logger.warning(f"No Filter Data found for {filter_league}")
                 continue
 
-            raw_previous_leg_keys = self.previously_stored_redis_instance.get_all_key_values()
-            raw_previous_game_keys = self.previously_sent_discord_redis.get_all_key_values()
+            raw_previous_leg_keys = await self.previously_stored_redis_instance.get_all_key_values()
+            raw_previous_game_keys = await self.previously_sent_discord_redis.get_all_key_values()
+            raw_previous_leg_uses = self.previous_leg_uses.get_all_key_values()
 
             previous_leg_keys = set(
                 previous.get("leg_id")
@@ -440,8 +672,14 @@ class AutoSGP(APICaller):
                 for previous in raw_previous_game_keys
             )
 
+            previous_leg_uses = {
+                previous.get("leg_id"): previous.get("count", 0)
+                for previous in raw_previous_leg_uses
+            }
+
             slips = self.create_slips(filtered_bettorodds_data=filtered_data, previous_leg_keys=previous_leg_keys,
-                                      unique_name=unique_name, league=filter_league, filter_dict=filters)
+                                      previous_leg_uses=previous_leg_uses, unique_name=unique_name, league=filter_league,
+                                      filter_dict=filters)
 
             if not slips:
                 logger.warning(f"No slips created for {unique_name}")
@@ -467,7 +705,7 @@ class AutoSGP(APICaller):
 
                     if all([
                         ev_count == 1,
-                        len(slip.get("median_met_books", 0)) >= 2,
+                        len(slip.get("median_met_books", 0)) >= 3,
                         game_key,
                         game_key not in previous_game_keys
                     ]):
@@ -503,19 +741,19 @@ class AutoSGP(APICaller):
                     })
 
             if batch_legs:
-                self.previously_stored_redis_instance.bulk_insert_individual(
+                await self.previously_stored_redis_instance.bulk_insert_individual(
                     data_to_store=batch_legs,
                     pipeline=self.previously_stored_redis_instance.redis_client.pipeline()
                 )
 
             if batch_discord:
-                self.previously_sent_discord_redis.bulk_insert_individual(
+                await self.previously_sent_discord_redis.bulk_insert_individual(
                     data_to_store=batch_discord,
                     pipeline=self.previously_sent_discord_redis.redis_client.pipeline()
                 )
 
             if endpoint:
-                self.endpoint_redis.bulk_insert_individual(
+                await self.endpoint_redis.bulk_insert_individual(
                     data_to_store=endpoint,
                     pipeline=self.endpoint_redis.redis_client.pipeline()
                 )

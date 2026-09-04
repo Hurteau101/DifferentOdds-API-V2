@@ -8,7 +8,7 @@ def store_api_keys():
     with session() as db_session:
         api_keys = APIKeys.get_api_keys(db_session)
 
-    redis_instance = RedisSyncManager(database=7)
+    redis_instance = RedisSyncManager(database=10)
 
     redis_instance.store_data(
         key_name="api_keys",

@@ -324,12 +324,12 @@ SGP_PROVIDERS = [
             "select_id": r'selectionIds=([0-9a-fA-F-]+)',
         },
         method="POST",
-        is_active=True,
+        is_active=False,
         class_name="CaesarsSGP",
         file_name="caesar_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            job_active=True,
+            job_active=False,
             requires_auth=True,
             mapper_redis_key="caesar_mapped_ids",
             base_file_path=SGPProvider.base_file_path,
@@ -343,7 +343,7 @@ SGP_PROVIDERS = [
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            job_active=True,
+            job_active=False,
             auth_redis_key="caesar_auth",
             base_file_path=SGPProvider.base_file_path,
             class_name="CaesarAuth",
@@ -630,7 +630,7 @@ SGP_PROVIDERS = [
     ),
     SGPProvider(
         title="Prop Builder",
-        name="prop builder",
+        name="prop builder*",
         url={
             "sgp_url": "https://bv2-us.digitalsportstech.com/api/v2/odds/acca",
         },

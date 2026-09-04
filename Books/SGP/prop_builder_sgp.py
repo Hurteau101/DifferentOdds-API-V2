@@ -10,7 +10,7 @@ from Books.SGP.Mapping.prop_builder_mapper import PropBuilderMapper
 
 class PropBuilderSGP(SGPBookBase):
     def __init__(self, **kwargs):
-        super().__init__(category="SGP", book_name="prop builder", **kwargs)
+        super().__init__(category="SGP", book_name="prop builder*", **kwargs)
 
     def _rebuild_additional_data(self, additional_data: list):
         """Rebuilds the additional data"""
@@ -120,28 +120,29 @@ if __name__ == "__main__":
                     "https://{state}.betway.com/sports/event/16902972",
                 ],
                 "event_data": [
-                      {
-                        "market_name": "Total Runs",
-                        "date": "2026-08-30T02:05:00Z",
-                        "event_name": "Oakland Athletics vs Baltimore Orioles",
-                        "line": "11.5",
-                        "player": "",
+                    {
+                        "market_name": "Player Earned Runs",
+                        "date": "2026-09-04T23:05:00Z",
+                        "event_name": "Baltimore Orioles vs Boston Red Sox",
+                        "line": "2.5",
+                        "player": "Shane Baz",
                         "side": "Under",
-                        # "prop_key": "11.5_total_runs_under",
-                        # "event_key": "baltimore_orioles_vs_oakland_athletics_2026-08-30t02:05:00z"
-                      },
-                      {
-                        "market_name": "Moneyline",
-                        "date": "2026-08-30T02:05:00Z",
-                        "event_name": "Oakland Athletics vs Baltimore Orioles",
+                        "prop_key": "2.5_player_earned_runs_shane_baz_under",
+                        "event_key": "baltimore_orioles_vs_boston_red_sox_2026-09-04t23:05:00z"
+                    },
+                    {
+                        "market_name": "Run Line",
+                        "date": "2026-09-04T23:05:00Z",
+                        "event_name": "Baltimore Orioles vs Boston Red Sox",
                         "line": "",
                         "player": "",
-                        "side": "Baltimore Orioles",
-                        # "prop_key": "baltimore_orioles_moneyline",
-                        # "event_key": "baltimore_orioles_vs_oakland_athletics_2026-08-30t02:05:00z"
-                      }
-                    ]
+                        "side": "BOS +2.5",
+                        "prop_key": "8.5_total_runs_under",
+                        "event_key": "baltimore_orioles_vs_boston_red_sox_2026-09-04t23:05:00z"
+                    }
+                ]
             }
+
 
             book = PropBuilderSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)

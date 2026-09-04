@@ -30,7 +30,7 @@ class AutoSGPConfigs(Base):
     stat_types: Mapped[List[str]] = mapped_column(ARRAY(String))
     multiple_teams: Mapped[bool] = mapped_column(default=False)
     discord_min_ev: Mapped[float] = mapped_column()
-    endpoint_min_ev: Mapped[float] = mapped_column()
+    max_uses: Mapped[int] = mapped_column(default=1)
     is_active: Mapped[bool] = mapped_column(default=True)
 
     @classmethod

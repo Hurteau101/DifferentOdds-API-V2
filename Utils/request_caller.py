@@ -139,11 +139,11 @@ class APICaller:
         if not valid_proxies:
             raise ValueError(f"No valid proxy formats in proxy list. Format should be USERNAME:PASSWORD@HOST:PORT")
 
-        shuffle(shuffled_proxies)
+        shuffle(valid_proxies)
 
         errors = []
 
-        for proxy in shuffled_proxies:
+        for proxy in valid_proxies:
             # Create a new session for each proxy.
             async with CurlAsyncSession(impersonate=proxy_impersonate) as proxy_session:
                 result = await self._caller(

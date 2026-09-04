@@ -6,9 +6,8 @@ import os
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class FliffSGP(SGPBookBase):
-    def __init__(self, mapped_ids_redis_instance, **kwargs):
-        super().__init__(category="SGP", book_name="fliff",
-                         mapped_ids_redis_instance=mapped_ids_redis_instance, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(category="SGP", book_name="fliff", **kwargs)
 
 
     def _rebuild_additional_data(self, additional_data: list) -> list | None:

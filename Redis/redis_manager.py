@@ -315,7 +315,7 @@ class RedisStaticMappingService:
     _ttl = 1200  # 20 minutes
 
     def __init__(self):
-        self.redis = RedisSyncManager(database=7)
+        self.redis = RedisSyncManager(database=9)
 
     def get(self):
         now = time.time()

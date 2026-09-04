@@ -6,7 +6,7 @@ from Database.Sportsbooks.sportsbook_db import VerifiedLeague, VerifiedTeams, Ve
 
 
 def store_static_mapping():
-    redis_instance = RedisSyncManager(database=7)
+    redis_instance = RedisSyncManager(database=9)
     engine = sync_engine()
     Session = sessionmaker(bind=engine)
 

@@ -46,13 +46,13 @@ class CaesarsSGP(SGPBookBase):
 
         return float(mapped_ids.get(selection, {}).get("line")) if mapped_ids.get(selection, {}).get("line") is not None else None
 
-    def _create_actual_mapping(self, line_data: dict, link_data: dict, mapped_ids: dict) -> dict:
+    def _create_actual_mapping(self, link_data: dict, mapped_ids: dict) -> dict:
         """Create the actual mapping for a single link data entry."""
-        line = self._add_lines(
-            line_data=line_data,
-            link_data=link_data,
-            mapped_ids=mapped_ids
-        )
+        # line = self._add_lines(
+        #     line_data=line_data,
+        #     link_data=link_data,
+        #     mapped_ids=mapped_ids
+        # )
 
         mapped_entry = {
             "selectionId": mapped_ids.get(link_data.get("select_id"), {}).get("selection_id"),
@@ -61,8 +61,8 @@ class CaesarsSGP(SGPBookBase):
             "stakePerLine": 0,
         }
 
-        if line is not None:
-            mapped_entry["line"] = line
+        # if line is not None:
+        #     mapped_entry["line"] = line
 
         return mapped_entry
 
@@ -74,7 +74,7 @@ class CaesarsSGP(SGPBookBase):
         if not waf_token:
             return None
 
-        line_data = self._lines_extraction(self.lines if self.lines else {})
+        # line_data = self._lines_extraction(self.lines if self.lines else {})
 
         mapped_ids = await self.mapper_redis_manager.get_data(key_name=self.mapper_id_name)
 
@@ -83,7 +83,6 @@ class CaesarsSGP(SGPBookBase):
 
         mapped_data = [
             self._create_actual_mapping(
-                line_data=line_data,
                 link_data=data,
                 mapped_ids=mapped_ids
             )

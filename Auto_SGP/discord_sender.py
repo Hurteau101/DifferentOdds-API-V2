@@ -116,7 +116,7 @@ class DiscordSGP:
         )
 
         odds = [
-            f"- {book_name.title()}: {self.format_american(book_data.get('odds'))} | {self.format_ev(book_data.get('ev'))} EV"
+            f"- {book_name.title().replace("*", '')}: {self.format_american(book_data.get('odds'))} | {self.format_ev(book_data.get('ev'))} EV"
             for book_name, book_data in slip.get("weighted_sgp_odds").items()
         ]
 
