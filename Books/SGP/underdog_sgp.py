@@ -1,6 +1,6 @@
 from collections import Counter
-from Bases.mapper_base import MapperBase
-from Bases.sgp_base import SGPBookBase
+from Books.Bases.mapper_base import MapperBase
+from Books.Bases.sgp_base import SGPBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class UnderdogSGP(SGPBookBase):

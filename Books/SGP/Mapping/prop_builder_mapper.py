@@ -198,9 +198,11 @@ class PropBuilderMapper(MapperBase):
 
                 has_game_line = game_line is not None and str(game_line) != "None"
 
-                if has_game_line:
+                if has_game_line and game_type == "2":
                     # Their spread lines are backwards.
-                    game_line = str(-float(game_line))
+                    line = -float(game_line)
+                    game_line = str(line)
+
 
                 return [team, game_line] if has_game_line is not None else [team]
 

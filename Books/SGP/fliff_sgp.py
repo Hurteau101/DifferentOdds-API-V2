@@ -1,5 +1,5 @@
 import asyncio
-from Bases.mapper_base import MapperBase
+from Books.Bases.mapper_base import MapperBase
 from Books.Bases.sgp_base import SGPBookBase
 from Redis.redis_manager import RedisAsyncManager
 import os

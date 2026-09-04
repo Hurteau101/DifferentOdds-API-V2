@@ -2,9 +2,8 @@ import asyncio
 import re
 from typing import Counter
 from curl_cffi import AsyncSession as CurlAsyncSession
-from Bases.mapper_base import MapperBase
+from Books.Bases.mapper_base import MapperBase
 from Books.Bases.sgp_base import SGPBookBase
-from Redis.redis_manager import RedisAsyncManager
 from Utils.helpers import decimal_to_american
 
 class BetwaySGP(SGPBookBase):
