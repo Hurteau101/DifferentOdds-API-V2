@@ -59,11 +59,10 @@ class DiscordSGP:
         if odds_val is None:
             return "N/A"
         try:
-            val = float(odds_val)
-            val = int(val) if val.is_integer() else val
-            return f"+{val}" if val > 0 else str(val)
-        except Exception:
+            val = int(round(float(odds_val)))
+        except (TypeError, ValueError):
             return str(odds_val)
+        return f"+{val}" if val > 0 else str(val)
 
     @staticmethod
     def format_ev(ev):
