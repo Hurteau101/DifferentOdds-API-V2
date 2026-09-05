@@ -3,14 +3,12 @@ import json
 import re
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-import aiohttp
 from Books.Bases.pph_base import PPHBookBase
-from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import TeamData, GameData, OddsFormat, get_static_mapping
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.request_caller import SportbookRequestType
 from itertools import chain
-
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 ## GAME LINES - Moneyline, Total, Spreads
 class Ace(PPHBookBase):
@@ -30,20 +28,12 @@ class Ace(PPHBookBase):
 
 
     def __init__(self):
-        super().__init__(book_name="ace", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="ace")
 
         # Contains the proper team names, as game lines section is the only section
         # that will have the proper team names, so we want to store here, so they can be referenced for the other sections,
         # that don't have the proper team names.
         self.league_dict = {}
-
-        self.stat_mapping = get_static_mapping().get("stats", {})
-
-
-    async def load_cookies(self) -> dict | None:
-        """Extracts the cookies from Redis."""
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("ace_cookies")
 
     def build_league_ids(self, raw_leagues: dict, exclude_player_props: bool = True, league_filter: bool = True,
                          filter_markets: bool = True, excluded_markets: bool = True) -> dict:
@@ -85,12 +75,11 @@ class Ace(PPHBookBase):
 
         return league_ids
 
-    async def view_league_markets(self, raw_leagues: dict, session: aiohttp.ClientSession):
+    async def view_league_markets(self, raw_leagues: dict, session: CurlAsyncSession):
         """Builds a JSON file, with the market name, and the league"""
         leagues = self.build_league_ids(raw_leagues, league_filter=True, exclude_player_props=True, filter_markets=True)
         league_ids = ",".join(str(league_id) for league_id in leagues.keys())
         markets = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("market_url"),
             method="GET",
@@ -127,11 +116,12 @@ class Ace(PPHBookBase):
         return utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-    def yes_no_type(self, game_data: dict, market_name: str, **kwargs) -> list:
+    def yes_no_type(self, game_data: dict, market_name: str, league: str, **kwargs) -> list:
         """
         Builds any yes/no type markets. The home team and away team indicate if its the yes/no side.
         :param game_data: The game data containing the odds information.
         :param market_name: The market name.
+        :param league: The name of the league.
         """
         odds = []
 
@@ -147,6 +137,7 @@ class Ace(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                league=league,
                 market=mapped_market_name,
                 bet_team=None,
                 line=0.5,
@@ -158,7 +149,7 @@ class Ace(PPHBookBase):
         return odds
 
 
-    def total_type(self, game_data: dict, market_name: str, **kwargs) -> list:
+    def total_type(self, game_data: dict, market_name: str, league: str, **kwargs) -> list:
         """
         Builds total type markets.
         :keyword games: The outer game data container that contains the team names, as the game dict doesn't contain this information.
@@ -192,6 +183,7 @@ class Ace(PPHBookBase):
                 team_name = None
 
             odds.append(SportsbookStats(
+                league=league,
                 market=mapped_market_name,
                 bet_team=team_name,
                 line=abs(float(total_line)),
@@ -251,16 +243,16 @@ class Ace(PPHBookBase):
             if player.lower() == player_name.lower().strip()
         ), player_name.lower().strip())
 
-        team_data = TeamData(
-            team_a=found_scheduled_game_data.get("team"),
-            team_b=found_scheduled_game_data.get("opponent")
-        )
+
+        team_a = found_scheduled_game_data.get("team")
+        team_b = found_scheduled_game_data.get("opponent")
 
         game_data = GameData(
             start_date=start_date,
             league=league,
-            team_data=team_data,
-            game_key=self.generate_key([team_data.team_a, team_data.team_b, start_date]),
+            team_a=team_a,
+            team_b=team_b,
+            game_key=self.generate_key([team_a, team_b, start_date]),
             odds=[]
         )
 
@@ -272,7 +264,7 @@ class Ace(PPHBookBase):
 
             game_data.odds.extend(self.total_type(games=games, game_data=main_lines, market_name=market_name.lower().strip(),
                             name_mapper_func=self.name_mapper, base_market_mapper=base_market_mapper,
-                            passed_in_team_name=list(found_team.keys())[0], player_name=normalized_player_name))
+                            passed_in_team_name=list(found_team.keys())[0], player_name=normalized_player_name, league=league))
 
 
         return game_data
@@ -299,25 +291,25 @@ class Ace(PPHBookBase):
                 "away": games.get("vtm")
             }
 
+        team_a=self.league_dict.get(group_id, {}).get("home") if group_id else games.get("htm")
+        team_b=self.league_dict.get(group_id, {}).get("away") if group_id else games.get("vtm")
 
-        team_data = TeamData(
-            team_a=self.league_dict.get(group_id, {}).get("home") if group_id else games.get("htm"),
-            team_b=self.league_dict.get(group_id, {}).get("away") if group_id else games.get("vtm")
-        )
+        game_key = self.generate_key([team_a, team_b, start_date])
 
-        game_key = self.generate_key([team_data.team_a, team_data.team_b, start_date])
+        team_dict = {team_a: team_a, team_b: team_b}
 
         game_data = GameData(
             start_date=start_date,
             league=league,
-            team_data=team_data,
+            team_a=team_a,
+            team_b=team_b,
+            game_key=game_key,
             odds=[],
-            game_key=game_key
         )
 
         stopwords = [
-            team_data.team_a.lower() if team_data.team_a else "",
-            team_data.team_b.lower() if team_data.team_b else "",
+            team_a.lower() if team_a else "",
+            team_b.lower() if team_b else "",
             league.lower() if league else "",
             "-",
         ] + self.STOP_WORDS
@@ -327,9 +319,7 @@ class Ace(PPHBookBase):
             if word.lower() not in stopwords
         ]
 
-        raw_modified_description = " ".join(modified_description_list).strip()
-        modified_description = self.stat_mapping.get(raw_modified_description, raw_modified_description)
-
+        modified_description = " ".join(modified_description_list).strip()
 
         special_conditions = ['yes/no']
 
@@ -354,35 +344,33 @@ class Ace(PPHBookBase):
             }
 
             if not any(condition in game_description for condition in special_conditions):
-                game_data.odds.extend(self.moneyline_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
+                game_data.odds.extend(self.moneyline_type(team_data=team_dict, game_data=main_lines, market_name=modified_description,
                                                           name_mapper_func=self.name_mapper, home_odds_name=home_odds_name, away_odds_name=away_odds_name,
-                                                          base_market_mapper=base_market_mapper))
+                                                          base_market_mapper=base_market_mapper, league=league))
 
-                game_data.odds.extend(self.spread_type(team_data=team_data, game_data=main_lines, market_name=modified_description,
+                game_data.odds.extend(self.spread_type(team_data=team_dict, game_data=main_lines, market_name=modified_description,
                                         name_mapper_func=self.name_mapper, home_spread_odds_name=home_spread_odds_name,
                                         away_spread_odds_name=away_spread_odds_name, home_spread_value_name=home_spread_value_name,
                                         away_spread_value_name=away_spread_value_name, base_market_mapper=base_market_mapper, league=league))
 
                 game_data.odds.extend(self.total_type(games=games, game_data=main_lines, market_name=modified_description,
-                                                      name_mapper_func=self.name_mapper, base_market_mapper=base_market_mapper))
+                                                      name_mapper_func=self.name_mapper, base_market_mapper=base_market_mapper, league=league))
             else:
-                game_data.odds.extend(self.yes_no_type(game_data=main_lines, market_name=modified_description, base_market_mapper=base_market_mapper))
+                game_data.odds.extend(self.yes_no_type(game_data=main_lines, market_name=modified_description, base_market_mapper=base_market_mapper, league=league))
 
 
         return game_data
 
 
-    async def run_book(self):
-        cookies = await self.load_cookies()
+    async def run_book(self) -> list | None:
+        cookies = await self.auth_redis_manager.get_data(self.auth_id_name)
         if not cookies:
-            return
+            return None
 
-        async with aiohttp.ClientSession(cookies=cookies) as session:
-            espn_redis = RedisAsyncManager(database=8)
-            espn_mapping = await espn_redis.get_data("espn_mapping")
+        async with CurlAsyncSession(impersonate=self.impersonate, cookies=cookies) as session:
+            espn_mapping = await self.espn_redis.get_data("espn_mapping") or {}
 
             raw_leagues = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("leagues_url"),
                 method="GET",
@@ -392,7 +380,6 @@ class Ace(PPHBookBase):
             leagues = self.build_league_ids(raw_leagues, exclude_player_props=False)
 
             markets = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("market_url"),
                 method="GET",
@@ -404,7 +391,12 @@ class Ace(PPHBookBase):
             )
 
             if not markets:
-                return
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No market data found"
+                )
+                return None
 
             league_list = chain.from_iterable(markets.get("result", {}).get("listLeagues", []))
 
@@ -432,7 +424,14 @@ class Ace(PPHBookBase):
 
             betvegas_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=betvegas_data)
+            if not betvegas_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
+
 
             final_mapping = {}
 
@@ -441,17 +440,17 @@ class Ace(PPHBookBase):
             # spelling when creating the event, so this causes BOS Celtivs vs TOR Raptors, until its ran through
             # map_runner where its properly mapped, but then the player mapping isn't already properly mapped, so you end
             # up with similar events that should be grouped together.
-            for mapped in mapped_data:
+            for mapped in betvegas_data:
                 self.add_to_events(final_mapping, mapped, GameData)
 
             final_data = list(final_mapping.values())
 
             await self.store_data(
-                database=self.redis_database,
                 data_to_store=final_data,
-                book_name=self.book_data.name
+                key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return final_data
 
 

@@ -1,31 +1,23 @@
 import asyncio
 import copy
 import re
-import aiohttp
-from Books.Bases.sgp_book_base import SGPBookBase
-from Monitoring.monitoring import create_sentry_message
-from Utils.request_caller import SportbookRequestType
-
-## If it stops fetching the SGP Odds - Look into proxying.
+from Books.Bases.sgp_base import SGPBookBase
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class ThescoreSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="thescore", sgp_data=sgp_data, **kwargs)
+        super().__init__(category="SGP", book_name="thescore", sgp_data=sgp_data, **kwargs)
 
     # Don't reuse session.
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session=None):
         link_data = self._custom_link_extract(self.links)
 
         if not link_data:
             return None
 
-        cookie_jar = aiohttp.CookieJar(unsafe=True)
-
-        async with aiohttp.ClientSession(cookie_jar=cookie_jar) as local_session:
-            await local_session.get("https://sportsbook.ca-default.thescore.bet/")
-
-            token = await self._get_anonymous_token(local_session)
+        async with CurlAsyncSession(impersonate="chrome") as session:
+            data = await session.get("https://sportsbook.ca-default.thescore.bet/")
+            token = await self._get_anonymous_token(session)
 
             if not token:
                 return None
@@ -36,15 +28,14 @@ class ThescoreSGP(SGPBookBase):
 
             length_of_links = len(link_data)
 
-            market_selection = await self._load_bet_slip(local_session, link_data, auth_header, length_of_links)
+            market_selection = await self._load_bet_slip(session, link_data, auth_header, length_of_links)
 
             if not market_selection:
                 return None
 
-            return await self._get_sgp_odds(local_session, auth_header, market_selection, length_of_links)
+            return await self._get_sgp_odds(session, auth_header, market_selection, length_of_links)
 
-
-    async def _get_sgp_odds(self, session: aiohttp.ClientSession, auth_header: dict, market_selection:dict,
+    async def _get_sgp_odds(self, session: CurlAsyncSession, auth_header: dict, market_selection:dict,
                             length_of_links: int) -> dict | None:
         payload = {
             "operationName": "BetslipAddMarketSelection",
@@ -70,12 +61,11 @@ class ThescoreSGP(SGPBookBase):
         }
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("sgp_url"),
             method="POST",
             headers={**self.book_data.headers, **auth_header},
-            payload=payload
+            json=payload
         )
 
 
@@ -95,7 +85,7 @@ class ThescoreSGP(SGPBookBase):
 
         return ThescoreSGP.return_odds(american_odds=odds, decimal_odds=None) if odds else None
 
-    async def _load_bet_slip(self, session:  aiohttp.ClientSession, link_data: list, auth_header: dict,
+    async def _load_bet_slip(self, session: CurlAsyncSession, link_data: list, auth_header: dict,
                              length_of_links: int) -> dict | None:
         """
         Add each bet to the betslip, since theScore uses mutable state. On the last bet, store the denominator,
@@ -137,12 +127,11 @@ class ThescoreSGP(SGPBookBase):
             payload["variables"]["input"] = input_data
 
             api_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("draftbet_url"),
                 method="POST",
                 headers={**self.book_data.headers, **auth_header},
-                payload=payload
+                json=payload
             )
 
             if not api_data:
@@ -159,7 +148,7 @@ class ThescoreSGP(SGPBookBase):
 
         return None
 
-    async def _get_anonymous_token(self, session: aiohttp.ClientSession) -> str | None:
+    async def _get_anonymous_token(self, session: CurlAsyncSession) -> str | None:
         headers = {
             "apollographql-client-version": "25.23.2",
             'X-APOLLO-OPERATION-NAME': 'Startup',
@@ -168,8 +157,8 @@ class ThescoreSGP(SGPBookBase):
         }
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
+            default_headers=False,
             url=self.book_data.url.get("anonymous_token_url"),
             method="GET",
             headers=headers,
@@ -179,14 +168,7 @@ class ThescoreSGP(SGPBookBase):
             anonymous_token = api_data.get("data", {}).get("startup", {}).get("anonymousToken")
             return f"Bearer {anonymous_token}"
 
-        else:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="auth_failure",
-                message="Couldn't extract anonymous token",
-                level="error"
-            )
-            return None
+        return None
 
 
     def _custom_link_extract(self, link_list: list) -> list | None:
@@ -216,9 +198,15 @@ class ThescoreSGP(SGPBookBase):
 
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'thescore', 'links': ['https://sportsbook.thescore.bet/sport/basketball/organization/united-states/competition/nba/event/a0e973a2-833c-4ac8-9922-44e255916e27/section/player_props?market_selection_id[0]=MarketSelection:62fffb0a-1200-416e-bfd2-63e04c35e3e0&odds_numerator[0]=13&odds_denominator[0]=8', "https://sportsbook.thescore.bet/sport/basketball/organization/united-states/competition/nba/event/a0e973a2-833c-4ac8-9922-44e255916e27/section/player_props?market_selection_id[0]=MarketSelection:de13e23a-e0a2-4957-a961-113fa71fbd9b&odds_numerator[0]=43&odds_denominator[0]=23"]}
+    async def main():
+        async with CurlAsyncSession(impersonate="safari15_5") as session:
+            sgp_data = {'book_name': 'thescore', 'links': [
+                "https://sportsbook.thescore.bet/sport/baseball/organization/united-states/competition/mlb/event/9295c531-1a1c-4796-86b9-02cf4ca697ae/section/player_props?market_selection_id[0]=MarketSelection:c8ba616c-0957-40b6-baf8-f4b3b4777c5a&odds_numerator[0]=11&odds_denominator[0]=5",
+                "https://sportsbook.thescore.bet/sport/baseball/organization/united-states/competition/mlb/event/9295c531-1a1c-4796-86b9-02cf4ca697ae/section/player_props?market_selection_id[0]=MarketSelection:78c6afee-419a-4e99-9b7f-a2a0a86c7277&odds_numerator[0]=11&odds_denominator[0]=5"
+            ]}
 
-    thescore = ThescoreSGP(sgp_data=sgp_data)
+            book = ThescoreSGP(sgp_data=sgp_data)
+            data = await book.run_book(session=session)
+            print(data)
 
-    data = asyncio.run(thescore.run_book())
-    print(data)
+    asyncio.run(main())

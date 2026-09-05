@@ -1,17 +1,14 @@
 import asyncio
 import re
-import aiohttp
-from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
+from Settings.Models.base_models import GameData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Dabble(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="dabble", request_type=SportbookRequestType.SPOOF)
+        super().__init__(book_name="dabble")
 
     def _extract_teams(self, game_data: dict, player_data: dict, start_time: str) -> dict | None:
         def team_splitter(team_name):
@@ -82,10 +79,8 @@ class Dabble(DFSBookBase):
                     league=league,
                     game_key=team_data.get("team_key"),
                     start_date=start_date,
-                    team_data=TeamData(
-                        team_a=team_data.get("team_a"),
-                        team_b=team_data.get("team_b"),
-                    ),
+                    team_a=team_data.get("team_a"),
+                    team_b=team_data.get("team_b"),
                     odds=[],
                     solo_game=False if all([team_data.get("team_a"), team_data.get("team_b")]) or is_future else True
                 )
@@ -93,6 +88,7 @@ class Dabble(DFSBookBase):
             stat_type = market_names.get(player.get("marketId"), "").lower()
 
             stat_obj = DFSStats(
+                league=league,
                 player_name=player_name,
                 player_team=team_data.get("player_team"),
                 stat_type=stat_type,
@@ -118,26 +114,22 @@ class Dabble(DFSBookBase):
 
         return list(merged_stats.values())
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate="chrome") as session:
-            proxy_manager = ProxyManager(self.api_caller)
-
-            league_data = await proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+            league_data = await self.api_caller(
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
-                headers=self.book_data.headers
+                headers=self.book_data.headers,
+                use_proxy=True
             )
 
             if not league_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league data returned from main_url",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API league data found"
                 )
-                return
+                return None
 
             league_ids = [
                 league.get("id")
@@ -145,9 +137,8 @@ class Dabble(DFSBookBase):
             ]
 
             tasks = [
-                proxy_manager.proxy_caller(
-                    book_name=self.book_data.name,
-                    session=session,
+                self.api_caller(
+                    use_proxy=True,
                     url=self.book_data.url.get("alternate_url").format(league_id=league_id),
                     method=self.book_data.method,
                     headers=self.book_data.headers
@@ -158,13 +149,12 @@ class Dabble(DFSBookBase):
             results = await asyncio.gather(*tasks)
 
             if not results:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league data returned",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API league IDs found"
                 )
-                return
+                return None
 
             game_ids = set(
                 game.get("id")
@@ -174,12 +164,11 @@ class Dabble(DFSBookBase):
             )
 
             tasks = [
-                proxy_manager.proxy_caller(
-                    book_name=self.book_data.name,
-                    session=session,
+                self.api_caller(
                     url=self.book_data.url.get("alternate_url_2").format(game_id=game_id),
                     method=self.book_data.method,
-                    headers=self.book_data.headers
+                    headers=self.book_data.headers,
+                    use_proxy=True
                 )
                 for game_id in game_ids
             ]
@@ -187,13 +176,12 @@ class Dabble(DFSBookBase):
             results = await asyncio.gather(*tasks)
 
             if not results:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No game ids returned",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API game data found"
                 )
-                return
+                return None
 
             # Flatten and filter out None results
             game_data_list = [
@@ -210,15 +198,21 @@ class Dabble(DFSBookBase):
 
             dabble_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=dabble_data)
+            if not dabble_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                key_name=self.book_data.name,
+                data_to_store=dabble_data,
             )
 
-            return mapped_data
+            await self.flush_unmapped()
+            return dabble_data
 
 if __name__ == "__main__":
     dabble = Dabble()

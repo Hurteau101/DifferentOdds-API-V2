@@ -2,7 +2,6 @@ import asyncio
 import os
 import time
 import redis
-from asgiref.sync import async_to_sync
 from celery import shared_task
 from Auto_SGP.runner import AutoSGP
 
@@ -25,6 +24,7 @@ def lock_is_stale():
         return False
     except ProcessLookupError:
         return True
+
 @shared_task(name="SGP_Celery.sgp_worker.run_autosgp")
 def run_autosgp():
     if r.exists(LOCK_KEY) and lock_is_stale():
@@ -39,7 +39,6 @@ def run_autosgp():
     start_time = time.perf_counter()
 
     try:
-        # async_to_sync(run_sgp)()
         asyncio.run(run_sgp())
         elapsed_time = time.perf_counter() - start_time
         print(f"<><><> Full Parlay Process Took: {elapsed_time:.2f} seconds <><><>")

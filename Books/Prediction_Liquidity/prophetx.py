@@ -1,19 +1,16 @@
 import asyncio
-import json
 import os
 import re
 from itertools import batched
-import aiohttp
-from Books.Bases.prediction_liquidity_base import PredictionLiquidityBase
-from Monitoring.monitoring import create_sentry_message
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Books.Bases.prediction_base import PredictionBookBase
+from LoggingHelper.logging_helper import ErrorTypes, insert_log
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.prediction_liquidity_models import PredictionLiquidityStats, LiquidityData
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
-
-class Prophetx(PredictionLiquidityBase):
+class Prophetx(PredictionBookBase):
     def __init__(self):
-        super().__init__(book_name="prophetx", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="prophetx")
 
 
     def extract_event_data(self, raw_event_data: dict) -> dict:
@@ -55,12 +52,10 @@ class Prophetx(PredictionLiquidityBase):
             league=league,
             start_date=event_information.get("start_date"),
             game_key=event_information.get("event_name"),
-            team_data=TeamData(
-                team_a=event_information.get("teams", {}).get("home", {}).get("name"),
-                team_b=event_information.get("teams", {}).get("away", {}).get("name"),
-                team_a_abbreviation=event_information.get("teams", {}).get("home", {}).get("abbreviation"),
-                team_b_abbreviation=event_information.get("teams", {}).get("away", {}).get("abbreviation"),
-            ),
+            team_a=event_information.get("teams", {}).get("home", {}).get("name"),
+            team_b=event_information.get("teams", {}).get("away", {}).get("name"),
+            team_a_abbreviation=event_information.get("teams", {}).get("home", {}).get("abbreviation"),
+            team_b_abbreviation=event_information.get("teams", {}).get("away", {}).get("abbreviation"),
             odds=[],
         )
         for market in market_data:
@@ -113,7 +108,7 @@ class Prophetx(PredictionLiquidityBase):
                 if not prediction_data["liquidity_data"]:
                     continue
 
-                stats = PredictionLiquidityStats(**prediction_data)
+                stats = PredictionLiquidityStats(**prediction_data, league=league)
                 stats.market = self.special_stat_mapper(stats.market, league)
                 game_data.odds.append(stats)
                 # game_data.odds.append(PredictionLiquidityStats(**prediction_data))
@@ -121,23 +116,15 @@ class Prophetx(PredictionLiquidityBase):
 
         return game_data
 
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         api_key = os.getenv("PROPHETX_API_KEY")
         if not api_key:
-            create_sentry_message(
-                tag_key="prophetx",
-                tag_value="api_key_failure",
-                message="No API Key found",
-                level="error"
-            )
+            raise ValueError("PROPHETX_API_KEY is not set in the environment variables.")
 
-            return
-
-        async with aiohttp.ClientSession() as session:
-            new_headers = {**self.book_data.headers, "Authorization": api_key}
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            new_headers = {"Authorization": api_key}
 
             events = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("events_url"),
                 method=self.book_data.method,
@@ -151,7 +138,6 @@ class Prophetx(PredictionLiquidityBase):
             market_data = await asyncio.gather(
                 *(
                     self.api_caller(
-                        book_name=self.book_data.name,
                         session=session,
                         url=self.book_data.url.get("markets_url"),
                         method=self.book_data.method,
@@ -177,17 +163,22 @@ class Prophetx(PredictionLiquidityBase):
                     if data:
                         game_data.append(data)
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=game_data)
+            if not game_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
+
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=game_data,
+                key_name=self.book_data.name
             )
 
-            await self.market_chunk_processor(mapped_data=mapped_data, book_name=self.book_data.name)
-
-            return mapped_data
+            await self.flush_unmapped()
+            return game_data
 
 
 

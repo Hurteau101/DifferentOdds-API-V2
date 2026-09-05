@@ -1,7 +1,22 @@
-from Settings.Providers.base_provider import BaseProvider
+from dataclasses import dataclass
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJobDict, RedisSelector, \
+    APSchedulerDetails, CeleryDetails
+
+
+@dataclass
+class SportsbooksProvider(BaseProvider):
+    base_file_path = "Books.Sportsbooks"
+    celery_details: CeleryDetails = CeleryDetails(
+        interval=45,
+        lock_timeout=180,
+        book_type="Sportsbook",
+        soft_limit=120,
+        hard_limit=160,
+    )
+
 
 SPORTSBOOKS_PROVIDERS = [
-    BaseProvider(
+    SportsbooksProvider(
         title="Bet105",
         name="bet105",
         url={
@@ -18,12 +33,38 @@ SPORTSBOOKS_PROVIDERS = [
             "markets": "https://api.kibl.io/sports/get/info/markets",
         },
         method="GET",
-        headers={
-            "Accept": "application/json",
-        },
-        is_active=True
+        is_active=True,
+        mapper_job_dict=MapperJobDict(
+            job_type=RedisSelector.MAPPER,
+            job_active=True,
+            requires_auth=True,
+            mapper_redis_key="bet105_mapper_data",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="Bet105Mapper",
+            file_name="bet105_mapping",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_bet105_mapper",
+                interval=72000,
+                name="Sportsbook Bet105 Mapper",
+            )
+        ),
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            job_active=True,
+            auth_redis_key="bet105_auth_token",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="Bet105Auth",
+            file_name="bet105_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_bet105_auth",
+                interval=72000,
+                name="Sportsbook Bet105 Auth",
+            )
+        ),
+        class_name="Bet105",
+        file_name="bet105",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="STS",
         name="sts",
         url={
@@ -32,24 +73,32 @@ SPORTSBOOKS_PROVIDERS = [
             "market_url": "https://bettheguys.com/Player/app/services/linesAJX.aspx/GetLines"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Content-Type': 'application/json; charset=utf-8',
             'X-Requested-With': 'XMLHttpRequest',
             'Origin': 'https://bettheguys.com',
             'Connection': 'keep-alive',
             'Referer': 'https://bettheguys.com/Player/main.aspx',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
             'TE': 'trailers'
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            job_active=True,
+            auth_redis_key="sts_cookies",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="STSAuth",
+            file_name="sts_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_sts_auth",
+                interval=900,
+                name="Sportsbook STS Auth",
+            )
+
+        ),
+        class_name="STS",
+        file_name="sts",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="Ace",
         name="ace",
         url={
@@ -57,14 +106,35 @@ SPORTSBOOKS_PROVIDERS = [
             "market_url": "https://backend.betvegas23.com/wager/NewScheduleHelper.aspx"
         },
         headers={
-            "User-Agent": "Mozilla/5.0",
             "Referer": "https://betvegas23.com/",
             "Origin": "https://betvegas23.com",
         },
         method="POST",
-        is_active=False
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            job_active=True,
+            auth_redis_key="ace_cookies",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="AceAuth",
+            file_name="ace_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_ace_auth",
+                interval=900,
+                name="Sportsbook Ace Auth",
+            )
+        ),
+        class_name="Ace",
+        file_name="ace",
+        celery_details=CeleryDetails(
+            interval=120,
+            lock_timeout=240,
+            book_type="Sportsbook",
+            soft_limit=120,
+            hard_limit=160,
+        ),
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="1BV",
         name="1bv",
         url={
@@ -74,20 +144,16 @@ SPORTSBOOKS_PROVIDERS = [
             "event_url": "https://everygame247.com/Actions/api/Event/GetEvent"
         },
         headers={
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Content-Type': 'application/x-www-form-urlencoded',
             'Origin': 'https://everygame247.com',
             'Referer': 'https://everygame247.com/',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="OneBv",
+        file_name="onebv",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="Metallic",
         name="metallic",
         url={
@@ -95,23 +161,29 @@ SPORTSBOOKS_PROVIDERS = [
             "market_url": "https://black34.com/player-api/api/wager/schedules/S/0"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Content-Type': 'application/json',
             'Origin': 'https://black34.com',
             'Connection': 'keep-alive',
             'Referer': 'https://black34.com/v2/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'Priority': 'u=0',
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            job_active=True,
+            auth_redis_key="metallic_token",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="MetallicAuth",
+            file_name="metallic_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_metallic_auth",
+                interval=900,
+                name="Sportsbook Metallic Auth",
+            )
+        ),
+        class_name="Metallic",
+        file_name="metallic",
     ),
-    BaseProvider(
+    SportsbooksProvider(
         title="Buckeye 2",
         name="buckeye2",
         url={
@@ -123,45 +195,69 @@ SPORTSBOOKS_PROVIDERS = [
             "point_group_url": "https://www.247bettor.com/cloud/api/Lines/getBuyPointsGroup"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            # 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
+            # 'Accept': '*/*',
+            # 'Accept-Encoding': 'gzip, deflate',
+            # 'Accept-Language': 'en-US,en;q=0.9',
+            # 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'X-Requested-With': 'XMLHttpRequest',
             # 'Origin': 'https://wwcd.me',
             'Origin': 'https://www.247bettor.com',
             'Connection': 'keep-alive',
             # 'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
             'Referer': 'https://www.247bettor.com/',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
+            # 'Sec-Fetch-Dest': 'empty',
+            # 'Sec-Fetch-Mode': 'cors',
+            # 'Sec-Fetch-Site': 'same-origin',
             'TE': 'trailers'
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            job_active=True,
+            auth_redis_key="buckeye_2_auth_token",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="Buckeye2Auth",
+            file_name="buckeye2_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_buckeye_2_auth",
+                interval=900,
+                name="Sportsbook Buckeye2 Auth",
+            )
+        ),
+        class_name="Buckeye2",
+        file_name="buckeye_2",
     ),
-    BaseProvider(
-            title="Buckeye 1",
-            name="buckeye1",
-            url={
-                "market_url": "https://playnow365.com/Qubic/PlayerGameSelection.php"
-            },
-            headers={
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Encoding': 'gzip, deflate',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Connection': 'keep-alive',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Host': 'playnow365.com',
-                'Origin': 'https://playnow365.com',
-                'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
-                'Upgrade-Insecure-Requests': '1',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0'
-            },
-            method="POST",
-            is_active=True
+    SportsbooksProvider(
+        title="Buckeye 1",
+        name="buckeye1",
+        url={
+            "market_url": "https://playnow365.com/Qubic/PlayerGameSelection.php"
+        },
+        headers={
+            'Connection': 'keep-alive',
+            'Host': 'playnow365.com',
+            'Origin': 'https://playnow365.com',
+            'Referer': 'https://playnow365.com/Qubic/StraightSportSelection.php',
+        },
+        method="POST",
+        is_active=False,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            job_active=False,
+            auth_redis_key="buckeye1_cookies",
+            base_file_path=SportsbooksProvider.base_file_path,
+            class_name="Buckeye1Auth",
+            file_name="buckeye1_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sportsbook_buckeye_1_auth",
+                interval=900,
+                name="Sportsbook Buckeye1 Auth",
+            )
+        ),
+        class_name="Buckeye1",
+        file_name="buckeye_1",
         ),
         # BaseProvider(
         #     title="Prop Builder",

@@ -1,20 +1,15 @@
 import os
 import re
 from itertools import chain
-
-import aiohttp
 import pytz
 from rapidfuzz import process, fuzz
 from datetime import datetime, timezone
 from Books.Bases.pph_base import PPHBookBase
-from External_Book_Mapping.SGP.betway_mapper import get_static_mapping
-from Settings.Models.base_models import TeamData, GameData, OddsFormat
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.proxy_manger import ProxyManager
-
-from Utils.request_caller import SportbookRequestType
 import asyncio
-import json
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class OneBv(PPHBookBase):
@@ -33,30 +28,24 @@ class OneBv(PPHBookBase):
     }
 
     def __init__(self):
-        super().__init__(book_name="1bv", request_type=SportbookRequestType.ASYNC)
-        self.proxy_manger = ProxyManager(self.api_caller)
-
-        self.stat_mapping = get_static_mapping()
+        super().__init__(book_name="1bv")
         # Contains the proper team names, as game lines section is the only section
         # that will have the proper team names, so we want to store here, so they can be referenced for the other sections,
         # that don't have the proper team names.
         self.league_dict = {}
 
 
-    async def get_app_token(self, session: aiohttp.ClientSession):
-        token_data = await self.proxy_manger.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+    async def get_app_token(self):
+        token_data = await self.api_caller(
+            use_proxy=True,
             url=self.book_data.url.get("app_token_url"),
             method=self.book_data.method,
             headers=self.book_data.headers
         )
 
-
-
         return token_data.get("AppToken", None) if isinstance(token_data, dict) else None
 
-    async def get_player_token(self, session: aiohttp.ClientSession, app_token: str):
+    async def get_player_token(self, app_token: str):
         username = os.getenv("1BV_USERNAME")
         password = os.getenv("1BV_PASSWORD")
 
@@ -68,10 +57,9 @@ class OneBv(PPHBookBase):
             'appToken': app_token,
         }
 
-        token_data = await self.proxy_manger.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+        token_data = await self.api_caller(
             url=self.book_data.url.get("player_token_url").format(username=username, password=password),
+            use_proxy=True,
             method="POST",
             headers=headers,
         )
@@ -134,7 +122,7 @@ class OneBv(PPHBookBase):
 
         return league_ids
 
-    def total_type(self, game_data: dict, market_name: str, **kwargs) -> list:
+    def total_type(self, game_data: dict, market_name: str, league: str, **kwargs) -> list:
         """
         Builds total type markets.
         :keyword games: The outer game data container that contains the team names, as the game dict doesn't contain this information.
@@ -145,9 +133,9 @@ class OneBv(PPHBookBase):
         odds = []
 
         name_mapper_func = kwargs.get("name_mapper_func")
-        team_data = kwargs.get("team_data")
-        team_a = team_data.team_a if team_data.team_a else ""
-        team_b = team_data.team_b if team_data.team_b else ""
+        team_data = kwargs.get("team_data", {})
+        team_a = team_data.get("team_a", '')
+        team_b = team_data.get("team_b", '')
 
         base_mapper = kwargs.get("base_market_mapper")
 
@@ -163,6 +151,7 @@ class OneBv(PPHBookBase):
             team_name = team_a if team_a.lower() in current_dict_name else team_b
 
             odds.append(SportsbookStats(
+                league=league,
                 market=mapped_market_name,
                 bet_team=team_name if "team totals" in market_name.lower() else None,
                 line=abs(float(total_line)),
@@ -202,13 +191,13 @@ class OneBv(PPHBookBase):
                 "away": re.sub(r'\s*.{2}#.*', '', event_data.get("VISITOR_TEAM", '')),
             }
 
-        team_data = TeamData(
-            team_a=self.league_dict.get(family_id, {}).get("home") if family_id else event_data.get("HOME_TEAM", ''),
-            team_b=self.league_dict.get(family_id, {}).get("away") if family_id else event_data.get("VISITOR_TEAM", '')
-        )
+        team_dict = {
+            "team_a":self.league_dict.get(family_id, {}).get("home") if family_id else event_data.get("HOME_TEAM", ''),
+            "team_b":self.league_dict.get(family_id, {}).get("away") if family_id else event_data.get("VISITOR_TEAM", '')
+        }
 
         # Perform fuzzy matching, if no team data can be found.
-        if not team_data.team_a or not team_data.team_b:
+        if not team_dict.get("team_a") or not team_dict.get("team_b"):
             game_description = event_data.get("GAME_DESCRIPTION", '')
             split_game = game_description.split("-")[0]
             versus_split = split_game.split(" vs ")
@@ -228,22 +217,24 @@ class OneBv(PPHBookBase):
 
             if matched:
                 teams = matched[0]
-                team_data = TeamData(
-                    team_a=teams["home"],
-                    team_b=teams["away"]
-                )
+                team_dict = {
+                    "team_a":teams["home"],
+                    "team_b":teams["away"]
+                }
 
-        if not team_data.team_a or not team_data.team_b:
+        if not team_dict.get("team_a") or not team_dict.get("team_b"):
             return None
 
 
-        game_key = self.generate_key([team_data.team_a, team_data.team_b, start_date])
+        game_key = self.generate_key([team_dict.get("team_a"), team_dict.get("team_b"), start_date])
 
+        league = found_league.get("sport_id", '')
 
         game_data = GameData(
             start_date=start_date,
-            league=found_league.get("sport_id", ''),
-            team_data=team_data,
+            league=league,
+            team_a=team_dict.get("team_a"),
+            team_b=team_dict.get("team_b"),
             odds=[],
             game_key=game_key
         )
@@ -277,39 +268,48 @@ class OneBv(PPHBookBase):
 
 
 
-        game_data.odds.extend(self.moneyline_type(team_data=team_data, game_data=event_data,
+        game_data.odds.extend(self.moneyline_type(team_data=team_dict, game_data=event_data,
                                                   market_name=market_name,
                                                   name_mapper_func=self.name_mapper,
-                                                  home_odds_name=home_odds_name, away_odds_name=away_odds_name, base_market_mapper=base_market_mapper))
+                                                  home_odds_name=home_odds_name, away_odds_name=away_odds_name, base_market_mapper=base_market_mapper, league=league))
 
-        game_data.odds.extend(self.spread_type(team_data=team_data, game_data=event_data, market_name=market_name,
+        game_data.odds.extend(self.spread_type(team_data=team_dict, game_data=event_data, market_name=market_name,
                                                name_mapper_func=self.name_mapper, home_spread_value_name=home_spread_value_name, away_spread_value_name=away_spread_value_name,
                                                home_spread_odds_name=home_spread_odds_name, away_spread_odds_name=away_spread_odds_name, base_market_mapper=base_market_mapper,
-                                               league=found_league.get("sport_id", '')))
+                                               league=league))
 
 
         game_data.odds.extend(self.total_type(game_data=event_data, market_name=market_name, name_mapper_func=self.name_mapper,
-                                              team_data=team_data, base_market_mapper=base_market_mapper))
+                                              team_data=team_dict, base_market_mapper=base_market_mapper, league=league))
 
         return game_data if game_data.odds else None
 
 
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
-            app_token: str | None = await self.get_app_token(session=session)
+    async def run_book(self) -> list | None:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            app_token: str | None = await self.get_app_token()
 
             if not app_token:
-                return
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.AUTH,
+                    error_message="No app token found"
+                )
+                return None
 
-            player_token = await self.get_player_token(session=session, app_token=app_token)
+            player_token = await self.get_player_token(app_token=app_token)
 
             if not player_token:
-                return
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.AUTH,
+                    error_message="No player token found"
+                )
+                return None
 
-            raw_league_data = await self.proxy_manger.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+            raw_league_data = await self.api_caller(
                 url=self.book_data.url.get("leagues_url"),
+                use_proxy=True,
                 method=self.book_data.method,
                 headers={
                     **self.book_data.headers,
@@ -322,9 +322,8 @@ class OneBv(PPHBookBase):
 
             tasks = await asyncio.gather(
                 *[
-                    self.proxy_manger.proxy_caller(
-                        book_name=self.book_data.name,
-                        session=session,
+                    self.api_caller(
+                        use_proxy=True,
                         url=self.book_data.url.get("event_url"),
                         method=self.book_data.method,
                         headers={
@@ -350,9 +349,18 @@ class OneBv(PPHBookBase):
             # Flatten the list of events from the tasks and convert to a list if its not.
             events = [event for task in tasks for event in (task if isinstance(task, list) else [task])]
 
+            if not events:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No market data found"
+                )
+                return None
+
             events = list(chain.from_iterable(
                 league["EVENTS"]
                 for item in events
+                if item.get("Events", {}).get("LEAGUES")
                 for league in item["Events"]["LEAGUES"]
             ))
 
@@ -369,19 +377,22 @@ class OneBv(PPHBookBase):
 
             onebv_data = list(event_data.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=onebv_data)
+            if not onebv_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
-            # print(self.extract_market_names(mapped_data))
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=onebv_data,
+                key_name=self.book_data.name
             )
 
-
-            return mapped_data
-
+            await self.flush_unmapped()
+            return onebv_data
 
 
 if __name__ == "__main__":

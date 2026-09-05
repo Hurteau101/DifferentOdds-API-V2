@@ -1,12 +1,9 @@
-from Monitoring.monitoring import init_sentry
-init_sentry()
-
 from celery import Celery
 
 celery_app = Celery(
     "sgp_celery",
-    broker="redis://localhost:6379/13",
-    backend="redis://localhost:6379/14",
+    broker="redis://localhost:6379/12",
+    backend="redis://localhost:6379/13",
 )
 
 celery_app.conf.update(

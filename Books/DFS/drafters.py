@@ -1,18 +1,14 @@
-import asyncio
 from datetime import datetime
-import aiohttp
-from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats
-from Settings.Models.base_models import GameData, TeamData
-from Utils.request_caller import SportbookRequestType
+from Settings.Models.base_models import GameData
+from curl_cffi import AsyncSession as CurlAsyncSession
 
-
-### AUTH REQUIREMENTS NOW -- NEED TO FIX ###
 
 class Drafters(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="drafters", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="drafters")
 
     def _extract_league_ids(self, league_data: dict) -> dict:
         return {
@@ -46,6 +42,7 @@ class Drafters(DFSBookBase):
 
             stats = [
                 DFSStats(
+                    league=league,
                     player_name=player_name,
                     player_team=player_team,
                     future=True if "season" in player.get("bid_stats_name").lower() else False,
@@ -64,20 +61,17 @@ class Drafters(DFSBookBase):
                     league=league,
                     game_key=team_key,
                     start_date=start_date,
-                    team_data=TeamData(
-                        team_a=team_a,
-                        team_b=team_b,
-                    ),
+                    team_a=team_a,
+                    team_b=team_b,
                     odds=stats,
                     solo_game=False if all([team_a, team_b]) else True,
                 )
 
         return list(merged_players.values())
 
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+    async def run_book(self) -> list | None:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
@@ -85,31 +79,27 @@ class Drafters(DFSBookBase):
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
                 )
-                return
+                return None
 
             league_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("alternate_url"),
                 method=self.book_data.method,
                 headers=self.book_data.headers,
-                parse_json=True
             )
 
             if not league_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league data returned",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API league data found"
                 )
-                return
+                return None
 
             league_ids = self._extract_league_ids(league_data)
 
@@ -123,12 +113,24 @@ class Drafters(DFSBookBase):
                 self.add_to_events(events, game_data, GameData)
 
             drafters_data = list(events.values())
-            mapped_data = await self.map_runner(session=session, sportsbook_data=drafters_data)
+
+            if not drafters_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=drafters_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            await self.flush_unmapped()
+            return drafters_data
+
+if __name__ == "__main__":
+    import asyncio
+    drafters = Drafters()
+    asyncio.run(drafters.run_book())

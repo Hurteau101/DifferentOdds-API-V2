@@ -1,27 +1,11 @@
 import asyncio
-import os
 import re
-
-import aiohttp
-
-from Books.Bases.sgp_book_base import SGPBookBase
-from Monitoring.monitoring import create_sentry_message
-from Redis.redis_manager import RedisAsyncManager
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
 from curl_cffi import AsyncSession as CurlAsyncSession
-
+from Books.Bases.sgp_base import SGPBookBase
 
 class CaesarsSGP(SGPBookBase):
-    PROXY_URL = os.getenv("DECODO_PROXY")
-
-    if not PROXY_URL:
-        raise ValueError("CAESAR_PROXY environment variable is not set.")
-
-    def __init__(self, sgp_data: dict, mapped_ids_redis_instance, auth_redis_instance, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="caesars",
-                         sgp_data=sgp_data, mapped_ids_redis_instance=mapped_ids_redis_instance,
-                         auth_redis_instance=auth_redis_instance, **kwargs)
+    def __init__(self, sgp_data: dict, **kwargs):
+        super().__init__(category="SGP", book_name="caesars", sgp_data=sgp_data,  **kwargs)
         self.lines = sgp_data.get("lines")
 
     def _create_payload(self, mapped_link_data: list) -> dict:
@@ -62,13 +46,13 @@ class CaesarsSGP(SGPBookBase):
 
         return float(mapped_ids.get(selection, {}).get("line")) if mapped_ids.get(selection, {}).get("line") is not None else None
 
-    def _create_actual_mapping(self, line_data: dict, link_data: dict, mapped_ids: dict) -> dict:
+    def _create_actual_mapping(self, link_data: dict, mapped_ids: dict) -> dict:
         """Create the actual mapping for a single link data entry."""
-        line = self._add_lines(
-            line_data=line_data,
-            link_data=link_data,
-            mapped_ids=mapped_ids
-        )
+        # line = self._add_lines(
+        #     line_data=line_data,
+        #     link_data=link_data,
+        #     mapped_ids=mapped_ids
+        # )
 
         mapped_entry = {
             "selectionId": mapped_ids.get(link_data.get("select_id"), {}).get("selection_id"),
@@ -77,41 +61,35 @@ class CaesarsSGP(SGPBookBase):
             "stakePerLine": 0,
         }
 
-        if line is not None:
-            mapped_entry["line"] = line
+        # if line is not None:
+        #     mapped_entry["line"] = line
 
         return mapped_entry
 
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
-        waf_token = await self.load_auth_token(key_name="caesars_waf_token")
+        waf_token = await self.auth_redis_manager.get_data(self.auth_id_name)
 
         if not waf_token:
             return None
 
-        line_data = self._lines_extraction(self.lines if self.lines else {})
+        # line_data = self._lines_extraction(self.lines if self.lines else {})
 
-        mapped_ids = await self.load_mapped_ids(key_name="caesar_mapped_ids")
+        mapped_ids = await self.mapper_redis_manager.get_data(key_name=self.mapper_id_name)
 
         if not mapped_ids:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="mapping_failure",
-                message="No mapped IDs were found.",
-                level="error"
-            )
             return None
 
         mapped_data = [
             self._create_actual_mapping(
-                line_data=line_data,
                 link_data=data,
                 mapped_ids=mapped_ids
             )
             for data in self.link_data
         ]
+
+        print(mapped_data)
 
         if not mapped_data or any(data for data in mapped_data if
                                   not any([data.get("marketId"), data.get("selectionId"), data.get("eventId")])):
@@ -119,18 +97,15 @@ class CaesarsSGP(SGPBookBase):
 
         payload = self._create_payload(mapped_data)
 
-        proxy_manager = ProxyManager(self.api_caller, proxies=[CaesarsSGP.PROXY_URL])
-
-        raw_api_data = await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+        raw_api_data = await self.api_caller(
+            use_proxy=True,
             url=self.book_data.url.get("main_url"),
             method=self.book_data.method,
             headers={**self.book_data.mapping.headers,
                      "x-aws-waf-token": waf_token},
-            payload=payload,
-            parse_json=True,
+            json=payload,
         )
+
 
         if not raw_api_data or not raw_api_data.get("parlays", []):
             return None
@@ -158,20 +133,17 @@ class CaesarsSGP(SGPBookBase):
 
 if __name__ == "__main__":
     async def main():
-        async with aiohttp.ClientSession() as session:
+        async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {
                 "book_name": "caesars",
                 "links": [
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=39adacd7-a55b-3d2b-af9c-8012f789458e",
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=42bc8506-f5d2-38f3-ad0c-f9e6f4bc4618",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=4705a2d8-8250-3a27-ae98-ffe76f2956bf",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=bac348d4-03a7-309a-bcac-df1bb4b55829",
                 ],
             }
 
-            redis_mapped = RedisAsyncManager(database=2)
-            redis_instance = RedisAsyncManager(database=5)
-            book = CaesarsSGP(mapped_ids_redis_instance=redis_mapped, auth_redis_instance=redis_instance, sgp_data=sgp_data)
+            book = CaesarsSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)
-            if data:
-                print(data)
+            print(data)
 
     asyncio.run(main())

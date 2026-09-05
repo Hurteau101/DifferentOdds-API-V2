@@ -1,12 +1,9 @@
-from Monitoring.monitoring import init_sentry
-init_sentry()
-
 from celery import Celery
 
 celery_app = Celery(
     "sportsbook_celery",
-    broker="redis://localhost:6379/15",
-    backend="redis://localhost:6379/16",
+    broker="redis://localhost:6379/14",
+    backend="redis://localhost:6379/15",
 )
 
 celery_app.conf.update(

@@ -1,15 +1,14 @@
 import asyncio
 import os
-import aiohttp
-from Books.Bases.sgp_book_base import SGPBookBase
-from Utils.request_caller import SportbookRequestType
+from Books.Bases.sgp_base import SGPBookBase
+from curl_cffi import AsyncSession as CurlAsyncSession
+
 
 class ProphetxSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
-        super().__init__(request_type=SportbookRequestType.ASYNC, category="SGP", book_name="prophetx", sgp_data=sgp_data, **kwargs)
+        super().__init__(category="SGP", book_name="prophet x", sgp_data=sgp_data, **kwargs)
 
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session):
         headers = self.book_data.headers
         headers.update({
@@ -22,19 +21,19 @@ class ProphetxSGP(SGPBookBase):
         ]
 
         api_data = await self.api_caller(
-            book_name=self.book_data.name,
             session=session,
             url=self.book_data.url.get("main_url"),
             method=self.book_data.method,
             headers=self.book_data.headers,
-            payload={
+            use_proxy=True,
+            json={
                 "stake": 1.0,
                 "line_ids": links_list
             }
         )
 
         if not api_data:
-            return
+            return None
 
         if len(api_data.get("offers")) <= 0:
             return None
@@ -45,8 +44,17 @@ class ProphetxSGP(SGPBookBase):
         )
 
 if __name__ == "__main__":
-    sgp_data = {'book_name': 'prophetx', 'links': ['https://www.prophetx.co/?action=addtobetslip&lineID=881bfbeec4d3c089bcd0ee9a32cd5d53&partner_id=null&currency=cash', 'https://www.prophetx.co/?action=addtobetslip&lineID=71152995a5239b78e694b87254c1b8ef&partner_id=null&currency=cash']}
+    if __name__ == "__main__":
+        async def main():
+            async with CurlAsyncSession(impersonate="chrome") as session:
+                sgp_data = {'book_name': 'prophetx', 'links': [
+                    "https://www.prophetx.co/?action=addtobetslip&lineID=30e3d3312eabbe5b8f2bb5d51cb76127&partner_id=null",
+                    "https://www.prophetx.co/?action=addtobetslip&lineID=28a16a07b8bddf9f11a14525c6e96b57&partner_id=null"
+                ]}
 
-    book = ProphetxSGP(sgp_data=sgp_data)
-    data = asyncio.run(book.run_book())
-    print(data)
+                book = ProphetxSGP(sgp_data)
+                data = await book.run_book(session=session)
+                print(data)
+
+
+        asyncio.run(main())

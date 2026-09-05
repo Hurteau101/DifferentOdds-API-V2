@@ -1,17 +1,16 @@
-import asyncio
 import re
 from collections import defaultdict
-import aiohttp
-from Utils.request_caller import SportbookRequestType
-from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
+from curl_cffi import AsyncSession as CurlAsyncSession
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 
 
 class Underdog(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="underdog", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="underdog")
+
 
     def _mapper(self, api_data: dict) -> dict:
         """Map the different sections of the API data to their respective dictionaries."""
@@ -65,7 +64,7 @@ class Underdog(DFSBookBase):
         return None
 
 
-    def _extract_team_games(self, game_section: dict, team_id:str) -> dict:
+    def _extract_team_games(self, game_section: dict, team_id:str, league: str) -> dict:
         """Extract Team Game Details """
         reversed_index = ("MASL", "ESPORTS", "UNRIVALED", "VAL", "LOL", "CS", "DOTA", "CS2")
 
@@ -97,12 +96,16 @@ class Underdog(DFSBookBase):
         team_b_abbrev = abbreviation_split.get("team_b") if abbreviation_split else None
 
         player_team = home_team if team_id == home_team_id else away_team
-        generate_key = Underdog.generate_key([home_team, away_team, game_section.get("scheduled_at")])
+        generate_key = Underdog.generate_key([
+            home_team,league,
+            away_team,league,
+            game_section.get("scheduled_at")
+        ])
 
         return {"team_a": home_team, "team_b": away_team, "player_team": player_team, "team_a_abbreviation": team_a_abbrev,
                 "team_b_abbreviation": team_b_abbrev, "team_key": generate_key}
 
-    def _extract_solo_games(self, game_section: dict, player_name: str) -> dict:
+    def _extract_solo_games(self, game_section: dict, player_name: str, league) -> dict:
         """Extract Solo Game Details"""
         valid_split = self._split_teams(game_section.get("title").replace(".", ""))
         if valid_split:
@@ -127,14 +130,14 @@ class Underdog(DFSBookBase):
             "team_key": game_key,
         }
 
-    def _get_game_details(self, game_section: dict, game_type: str, player_name: str, team_id: str) -> dict:
+    def _get_game_details(self, game_section: dict, game_type: str, player_name: str, team_id: str, league: str) -> dict:
         """Get the game details for Solo Games and Team Games"""
         full_details = {
             "start_date": game_section.get("scheduled_at"),
         }
 
         if game_type == "Game":
-            team_data = self._extract_team_games(game_section, team_id)
+            team_data = self._extract_team_games(game_section, team_id, league)
 
             # Underdog API sometimes bugs, so extra check
             if not team_data:
@@ -143,7 +146,7 @@ class Underdog(DFSBookBase):
             team_data["solo_game"] = False
             full_details.update(**team_data)
         else:
-            solo_data = self._extract_solo_games(game_section, player_name)
+            solo_data = self._extract_solo_games(game_section, player_name, league)
 
             # Underdog API sometimes bugs, so extra check
             if not solo_data:
@@ -190,6 +193,7 @@ class Underdog(DFSBookBase):
 
         return [
             DFSStats(
+                league=league,
                 player_name=player_name,
                 player_team=player_team,
                 stat_type=line.get("display_stat"),
@@ -201,7 +205,8 @@ class Underdog(DFSBookBase):
                     market_type=check_half_market(line.get("display_stat")),
                     odds_type=set_payout_label(float(option.get("payout_multiplier", 0))),
                     multiplier=float(option.get("payout_multiplier")),
-                    player_id=option.get("id")
+                    player_id=option.get("id"),
+                    group_id=option.get("over_under_line_id"),
                 ),
                 odds_format=OddsFormat(
                     american_odds=float(option.get("american_price")),
@@ -226,35 +231,36 @@ class Underdog(DFSBookBase):
         if game_type.lower() not in ["sologame", "game"]:
             return None
 
+        league = player_details.get("league")
+
         game_details = self._get_game_details(
             game_section=map_data.get("team_games").get(game_id) if game_type == "Game" else map_data.get(
                 "solo_games").get(game_id),
             game_type=game_type,
             player_name=player_details.get("player_name"),
             team_id=player_details.get("team_id") if game_type == "Game" else None,
+            league=league
         )
 
         if not game_details:
             return None
 
-        league = player_details.get("league")
+        player_team = game_details.get("player_team")
 
         grouped_stats = stats.get(line_id)
 
-
-        stat_details = self._extract_stats(league, grouped_stats, player_details.get("player_name"), game_details.get("player_team"))
+        stat_details = self._extract_stats(league=league, line_section=grouped_stats, player_name=player_details.get("player_name"),
+                                           player_team=player_team)
 
         return GameData(
-            league=player_details.get("league"),
+            league=league,
             start_date=game_details.get("start_date"),
             solo_game=game_details.get("solo_game"),
             game_key=game_details.get("team_key"),
-            team_data=TeamData(
-                team_a=game_details.get("team_a"),
-                team_b=game_details.get("team_b"),
-                team_a_abbreviation=game_details.get("team_a_abbreviation"),
-                team_b_abbreviation=game_details.get("team_b_abbreviation"),
-            ),
+            team_a=game_details.get("team_a"),
+            team_b=game_details.get("team_b"),
+            team_a_abbreviation=game_details.get("team_a_abbreviation"),
+            team_b_abbreviation=game_details.get("team_b_abbreviation"),
             odds=stat_details,
         )
 
@@ -279,24 +285,22 @@ class Underdog(DFSBookBase):
 
         return grouped_stats
 
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+    async def run_book(self) -> list | None:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
-                method=self.book_data.method
+                method=self.book_data.method,
+                headers=self.book_data.headers,
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
                 )
-
-                return
+                return None
 
             mapped_data = self._mapper(api_data)
             stats_dict = self.regroup_stats(api_data)
@@ -309,16 +313,23 @@ class Underdog(DFSBookBase):
 
             underdog_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=underdog_data)
+            if not underdog_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                key_name=self.book_data.name,
+                data_to_store=underdog_data,
             )
 
-            return mapped_data
+            await self.flush_unmapped()
+            return underdog_data
 
 if __name__ == "__main__":
+    import asyncio
     ud = Underdog()
     asyncio.run(ud.run_book())

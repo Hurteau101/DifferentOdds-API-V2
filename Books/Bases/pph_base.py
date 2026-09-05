@@ -1,27 +1,17 @@
-import asyncio
-import json
 from datetime import datetime
 from typing import Callable
-
-import requests
-from bs4 import BeautifulSoup
-from curl_cffi.requests import Session
 from rapidfuzz import process, fuzz
-
-from Books.Bases.book_base import BookBase
-from Monitoring.monitoring import create_sentry_message
 from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import TeamData, OddsFormat, GameData
+from Settings.Models.base_models import OddsFormat, GameData
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.request_caller import SportbookRequestType
 from Books.Bases.sportsbook_base import SportsbooksBookBase
 
 
 class PPHBookBase(SportsbooksBookBase):
-    def __init__(self, book_name: str, request_type: SportbookRequestType):
-        super().__init__(book_name=book_name, request_type=request_type)
+    def __init__(self, book_name: str):
+        super().__init__(book_name=book_name)
 
-    def spread_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
+    def spread_type(self, team_data: dict, game_data: dict, market_name: str, name_mapper_func: Callable,
                        home_spread_odds_name:str, away_spread_odds_name: str,
                     home_spread_value_name: str, away_spread_value_name: str,
                     base_market_mapper: dict, **kwargs) -> list:
@@ -40,8 +30,8 @@ class PPHBookBase(SportsbooksBookBase):
         odds = []
 
         for team, line_key, odds_key in [
-            (team_data.team_a, home_spread_value_name, home_spread_odds_name),
-            (team_data.team_b, away_spread_value_name, away_spread_odds_name)
+            (team_data.get("team_a"), home_spread_value_name, home_spread_odds_name),
+            (team_data.get("team_b"), away_spread_value_name, away_spread_odds_name)
         ]:
 
             mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper, **kwargs)
@@ -55,6 +45,7 @@ class PPHBookBase(SportsbooksBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                league=league,
                 market=self.convert_spread_name(mapped_market_name, league),
                 bet_team=team,
                 line=float(spread_line),
@@ -66,8 +57,8 @@ class PPHBookBase(SportsbooksBookBase):
         return odds
 
 
-    def moneyline_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
-                       home_odds_name:str, away_odds_name: str, base_market_mapper: dict, **kwargs) -> list:
+    def moneyline_type(self, team_data: dict, game_data: dict, market_name: str, name_mapper_func: Callable,
+                       home_odds_name:str, away_odds_name: str, base_market_mapper: dict, league: str, **kwargs) -> list:
         """
         Builds moneyline type markets for a given game and team data.
         :param team_data: The team data for the game, containing the team names.
@@ -80,7 +71,7 @@ class PPHBookBase(SportsbooksBookBase):
         """
         odds = []
 
-        for team, odds_key in [(team_data.team_a, home_odds_name), (team_data.team_b, away_odds_name)]:
+        for team, odds_key in [(team_data.get("team_a"), home_odds_name), (team_data.get("team_b"), away_odds_name)]:
             mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper, **kwargs)
 
             moneyline_odds = game_data.get(odds_key)
@@ -88,6 +79,7 @@ class PPHBookBase(SportsbooksBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                league=league,
                 market=mapped_market_name,
                 bet_team=team,
                 line=None,
@@ -100,7 +92,7 @@ class PPHBookBase(SportsbooksBookBase):
 
 
     # Other books can override this function as needed, as different books have different ways of mapping.
-    def total_type(self, game_data: dict, market_name: str, **kwargs) -> list:
+    def total_type(self, game_data: dict, market_name: str, league: str, **kwargs) -> list:
         """Builds total type markets"""
         return []
 
@@ -141,66 +133,6 @@ class PPHBookBase(SportsbooksBookBase):
 
         return market_name
 
-
-    def pph_login_helper(self, payload: dict, sportsbook_name: str, additional_headers: dict = None,
-                   login_key_word_check: str = None):
-        """
-        Used for PPH sportsbooks that require login via ASP.NET forms.
-        :param payload: The payload containing login credentials and any additional required fields.
-        :param sportsbook_name: The name of the sportsbook for logging purposes.
-        :param additional_headers: Any additional headers to include in the login request.
-        :param login_key_word_check: A keyword to check in cookies to verify successful login.
-        """
-        def find_values(name):
-            hidden_tag = soup.find("input", {"name": name})
-            return hidden_tag["value"] if hidden_tag else ""
-
-        if not payload:
-            raise ValueError("Payload for login cannot be empty.")
-
-        with Session(impersonate="chrome120") as session:
-            response = session.get(self.book_data.url.get("login_url"))
-            soup = BeautifulSoup(response.text, "html.parser")
-
-
-            starter_payload = {
-                "__VIEWSTATE": find_values("__VIEWSTATE"),
-                "__VIEWSTATEGENERATOR": find_values("__VIEWSTATEGENERATOR"),
-                "__EVENTVALIDATION": find_values("__EVENTVALIDATION"),
-            }
-
-            starter_payload.update(payload)
-
-            if additional_headers:
-                self.book_data.headers.update(additional_headers)
-
-            print(starter_payload)
-            response = session.post("https://bettheguys.com/Login.aspx", data=payload, headers=self.book_data.headers)
-
-            print(response.text)
-
-            if login_key_word_check and login_key_word_check not in session.cookies.get_dict():
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="login_failure",
-                    message="Couldn't login",
-                    level="error"
-                )
-                return None
-            print(session.cookies.get_dict())
-            return session.cookies.get_dict()
-
-    @staticmethod
-    async def post_with_semaphore(semaphore: asyncio.Semaphore, task, retries: int = 3, delay: float = 1.0):
-        async with semaphore:
-            for attempt in range(retries):
-                try:
-                    await asyncio.sleep(0.5)
-                    return await task
-                except Exception as e:
-                    if attempt == retries - 1:
-                        return None
-                    await asyncio.sleep(delay * (attempt + 1))
 
     def extract_market_names(self, book_data: list[GameData]):
         return set(
@@ -261,13 +193,6 @@ class PPHBookBase(SportsbooksBookBase):
         ), {})
 
         return found_scheduled_game_data
-
-
-
-
-
-
-
 
     @staticmethod
     def is_within_minutes(minutes: int, date_1: datetime | str, date_2: datetime | str) -> bool:

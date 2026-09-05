@@ -1,32 +1,20 @@
-from Books.Bases.sgp_book_base import SGPBookBase
-from Utils.request_caller import SportbookRequestType
+from Books.Bases.sgp_base import SGPBookBase
 import asyncio
 from Utils.socket_pooler import SocketHelper
-
-# _pool = SocketPooler(url="wss://api.hardrocksportsbook.com/websocket", headers={
-#     'Origin': 'https://api.hardrocksportsbook.com',
-#     'Host': 'api.hardrocksportsbook.com'
-# })
+from Utils.helpers import decimal_to_american
 
 class HardrockSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(
-            request_type=SportbookRequestType.ASYNC,
             category="SGP",
-            book_name="hardrock",
+            book_name="hard rock",
             sgp_data=sgp_data,
             **kwargs
         )
 
-
-
     @SGPBookBase.ensure_link_data
-    @SGPBookBase.retry_book(is_disabled=True)
     async def run_book(self, session=None):
-
         hardrock_ids = [item["bet_id"] for item in self.link_data]
-
-        payload = self.create_payload(hardrock_ids)
 
         socket_helper = SocketHelper(
             url="wss://api.hardrocksportsbook.com/websocket",
@@ -36,17 +24,17 @@ class HardrockSGP(SGPBookBase):
             }
         )
 
-        # data = await socket_helper.send(payload={
-        #   "SportsbookLoginRequest": {
-        #     "sessionToken": None
-        #   }
-        # })
-        #
-        # if data.get("Response", {}).get("status") != "ok":
-        #     return None
+        payload = {
+            "BetslipBuilderRequest": {
+                "channel": "ARIZONA_ONLINE",
+                "currency": "USD",
+                "selections": [{"id": ids} for ids in hardrock_ids],
+                "metadata": False
+            }
+        }
 
 
-        data = await socket_helper.send(payload)
+        data = await socket_helper.send(payload=payload, use_proxy=True)
 
         if not data:
             return None
@@ -57,7 +45,7 @@ class HardrockSGP(SGPBookBase):
             (
                 {
                     "decimal": price,
-                    "american": self.convert_decimal_to_american(price),
+                    "american": decimal_to_american(price),
                 }
                 for betslip in betslip_data.get("sameGameParlays", {}).values()
                 if (price := betslip.get("price"))
@@ -74,26 +62,13 @@ class HardrockSGP(SGPBookBase):
             else None
         )
 
-
-
-    def create_payload(self, hardrock_ids):
-
-        return {
-            "BetslipBuilderRequest": {
-                "channel": "ARIZONA_ONLINE",
-                "currency": "USD",
-                "selections": [{"id": ids} for ids in hardrock_ids],
-                "metadata": False
-            }
-        }
-
 if __name__ == "__main__":
 
     sgp_data = {
         "book_name": "hardrock",
         "links": [
-          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/8181944312381178196",
-          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/1795042579159581007",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/20963804372402596",
+          "https://share.hardrock.bet/Pt0T/bet?deep_link_value=hardrock://betslip/6580029736788033934"
         ]
       }
 

@@ -1,20 +1,16 @@
-import asyncio
 import re
-import aiohttp
-from Monitoring.monitoring import create_sentry_message
 from Settings.Models.dfs_models import DFSStats, Discounts, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData, get_static_mapping
-from Books.Bases.dfs_book_base import DFSBookBase
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
-
+from Settings.Models.base_models import GameData
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Prizepicks(DFSBookBase):
     SOLO_GAMES = [
         "MMA", "TENNIS"
     ]
     def __init__(self):
-        super().__init__(book_name="prizepicks", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="prizepicks")
 
     def _map_info(self, api_data: dict) -> tuple:
         """Map the player and team information"""
@@ -81,7 +77,7 @@ class Prizepicks(DFSBookBase):
             }
         } for bet in bet_direction]
 
-    def _extract_data(self, game_details: dict, player_info_map: dict, static_league_mapping: dict) -> GameData | None:
+    def _extract_data(self, game_details: dict, player_info_map: dict) -> GameData | None:
         """Extract all the player data"""
         player_id = game_details.get("relationships", {}).get("new_player", {}).get("data", {}).get("id")
         team_id = player_info_map.get(player_id, {}).get("relationships", {}).get("team_data", {}).get("data", {}).get(
@@ -102,16 +98,12 @@ class Prizepicks(DFSBookBase):
         player_name = player_information.get("display_name", "") if player_information.get("display_name") != "" \
             else player_information.get("name", "")
 
-        raw_league = player_information.get("league").upper() if player_information.get("league") else None
-
-        league = static_league_mapping.get(raw_league.lower(), {}).get("mapped_name", raw_league.upper())
+        league = player_information.get("league").upper() if player_information.get("league") else None
 
         projection_id = game_details.get("id")
         start_date = game_information.get("start_time")
         team = player_information.get("team")
         opponent = self._opponent_extractor(league=league, opponent=game_information.get("description"))
-
-
 
         future = True if "szn" in game_information.get("description").lower() or "szn" in league.lower() else False
         combo = True if "combo" in game_information.get("stat_type").lower() else False
@@ -124,6 +116,7 @@ class Prizepicks(DFSBookBase):
 
         stats = [
             DFSStats(
+                league=league,
                 player_name=player_name,
                 player_team=team,
                 combo=combo,
@@ -144,66 +137,63 @@ class Prizepicks(DFSBookBase):
                 )
             )
 
-            for stat in self._process_stats(game_information, raw_league, projection_id)
+            for stat in self._process_stats(game_information, league, projection_id)
         ]
 
         return GameData(
             league=league,
             game_key=team_key,
             start_date=start_date,
-            team_data=TeamData(
-                team_a=team,
-                team_b=opponent,
-            ),
+            team_a=team,
+            team_b=opponent,
             solo_game=True if league in Prizepicks.SOLO_GAMES else False,
             odds=stats,
         )
 
-    async def run_book(self):
-        timeout = aiohttp.ClientTimeout(
-            total=300,
-            connect=20,
-        )
-
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            proxy_manger = ProxyManager(self.api_caller)
-            api_data = await proxy_manger.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+    async def run_book(self) -> list | None:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            api_data = await self.api_caller(
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
+                use_proxy=True,
+                headers=self.book_data.headers,
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
                 )
-                return
+                return None
 
             player_info_map, team_info_map = self._map_info(api_data)
-            static_mapping = get_static_mapping().get("leagues", {}) or {}
 
             events = {}
             for game_details in api_data.get("data", []):
-                player_data = self._extract_data(game_details, player_info_map, static_mapping)
+                player_data = self._extract_data(game_details, player_info_map)
                 if player_data:
                     self.add_to_events(events, player_data, GameData)
 
             prizepick_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=prizepick_data)
+            if not prizepick_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=prizepick_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            await self.flush_unmapped()
+            return prizepick_data
 
 if __name__ == "__main__":
+    import asyncio
     pp = Prizepicks()
     asyncio.run(pp.run_book())

@@ -1,20 +1,19 @@
 import asyncio
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from itertools import chain
 from typing import Callable
 from zoneinfo import ZoneInfo
 import aiohttp
-from urllib.parse import urlencode
-
 from dotenv import load_dotenv
-from rapidfuzz import process, fuzz
+from requests_toolbelt.utils.formdata import urlencode
+
 from Books.Bases.pph_base import PPHBookBase
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import TeamData, GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat
 from Settings.Models.sportsbooks_models import SportsbookStats
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class Buckeye2(PPHBookBase):
@@ -25,12 +24,7 @@ class Buckeye2(PPHBookBase):
     }
 
     def __init__(self):
-        super().__init__(book_name="buckeye2", request_type=SportbookRequestType.ASYNC)
-
-    async def load_auth(self) -> str | None:
-        """Extracts the cookies from Redis."""
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("buckeye_2_auth_token")
+        super().__init__(book_name="buckeye2")
 
     @staticmethod
     def name_mapper(market_name: str, odds_key: str, base_market_mapper: dict, **kwargs) -> str:
@@ -54,7 +48,7 @@ class Buckeye2(PPHBookBase):
 
     def calulate_spread_buy_points(self, spread_line: float | int, spread_odds: float,
                                    buy_points_amount: float | int, buy_points_max: float | int,
-                                   market_name: str, bet_team: str) -> list | None:
+                                   market_name: str, bet_team: str, league: str) -> list | None:
         """
         Calculates the new spread line and odds after applying the buy points for spread markets.
         :param spread_line: The original spread line.
@@ -76,6 +70,7 @@ class Buckeye2(PPHBookBase):
 
             odds = spread_odds - (buy_points_amount * step)
             odds_list.append(SportsbookStats(
+                league=league,
                 market=market_name,
                 bet_team=bet_team,
                 line=new_spread,
@@ -88,7 +83,7 @@ class Buckeye2(PPHBookBase):
 
     def calulate_total_buy_points(self, total_line: float | int, total_odds: float,
                                    buy_points_amount: float | int, buy_points_max: float | int,
-                                   market_name: str, direction: str) -> list | None:
+                                   market_name: str, direction: str, league:str) -> list | None:
         """
         Calculates the new spread line and odds after applying the buy points for spread markets.
         :param total_line: The original total line.
@@ -112,6 +107,7 @@ class Buckeye2(PPHBookBase):
 
             odds = total_odds - (buy_points_amount * step)
             odds_list.append(SportsbookStats(
+                league=league,
                 market=market_name,
                 bet_team=None,
                 line=abs(float(new_total)),
@@ -122,7 +118,7 @@ class Buckeye2(PPHBookBase):
 
         return odds_list
 
-    def spread_type(self, team_data: TeamData, game_data: dict, market_name: str, name_mapper_func: Callable,
+    def spread_type(self, team_data: dict, game_data: dict, market_name: str, name_mapper_func: Callable,
                        home_spread_odds_name:str, away_spread_odds_name: str,
                     home_spread_value_name: str, away_spread_value_name: str,
                     base_market_mapper: dict, **kwargs) -> list:
@@ -140,9 +136,11 @@ class Buckeye2(PPHBookBase):
         """
         odds = []
 
+        league = kwargs.get("league")
+
         for team, line_key, odds_key in [
-            (team_data.team_a, home_spread_value_name, home_spread_odds_name),
-            (team_data.team_b, away_spread_value_name, away_spread_odds_name)
+            (team_data.get('team_a'), home_spread_value_name, home_spread_odds_name),
+            (team_data.get('team_b'), away_spread_value_name, away_spread_odds_name)
         ]:
 
             mapped_market_name = name_mapper_func(market_name=market_name, odds_key=odds_key, base_market_mapper=base_market_mapper, **kwargs)
@@ -161,7 +159,8 @@ class Buckeye2(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
-                market=self.convert_spread_name(mapped_market_name, kwargs.get("league")),
+                league=league,
+                market=self.convert_spread_name(mapped_market_name, league),
                 bet_team=team,
                 line=float(spread_line),
                 bet_type=None,
@@ -171,7 +170,7 @@ class Buckeye2(PPHBookBase):
 
         return odds
 
-    def total_type(self, game_data: dict, market_name: str, **kwargs) -> list:
+    def total_type(self, game_data: dict, market_name: str, league: str, **kwargs) -> list:
         """
         Builds total type markets.
         :keyword games: The outer game data container that contains the team names, as the game dict doesn't contain this information.
@@ -201,6 +200,7 @@ class Buckeye2(PPHBookBase):
                 continue
 
             odds.append(SportsbookStats(
+                league=league,
                 market=mapped_market_name,
                 bet_team=team_name,
                 line=abs(float(total_line)),
@@ -246,20 +246,22 @@ class Buckeye2(PPHBookBase):
         if not found_schedule:
             return None
 
-        team_data = TeamData(
-            team_a=found_schedule.get("team"),
-            team_b=found_schedule.get("opponent")
-        )
+
+        team_a=found_schedule.get("team")
+        team_b=found_schedule.get("opponent")
+
 
         game_data = GameData(
             start_date=modified_date,
             league=league,
-            team_data=team_data,
-            game_key=self.generate_key([team_data.team_a, team_data.team_b, found_schedule.get("date")]),
+            team_a=team_a,
+            team_b=team_b,
+            game_key=self.generate_key([team_a, team_b, found_schedule.get("date")]),
             odds=[]
         )
 
         game_data.odds.extend(self.total_type(
+            league=league,
             game_data=event_data,
             market_name=market_name,
             bet_player=player_name,
@@ -275,21 +277,26 @@ class Buckeye2(PPHBookBase):
     def build_main_markets(self, event_data: dict, buy_points: dict | None):
         modified_date = self._convert_date(event_data.get("GameDateTime"))
 
-        team_data = TeamData(
-            team_a=event_data.get("Team1ID"),
-            team_b=event_data.get("Team2ID"),
-        )
+
+        team_dict = {
+            "team_a": event_data.get("Team1ID"),
+            "team_b": event_data.get("Team2ID")
+        }
+
+        league = event_data.get("SportSubType", '').strip()
 
         game_data = GameData(
             start_date=modified_date,
-            league=event_data.get("SportSubType", '').strip(),
-            team_data=team_data,
+            league=league,
+            team_a=team_dict.get("team_a"),
+            team_b=team_dict.get("team_b"),
             odds=[],
             game_key=self.generate_key([event_data.get("Team1ID"), event_data.get("Team2ID"), modified_date]),
         )
 
         game_data.odds.extend(self.moneyline_type(
-            team_data=team_data,
+            league=league,
+            team_data=team_dict,
             game_data=event_data,
             market_name="",
             name_mapper_func=self.name_mapper,
@@ -300,7 +307,7 @@ class Buckeye2(PPHBookBase):
         ))
 
         spread_odds = self.spread_type(
-            team_data=team_data,
+            team_data=team_dict,
             game_data=event_data,
             market_name="",
             name_mapper_func=self.name_mapper,
@@ -318,11 +325,12 @@ class Buckeye2(PPHBookBase):
             for odd in spread_odds:
                 game_data.odds.extend(self.calulate_spread_buy_points(spread_line=odd.line, spread_odds=odd.odds_format.get("american_odds"),
                                                 buy_points_amount=buy_points["Spread"]["amount"],
-                                                buy_points_max=buy_points["Spread"]["max"], market_name=odd.market, bet_team=odd.bet_team))
+                                                buy_points_max=buy_points["Spread"]["max"], market_name=odd.market, bet_team=odd.bet_team, league=league))
 
         game_data.odds.extend(spread_odds)
 
         total_odds = self.total_type(
+            league=league,
             period_description=event_data.get("PeriodDescription", ''),
             game_data=event_data,
             market_name="",
@@ -336,7 +344,7 @@ class Buckeye2(PPHBookBase):
                 additional_odds = self.calulate_total_buy_points(
                     total_line=odd.line, total_odds=odd.odds_format.get("american_odds"),
                     buy_points_amount=buy_points["Total"]["amount"], buy_points_max=buy_points["Total"]["max"],
-                    market_name=odd.market, direction=odd.bet_type
+                    market_name=odd.market, direction=odd.bet_type, league=league
                 )
 
                 if additional_odds:
@@ -345,8 +353,9 @@ class Buckeye2(PPHBookBase):
         game_data.odds.extend(total_odds)
 
         # Home Team Team Total
-        for index, team in enumerate([team_data.team_a, team_data.team_b], start=1):
+        for index, team in enumerate([team_dict.get("team_a"), team_dict.get("team_b")], start=1):
             game_data.odds.extend(self.total_type(
+                league=league,
                 period_description=event_data.get("PeriodDescription", ''),
                 game_data=event_data,
                 market_name="",
@@ -359,41 +368,39 @@ class Buckeye2(PPHBookBase):
         return game_data
 
     # This is used for the dropdowns on the website.
-    async def get_buy_points(self, username: str, auth_token: str, session: aiohttp.ClientSession, sport_type: str, sport_subtype: str, proxy_manager: ProxyManager):
-        return await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+    async def get_buy_points(self, username: str, auth_token: str, sport_type: str, sport_subtype: str):
+        return await self.api_caller(
             url=self.book_data.url.get("point_group_url"),
+            use_proxy=True,
             method=self.book_data.method,
             headers={
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
+                **self.book_data.headers,
                 "Authorization": f"Bearer {auth_token}"
             },
 
-            payload=urlencode({
+            json={
                 # "customerID": username,
                 "customerID": f"{username}_0",
                 "wagerType": "Straight",
                 "sportType": sport_type,
                 "sportSubType": sport_subtype,
                 "RRO": ''
-            })
+            }
+
         )
 
 
 
-    async def market_caller(self, session: aiohttp.ClientSession, username: str, auth_token: str, league: dict, proxy_manager: ProxyManager):
-        market_data = await proxy_manager.proxy_caller(
-            book_name=self.book_data.name,
-            session=session,
+    async def market_caller(self, session: aiohttp.ClientSession, username: str, auth_token: str, league: dict):
+        market_data = await self.api_caller(
             url=self.book_data.url.get("market_url"),
+            use_proxy=True,
             headers={
                 **self.book_data.headers,
                 "Authorization": f"Bearer {auth_token}"
             },
             method=self.book_data.method,
-            payload=urlencode({
+            json={
                 # "customerID": username,
                 "customerID": f"{username}_0",
                 "operation": "Get_LeagueLines2",
@@ -412,14 +419,13 @@ class Buckeye2(PPHBookBase):
                 "placeLateFlag": "false",
                 "RRO": "1",
                 "agentSite": "0",
-            })
+            }
         )
 
         sport_type = league.get("SportType")
         if sport_type in ["BASKETBALL", "FOOTBALL"]:
-            buy_points = await self.get_buy_points(username=username, auth_token=auth_token, session=session,
-                                             sport_type=league.get("SportType"), sport_subtype=league.get("SportSubType"),
-                                                   proxy_manager=proxy_manager)
+            buy_points = await self.get_buy_points(username=username, auth_token=auth_token,
+                                             sport_type=league.get("SportType"), sport_subtype=league.get("SportSubType"))
 
             if buy_points and sport_type in ["BASKETBALL", "FOOTBALL"]:
                 buy_points_key = buy_points.get("BuyPoints", {})
@@ -436,47 +442,28 @@ class Buckeye2(PPHBookBase):
 
         return market_data
 
-
-    async def run_book(self):
+    async def run_book(self) -> list | None:
         username = os.getenv("BUCKEYE_2_USERNAME")
 
         if not username:
             raise ValueError("Missing required environment variable: BUCKEYE_2_USERNAME")
 
-        async with aiohttp.ClientSession() as session:
-            auth_token = await self.load_auth()
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            auth_token = await self.auth_redis_manager.get_data(self.auth_id_name)
+
             if not auth_token:
-                print("Auth Expired")
-                return
+                return None
 
-            proxy_manager = ProxyManager(self.api_caller)
-            proxy_manager.proxies = os.getenv("RESIDENTIAL_PROXIES", '').split(",")
-
-            raw_leagues = await proxy_manager.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+            raw_leagues = await self.api_caller(
                 url=self.book_data.url.get("league_url"),
                 method=self.book_data.method,
+                use_proxy=True,
                 headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',
-                    'Accept': '*/*',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate',
-                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    # 'Origin': 'https://wwcd.me',
-                    'Origin': 'https://www.247bettor.com',
-                    'Connection': 'keep-alive',
-                    'Referer': 'https://www.247bettor.com/sports.html?v=1778340204456',
-                    # 'Referer': 'https://wwcd.me/sports.html?v=1775430461341',
-                    'Sec-Fetch-Dest': 'empty',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Site': 'same-origin',
-                    'TE': 'trailers',
+                    **self.book_data.headers,
                     "Authorization": f"Bearer {auth_token}"
                 },
-                # Ensure its urlencode, or pass a string, or else you won't get the proper data back.
-                payload=urlencode({
+
+                data=urlencode({
                     # "customerID": username,
                     "customerID": f"{username}_0",
                     "wagerType": "Straight",
@@ -500,12 +487,19 @@ class Buckeye2(PPHBookBase):
                     username=username,
                     auth_token=auth_token,
                     league=league,
-                    proxy_manager=proxy_manager
                 )
                 for league in leagues
             ]
 
             results = await asyncio.gather(*raw_data)
+
+            if not results:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No data returned from API"
+                )
+                return None
 
             event_data = {}
 
@@ -547,10 +541,14 @@ class Buckeye2(PPHBookBase):
                         self.add_to_events(event_data, game_data, GameData)
 
             buckeye_2_data = list(event_data.values())
-            print(buckeye_2_data)
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=buckeye_2_data)
-
+            if not buckeye_2_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             final_mapping = {}
 
@@ -559,17 +557,17 @@ class Buckeye2(PPHBookBase):
             # spelling when creating the event, so this causes BOS Celtivs vs TOR Raptors, until its ran through
             # map_runner where its properly mapped, but then the player mapping isn't already properly mapped, so you end
             # up with similar events that should be grouped together.
-            for mapped in mapped_data:
+            for mapped in buckeye_2_data:
                 self.add_to_events(final_mapping, mapped, GameData)
 
             final_data = list(final_mapping.values())
 
             await self.store_data(
-                database=self.redis_database,
                 data_to_store=final_data,
-                book_name=self.book_data.name
+                key_name=self.book_data.name
             )
 
+            await self.flush_unmapped()
             return final_data
 
 

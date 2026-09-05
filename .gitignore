@@ -13,12 +13,9 @@ celerybeat-schedule
 *.log
 .idea/
 todo
-
 **/driver_fixing.lock
-
-
-Books/Sportsbooks/1bv_explain.md
-Books/Sportsbooks/metalic_explained.md
+downloaded_files/
+wsl-venv/
 
 
 

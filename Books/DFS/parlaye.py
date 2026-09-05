@@ -1,15 +1,13 @@
-import asyncio
-import aiohttp
-from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
-from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
-from Utils.request_caller import SportbookRequestType
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
+from Settings.Models.dfs_models import DFSStats
+from Settings.Models.base_models import GameData, OddsFormat
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class Parlaye(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="parlaye", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="parlaye")
 
     def _extract_game_data(self, game_data: dict) -> GameData:
         player_name = f"{game_data.get('player_first_name')} {game_data.get('player_last_name')}"
@@ -37,12 +35,11 @@ class Parlaye(DFSBookBase):
             league=game_data.get("league"),
             game_key=team_key,
             start_date=start_date,
-            team_data=TeamData(
-                team_a=team_a,
-                team_b=team_b,
-            ),
+            team_a=team_a,
+            team_b=team_b,
             odds=[
                 DFSStats(
+                    league=game_data.get("league"),
                     player_name=player_name,
                     player_team=team_a,
                     stat_type=game_data.get("pick_type"),
@@ -61,24 +58,22 @@ class Parlaye(DFSBookBase):
         )
 
 
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+    async def run_book(self) -> list | None:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             api_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
-                payload={"id_player": "1"},
+                json={"id_player": "1"},
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
                 )
-                return
+                return None
 
             events = {}
 
@@ -89,12 +84,23 @@ class Parlaye(DFSBookBase):
 
             parlaye_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=parlaye_data)
+            if not parlaye_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=parlaye_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            await self.flush_unmapped()
+            return parlaye_data
+
+if __name__ == "__main__":
+    import asyncio
+    parlaye = Parlaye()
+    asyncio.run(parlaye.run_book())

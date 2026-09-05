@@ -1,20 +1,15 @@
-import os
 import re
-import aiohttp
 from dotenv import load_dotenv
-
-from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, TeamData
-from Utils.proxy_manger import ProxyManager
-from Utils.request_caller import SportbookRequestType
+from Settings.Models.base_models import GameData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Boom(DFSBookBase):
     load_dotenv()
     def __init__(self):
-        super().__init__(book_name="boom", request_type=SportbookRequestType.SPOOF)
+        super().__init__(book_name="boom")
 
     # Extract the multiplier from the stat list. 1st float found is the multiplier.
     def _get_multiplier(self, stat_list: list) -> float | None:
@@ -30,11 +25,10 @@ class Boom(DFSBookBase):
 
     def _extract_game_data(self, game_data: dict) -> list:
         if not game_data:
-            create_sentry_message(
-                tag_key=self.book_data.name,
-                tag_value="game_data_failure",
-                message="Game data extraction received no data",
-                level="error"
+            insert_log(
+                book_name=self.book_data.title,
+                error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                error_message="Game data extraction received no data"
             )
 
             return []
@@ -90,6 +84,7 @@ class Boom(DFSBookBase):
 
                 stat_list.extend(
                     DFSStats(
+                        league=league,
                         player_name=player_name,
                         player_team=team_a,
                         stat_type=stat_type.lower(),
@@ -110,46 +105,34 @@ class Boom(DFSBookBase):
                     for direction in stat.get("c", [])
                 )
 
-
-
             player_list.append(GameData(
                 league=league,
                 game_key=team_key,
                 start_date=start_date,
-                team_data=TeamData(
-                    team_a=team_a,
-                    team_b=team_b,
-                ),
+                team_a=team_a,
+                team_b=team_b,
                 odds=stat_list,
                 solo_game=False if all([team_a, team_b]) else True,
             ))
 
         return player_list
 
-    async def run_book(self):
-        # async with aiohttp.ClientSession() as session:
-        async with CurlAsyncSession(impersonate="safari15_5") as session:
-            proxy_manger = ProxyManager(self.api_caller)
-            proxy_manger.proxies = os.getenv("RESIDENTIAL_PROXIES").split(",") if os.getenv("RESIDENTIAL_PROXIES") else ""
-
-            api_data = await proxy_manger.proxy_caller(
-                book_name=self.book_data.name,
-                session=session,
+    async def run_book(self) -> list | None:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            api_data = await self.api_caller(
                 url=self.book_data.url.get("main_url"),
                 method=self.book_data.method,
                 headers=self.book_data.headers,
-                parse_json=True
+                use_proxy=True,
             )
 
             if not api_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="Main API URL returned no data",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
                 )
-
-                return
+                return None
 
             results = [
                 self._extract_game_data(game_data=game_details)
@@ -162,15 +145,21 @@ class Boom(DFSBookBase):
 
             boom_data = list(events.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=boom_data)
+            if not boom_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=boom_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            await self.flush_unmapped()
+            return boom_data
 
 if __name__ == "__main__":
     import asyncio

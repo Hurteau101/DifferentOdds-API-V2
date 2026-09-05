@@ -1,11 +1,15 @@
-from typing import Optional
-from Settings.Providers.base_provider import BaseProvider
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector, APSchedulerDetails
 from dataclasses import dataclass
+
+
+@dataclass
+class LiquidityProvider(BaseProvider):
+    base_file_path = "Books.Prediction_Liquidity"
 
 
 
 PREDICTION_LIQUIDITY_PROVIDERS = [
-    BaseProvider(
+    LiquidityProvider(
         title="4cx",
         name="4cx",
         url={
@@ -13,18 +17,29 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
             "orders": "https://api.4cx.io/exchange/getOrderbook"
         },
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Origin': 'https://4cx.io',
             'Connection': 'keep-alive',
             'Referer': 'https://4cx.io/',
         },
         method="GET",
-        is_active=True
+        is_active=True,
+        auth_job_dict=AuthJobDict(
+            job_type=RedisSelector.AUTH,
+            job_active=True,
+            auth_redis_key="4cx_auth_token",
+            base_file_path=LiquidityProvider.base_file_path,
+            class_name="FourcxAuth",
+            file_name="fourcx_auth",
+            ap_scheduler=APSchedulerDetails(
+                job_id="prediction_fourcx_auth",
+                interval=82800,
+                name="Prediction Fourcx Auth",
+            )
+        ),
+        class_name="FourCX",
+        file_name="fourcx",
     ),
-    BaseProvider(
+    LiquidityProvider(
         title="Novig",
         name="novig",
         url={
@@ -35,19 +50,21 @@ PREDICTION_LIQUIDITY_PROVIDERS = [
             "Content-Type": "application/json"
         },
         method="POST",
-        is_active=True
+        is_active=True,
+        class_name="Novig",
+        file_name="novig",
     ),
-    BaseProvider(
+    LiquidityProvider(
         title="Prophetx",
         name="prophetx",
         url={
             "events_url": "https://cash.api.prophetx.co/partner/affiliate/get_sport_events",
             "markets_url": "https://cash.api.prophetx.co/partner/v3/affiliate/get_multiple_markets"
         },
-        headers={
-            'accept': 'application/json',
-        },
+
         method="GET",
-        is_active=True
+        is_active=True,
+        class_name="Prophetx",
+        file_name="prophetx",
     ),
 ]

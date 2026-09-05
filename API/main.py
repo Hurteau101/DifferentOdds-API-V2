@@ -1,9 +1,6 @@
-# from Monitoring.monitoring import init_sentry
-# init_sentry()
-
 from contextlib import asynccontextmanager
-
 from API.rfq_parlay import router as rfq_parlay
+from Database.base_db import async_engine
 from Redis.redis_manager import RedisAsyncManager
 from pathlib import Path
 from fastapi import FastAPI
@@ -15,22 +12,27 @@ from API.sportsbooks import router as sportsbooks
 from API.sgp import router as sgp
 from API.liquidity import router as liquidity
 
+
 BASE_DIR = Path(__file__).resolve().parent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.redis = {
         "dfs": RedisAsyncManager(database=0),
-        "sportsbooks": RedisAsyncManager(database=6),
+        "sportsbooks": RedisAsyncManager(database=0),
         "sgp_mapped_ids": RedisAsyncManager(database=2),
-        "sgp_auth": RedisAsyncManager(database=5),
-        "auto_sgp": RedisAsyncManager(database=10),
-        "prediction_liquidity": RedisAsyncManager(database=1),
+        "sgp_auth": RedisAsyncManager(database=1),
+        "auto_sgp": RedisAsyncManager(database=3),
+        "prediction_liquidity": RedisAsyncManager(database=0),
     }
+
+    async_engine()
 
     try:
         yield
     finally:
+        await async_engine().dispose()
+
         for redis in app.state.redis.values():
             await redis.close_for_shutdown()
 
@@ -47,7 +49,6 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/",
 )
-
 
 
 # Helps for larger responses - compress them

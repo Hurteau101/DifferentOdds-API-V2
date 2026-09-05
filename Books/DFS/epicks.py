@@ -1,15 +1,14 @@
 import asyncio
-import aiohttp
-from Books.Bases.dfs_book_base import DFSBookBase
-from Monitoring.monitoring import create_sentry_message
+from LoggingHelper.logging_helper import insert_log, ErrorTypes
+from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats
-from Settings.Models.base_models import GameData, TeamData, OddsFormat
-from Utils.request_caller import SportbookRequestType
+from Settings.Models.base_models import GameData, OddsFormat
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class Epicks(DFSBookBase):
     def __init__(self):
-        super().__init__(book_name="epicks", request_type=SportbookRequestType.ASYNC)
+        super().__init__(book_name="epicks")
 
     def _extract_leagues(self, league_data: dict) -> set:
         return set(
@@ -18,18 +17,17 @@ class Epicks(DFSBookBase):
             if additional_info.get("status") == "ACTIVE"
         )
 
-    async def _get_league_data(self, league: str, session: aiohttp.ClientSession) -> list:
+    async def _get_league_data(self, league: str, session: CurlAsyncSession) -> list:
         """Get raw league data from the API, handling pagination if necessary."""
         league_data = []
 
         # Recursive function to handle pagination
         async def _pagination_runner(cursor_payload: dict | None = None):
             api_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("main_url").format(league=league),
                 method="POST",
-                payload=cursor_payload if cursor_payload else {}
+                json=cursor_payload if cursor_payload else {}
             )
 
             if not api_data:
@@ -113,19 +111,17 @@ class Epicks(DFSBookBase):
 
         stat_type = stat_info.get("name_std").lower()
 
-
         return GameData(
             league=projections.get("league").lower(),
             game_key=team_data.get("team_key"),
             start_date=start_date,
-            team_data=TeamData(
-                team_a=team_data.get("team_a"),
-                team_a_abbreviation=team_data.get("team_a_abbreviation"),
-                team_b=team_data.get("team_b"),
-                team_b_abbreviation=team_data.get("team_b_abbreviation"),
-            ),
+            team_a=team_data.get("team_a"),
+            team_a_abbreviation=team_data.get("team_a_abbreviation"),
+            team_b=team_data.get("team_b"),
+            team_b_abbreviation=team_data.get("team_b_abbreviation"),
             odds=[
                 DFSStats(
+                    league=projections.get("league").lower(),
                     player_name=projections.get("subject_std"),
                     player_team=team_data.get("player_team"),
                     stat_type=stat_type,
@@ -146,24 +142,21 @@ class Epicks(DFSBookBase):
             solo_game=False if all([team_data.get("team_a"), team_data.get("team_b")]) else True,
         )
 
-    async def run_book(self):
-        async with aiohttp.ClientSession() as session:
+    async def run_book(self) -> list | None:
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
             league_data = await self.api_caller(
-                book_name=self.book_data.name,
                 session=session,
                 url=self.book_data.url.get("league_url"),
                 method=self.book_data.method,
             )
 
             if not league_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No leagues returned",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API data found"
                 )
-
-                return
+                return None
 
             leagues = self._extract_leagues(league_data)
 
@@ -176,13 +169,12 @@ class Epicks(DFSBookBase):
             combined_data = [item for sublist in data for item in sublist if item] # Flatten the list and remove None entries
 
             if not combined_data:
-                create_sentry_message(
-                    tag_key=self.book_data.name,
-                    tag_value="api_failure",
-                    message="No league data returned",
-                    level="error"
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.API_NO_DATA,
+                    error_message="No API combined data found"
                 )
-                return
+                return None
 
             events_dict = {}
             for raw_data in combined_data:
@@ -199,12 +191,22 @@ class Epicks(DFSBookBase):
 
             epicks_data = list(events_dict.values())
 
-            mapped_data = await self.map_runner(session=session, sportsbook_data=epicks_data)
+            if not epicks_data:
+                insert_log(
+                    book_name=self.book_data.title,
+                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
+                    error_message="No event data found"
+                )
+                return None
 
             await self.store_data(
-                database=self.redis_database,
-                data_to_store=mapped_data,
-                book_name=self.book_data.name
+                data_to_store=epicks_data,
+                key_name=self.book_data.name
             )
 
-            return mapped_data
+            await self.flush_unmapped()
+            return epicks_data
+
+if __name__ == "__main__":
+    epicks = Epicks()
+    asyncio.run(epicks.run_book())
