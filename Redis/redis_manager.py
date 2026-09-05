@@ -126,6 +126,11 @@ class RedisAsyncManager(RedisBaseManager):
             pipeline.unlink(key)
         await pipeline.execute()
 
+    async def update_value(self, key: str, new_data: dict):
+        new_data = self.serialize(new_data)
+        await self.redis_client.set(key, new_data, keepttl=True)
+
+
 class RedisSyncManager(RedisBaseManager):
     redis_client: redis.Redis
 
@@ -188,6 +193,10 @@ class RedisSyncManager(RedisBaseManager):
         for key in keys:
             pipeline.unlink(key)
         pipeline.execute()
+
+    def update_value(self, key: str, new_data: dict):
+        new_data = self.serialize(new_data)
+        self.redis_client.set(key, new_data, keepttl=True)
 
 class RedisStaticMappingService:
     """Service to fetch and cache static mappings from Redis."""

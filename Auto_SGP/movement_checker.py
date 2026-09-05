@@ -35,6 +35,7 @@ class MovementChecker:
         previously_stored_endpoint_instance = RedisSyncManager(database=3)
         previously_stored_redis_instance = RedisSyncManager(database=4)
         bettorodds_redis_instance = RedisSyncManager(database=6)
+        previous_leg_use_redis_instance = RedisSyncManager(database=7)
 
         previous_data = previously_stored_endpoint_instance.get_all_key_values()
 
@@ -98,6 +99,17 @@ class MovementChecker:
                             logger.info(f"Cent Movement Detected for Key {leg_id}: Old Value: {old_value}, New Value: {new_value}")
                             endpoint_keys.add(game_key)
                             previous_stored_keys.add(unique_id)
+
+                            previous_leg_found = previous_leg_use_redis_instance.get_data(key_name=unique_id)
+                            if previous_leg_found:
+                                count = previous_leg_found.get("count", 0)
+                                if count >= 2:
+                                    previous_leg_found.update({"count": count - 1})
+                                    previous_leg_use_redis_instance.update_value(key=unique_id,
+                                                                                 new_data=previous_leg_found)
+                                else:
+                                    previous_leg_use_redis_instance.delete_keys(keys=[unique_id])
+
                             break
 
         previously_stored_redis_instance.delete_keys(keys=previous_stored_keys)
