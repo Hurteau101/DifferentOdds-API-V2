@@ -1,16 +1,16 @@
 import os
 import re
+import sys
 from dataclasses import dataclass
 from curl_cffi import AsyncSession as CurlAsyncSession
-import logging
 from random import shuffle
-import inspect
+from loguru import logger
 from enum import Enum
 from dotenv import load_dotenv
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logging.getLogger("asyncio").setLevel(logging.WARNING)
-logger = logging.getLogger(__name__)
+logger.remove()  # drop the default handler
+logger.remove()
+logger.add(sys.stderr, level="INFO", format="{time:YYYY-MM-DD HH:mm:ss} [{level}] {file}:{line} {function} | {message}")
 
 load_dotenv()
 
@@ -78,15 +78,11 @@ class APICaller:
         except Exception as e:
             return CallResult(ok=False, data={}, status_code=None, text=repr(e))
 
-    def _caller_information(self):
-        """Get information about the caller."""
-        _stack = inspect.stack()[1]
-        return f"{_stack[0].f_locals['self'].__class__.__name__}.{_stack[3]}"
-
 
     async def api_caller(self, url: str, session: CurlAsyncSession|None = None, valid_codes:list|None = None, method: str = "GET",
                          use_proxy:bool = False, proxy_list: list[str]|None = None, proxy_impersonate: str="chrome",
-                         default_header_override: list | None = None, **kwargs):
+                         default_header_override: list | None = None, proxy_abort_codes: list | None = None,
+                         proxy_abort_text: list | None = None, **kwargs):
         """
         Helper function to make API calls using curl_cffi.
         :param url: The URL to be called.
@@ -97,6 +93,8 @@ class APICaller:
         :param proxy_list: List of connection strings. Proxy format USERNAME:PASSWORD@HOST:PORT Default: RESIDENTIAL_PROXIES environment variable
         :param proxy_impersonate: The browser to impersonate. Default: chrome
         :param default_header_override: List of header names to override in the default headers. Default: None
+        :param proxy_abort_codes: If using proxies, pass the list of abort codes in if you want to early return if the status code is in list.
+        :param proxy_abort_text: If using proxies, pass the list of abort text in if you want to early return if the text is in list.
         :param kwargs:
             Additional parameters passed through to curl_cffi's session.request(). See the
             curl_cffi docs for all supported options (headers, params, json, data, auth, cookies, timeout,
@@ -121,7 +119,7 @@ class APICaller:
             result = await self._caller(session=session, url=url, valid_codes=valid_codes, method=method, **kwargs)
 
             if not result.ok:
-                logger.error(f"[{self._caller_information()}] Request failed | Status: {result.status_code} | Body: {result.text}")
+                logger.opt(depth=1).error(f"Request failed | Status: {result.status_code} | Body: {result.text}")
 
             return result.data
 
@@ -158,9 +156,17 @@ class APICaller:
             if result.ok:
                 return result.data
 
-            errors.append(f"Proxy: {proxy} | Status: {result.status_code} | Body: {result.text}")
+            if proxy_abort_text and result.text:
+                error_text = str(result.text).lower()
+                if any(term.lower() in error_text for term in proxy_abort_text):
+                    return {}
 
-        logger.error(f"All proxies failed | Errors: {errors}")
+            if proxy_abort_codes and result.status_code in proxy_abort_codes:
+                return {}
+
+            logger.opt(depth=1).error(f"Request failed | Status: {result.status_code} | Body: {result.text}")
+
+        logger.opt(depth=1).error(f"All proxies failed | Errors: {errors}")
 
         return {}
 
