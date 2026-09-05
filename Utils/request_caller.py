@@ -8,11 +8,17 @@ from loguru import logger
 from enum import Enum
 from dotenv import load_dotenv
 
-logger.remove()  # drop the default handler
+load_dotenv()
+
+
 logger.remove()
 logger.add(sys.stderr, level="INFO", format="{time:YYYY-MM-DD HH:mm:ss} [{level}] {file}:{line} {function} | {message}")
 
-load_dotenv()
+
+
+def check_proxy_format(proxy: str):
+    """Ensures that the proxy format is USERNAME:PASSWORD@HOST:PORT"""
+    return bool(re.fullmatch(r'\S+:\S+@[\d.]+:\d+', proxy))
 
 @dataclass
 class CallResult:
@@ -40,11 +46,6 @@ class APICaller:
         "upgrade-insecure-requests",
         "priority",
     ]
-
-
-    def _check_proxy_format(self, proxy: str):
-        """Ensures that the proxy format is USERNAME:PASSWORD@HOST:PORT"""
-        return bool(re.fullmatch(r'\S+:\S+@[\d.]+:\d+', proxy))
 
     def _header_conflict_check(self, additional_headers: dict, default_headers: bool, default_headers_override: list | None):
         if default_headers and additional_headers:
@@ -132,7 +133,7 @@ class APICaller:
 
         # Shuffle to avoid the same order of proxies.
         shuffled_proxies = list(proxy_list)
-        valid_proxies = [proxy for proxy in shuffled_proxies if self._check_proxy_format(proxy)]
+        valid_proxies = [proxy for proxy in shuffled_proxies if check_proxy_format(proxy)]
 
         if not valid_proxies:
             raise ValueError(f"No valid proxy formats in proxy list. Format should be USERNAME:PASSWORD@HOST:PORT")
