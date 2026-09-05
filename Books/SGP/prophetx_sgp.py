@@ -25,6 +25,7 @@ class ProphetxSGP(SGPBookBase):
             url=self.book_data.url.get("main_url"),
             method=self.book_data.method,
             headers=self.book_data.headers,
+            use_proxy=True,
             json={
                 "stake": 1.0,
                 "line_ids": links_list

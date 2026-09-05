@@ -50,7 +50,7 @@ class NovigSGP(SGPBookBase):
             method="POST",
             json=payload,
             valid_codes=[201],
-            proxy_abort_text=['Cannot price parlay']
+            proxy_abort_text=['Cannot price parlay', 'A parlay must include a valid combination', 'Invalid Parlay Request']
         )
 
         if not api_data:

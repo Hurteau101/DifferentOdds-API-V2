@@ -57,6 +57,7 @@ class SGPBookBase(BookBase):
                 if (match := re.search(reg_pattern, urllib.parse.unquote(link)))
             }
             for link in self.links
+            if link
         ]
 
     @staticmethod
