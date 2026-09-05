@@ -16,8 +16,8 @@ async def get_api_keys():
             return set()
 
         api_keys = set(
-            key.get("api_key")
-            for key in api_data
+            api_key
+            for api_key in api_data.values()
         )
 
         _api_cache["api_keys"] = api_keys if api_keys else set()

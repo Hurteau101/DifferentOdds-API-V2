@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from Auto_SGP.discord_sender import DiscordSGP
 from Auto_SGP.ev_calc_helper import get_sgp_data, parlay_odds
 from Auto_SGP.link_generator import Link
-from Database.AutoSGP.sgp_db import SGPHistory, SGPLeg, SGPBook, SGPExtraInfo, AutoSGPConfigs
+from Database.AutoSGP.sgp_db import SGPHistory, SGPLeg, SGPBook, SGPExtraInfo, AutoSGPConfigs, AutoSGPAvoidMarkets
 from Settings.book_configurations import BookConfiguration
 from Utils.request_caller import APICaller
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -447,7 +447,7 @@ class AutoSGP(APICaller):
                 smt_extra = insert(SGPExtraInfo).on_conflict_do_nothing(constraint="extra_unique_time_game_key")
                 session.execute(smt_extra, extra_info)
 
-    def _add_random_filters(self, auto_filters: list):
+    def _add_random_filters(self, auto_filters: list, avoid_markets: dict):
         database_stat_types = defaultdict(set)
         for auto_filter in auto_filters:
             database_stat_types[auto_filter.get("league_name")].update(auto_filter.get("stat_types"))
@@ -456,10 +456,20 @@ class AutoSGP(APICaller):
         bettorodds_stat_types = defaultdict(set)
 
         for league, league_data in bettorodds_data.items():
+            if not league:
+                continue
+
             for props in league_data.values():
                 for prop in props:
                     if not isinstance(prop, dict):
                         continue
+
+                    found_avoid_market_league = avoid_markets.get(league.upper())
+
+                    if found_avoid_market_league:
+                        stat = prop.get("stat", '').lower()
+                        if stat in found_avoid_market_league:
+                            continue
 
                     bettorodds_stat_types[league].add(prop.get("stat"))
 
@@ -495,20 +505,20 @@ class AutoSGP(APICaller):
         return auto_filters
 
 
-
     async def runner(self):
         """Primary function to run everything"""
         logging.getLogger("sqlalchemy.engine").propagate = False
 
         with self.database_session() as session:
             auto_filters = AutoSGPConfigs.get_active_configs(session)
+            avoid_markets = AutoSGPAvoidMarkets.get_avoided_markets(session)
 
         if not auto_filters:
             raise Exception("No active AutoSGP configs found.")
 
-        auto_filters = self._add_random_filters(auto_filters)
+        auto_filters = self._add_random_filters(auto_filters, avoid_markets)
 
-        for filters in auto_filters[0:1]:
+        for filters in auto_filters:
             logger.info(f"-> Running {filters.get('unique_name')} [{' | '.join(filters.get('stat_types'))}]")
 
             filter_league = filters.get("league_name")

@@ -46,6 +46,33 @@ class AutoSGPLeagues(Base):
 
     league_name: Mapped[str] = mapped_column(primary_key=True)
     configs: Mapped[list["AutoSGPConfigs"]] = relationship(back_populates="league")
+    avoid_market: Mapped[list["AutoSGPAvoidMarkets"]] = relationship(back_populates="league")
+
+class AutoSGPAvoidMarkets(Base):
+    __tablename__ = "auto_sgp_avoided_markets"
+    __table_args__ = (
+        UniqueConstraint("league_name", "market",  name="avoid_unique_league_market"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    league_name: Mapped[str] = mapped_column(ForeignKey("auto_sgp_league.league_name", ondelete="CASCADE"))
+    league: Mapped["AutoSGPLeagues"] = relationship(back_populates="avoid_market")
+    market: Mapped[str] = mapped_column()
+
+    @classmethod
+    def get_avoided_markets(cls, session: Session):
+        rows = session.scalars(
+            select(cls)
+        )
+
+        avoid_markets = defaultdict(list)
+        for row in rows:
+            dict_row = to_dict(row)
+            avoid_markets[dict_row.get("league_name").upper()].append(dict_row.get("market").lower())
+
+        return dict(avoid_markets)
+
+
 
 class SGPHistory(Base):
     __tablename__ = "sgp_history"
