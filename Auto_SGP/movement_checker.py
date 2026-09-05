@@ -32,9 +32,9 @@ class MovementChecker:
         return abs(odds_1_normalized - odds_2_normalized) >= cent_movement_amount
 
     def run_checker(self):
-        previously_stored_endpoint_instance = RedisSyncManager(database=10)
-        previously_stored_redis_instance = RedisSyncManager(database=9)
-        bettorodds_redis_instance = RedisSyncManager(database=8)
+        previously_stored_endpoint_instance = RedisSyncManager(database=3)
+        previously_stored_redis_instance = RedisSyncManager(database=4)
+        bettorodds_redis_instance = RedisSyncManager(database=6)
 
         previous_data = previously_stored_endpoint_instance.get_all_key_values()
 

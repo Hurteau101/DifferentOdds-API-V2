@@ -32,15 +32,8 @@ class Metallic(PPHBookBase):
         "tu": "Team Total - Under"
     }
 
-
     def __init__(self):
         super().__init__(book_name="metallic")
-
-    async def load_auth(self) -> str | None:
-        """Extracts the cookies from Redis."""
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("metallic_token")
-
 
     def build_league_ids(self, raw_leagues: dict, league_filter: bool = True, filter_markets: bool = True) -> dict:
         """Build a mapping of league IDs to their corresponding league names and sport types."""
