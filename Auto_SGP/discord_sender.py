@@ -9,18 +9,15 @@ class DiscordSGP:
     def __init__(self, production: bool):
         load_dotenv()
 
-        # if production:
-        #     self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_PROD")
-        # else:
-        #     self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_DEV")
-        #
-        # if not self.webhook:
-        #     raise ValueError("DISCORD_WEBHOOK_URL not set in environment variables.")
-        #
-        # self.discord = Discord(url=self.webhook)
-        WEBHOOK_URL = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_DEV")
+        if production:
+            self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_PROD")
+        else:
+            self.webhook = os.getenv("AUTO_SGP_DISCORD_WEBHOOK_URL_DEV")
 
-        self.discord = Discord(url=WEBHOOK_URL)
+        if not self.webhook:
+            raise ValueError("DISCORD_WEBHOOK_URL not set in environment variables.")
+
+        self.discord = Discord(url=self.webhook)
 
     def _convert_to_utc(self, event_date):
         """
