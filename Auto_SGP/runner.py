@@ -598,6 +598,9 @@ class AutoSGP(APICaller):
         for league, league_data in bettorodds_data.items():
             for props in league_data.values():
                 for prop in props:
+                    if not isinstance(prop, dict):
+                        continue
+
                     bettorodds_stat_types[league].add(prop.get("stat"))
 
         new_stat_types = defaultdict(set)
