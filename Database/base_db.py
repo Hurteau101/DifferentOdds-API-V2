@@ -18,7 +18,7 @@ def _url(production: bool, driver: str):
         password=os.getenv('DB_PASS'),
         host=os.getenv('DB_HOST'),
         port=int(os.getenv('DB_PORT')),
-        database=os.getenv('DB_NAME') if production else os.getenv('DB_NAME_TEST'),
+        database=os.getenv('DB_NAME_PROD') if production else os.getenv('DB_NAME_TEST'),
     )
 
 # Cache to only create one.
