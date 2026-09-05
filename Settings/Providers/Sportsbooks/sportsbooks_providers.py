@@ -1,10 +1,18 @@
 from dataclasses import dataclass
-from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJobDict, RedisSelector, APSchedulerDetails
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, MapperJobDict, RedisSelector, \
+    APSchedulerDetails, CeleryDetails
 
 
 @dataclass
 class SportsbooksProvider(BaseProvider):
     base_file_path = "Books.Sportsbooks"
+    celery_details: CeleryDetails = CeleryDetails(
+        interval=45,
+        lock_timeout=180,
+        book_type="Sportsbook",
+        soft_limit=120,
+        hard_limit=160,
+    )
 
 
 SPORTSBOOKS_PROVIDERS = [
@@ -118,6 +126,13 @@ SPORTSBOOKS_PROVIDERS = [
         ),
         class_name="Ace",
         file_name="ace",
+        celery_details=CeleryDetails(
+            interval=120,
+            lock_timeout=240,
+            book_type="Sportsbook",
+            soft_limit=120,
+            hard_limit=160,
+        ),
     ),
     SportsbooksProvider(
         title="1BV",
