@@ -1,5 +1,3 @@
-import json
-
 from cachetools import TTLCache
 from fastapi import Depends, Security, HTTPException
 from fastapi.security import APIKeyHeader
@@ -12,7 +10,7 @@ _api_cache = TTLCache(maxsize=1, ttl=600)  # Cache for 10 minutes
 async def get_api_keys():
     # Cache the API keys to reduce redis calls.
     if "api_keys" not in _api_cache:
-        redis_instance = RedisAsyncManager(database=11)
+        redis_instance = RedisAsyncManager(database=10)
         api_data = await redis_instance.get_data(key_name="api_keys")
         if not api_data:
             return set()

@@ -195,9 +195,7 @@ if __name__ == "__main__":
                 ]
             }
 
-            redis_mapped = RedisAsyncManager(database=2)
-            redis_instance = RedisAsyncManager(database=5)
-            book = FliffSGP(mapped_ids_redis_instance=redis_mapped, sgp_data=sgp_data, auth_redis_instance=redis_instance)
+            book = FliffSGP(sgp_data=sgp_data)
             data = await book.run_book(session=session)
             print(data)
 

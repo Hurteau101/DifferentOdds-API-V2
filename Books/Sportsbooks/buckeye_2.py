@@ -26,11 +26,6 @@ class Buckeye2(PPHBookBase):
     def __init__(self):
         super().__init__(book_name="buckeye2")
 
-    async def load_auth(self) -> str | None:
-        """Extracts the cookies from Redis."""
-        redis_instance = RedisAsyncManager(database=5)
-        return await redis_instance.get_data("buckeye_2_auth_token")
-
     @staticmethod
     def name_mapper(market_name: str, odds_key: str, base_market_mapper: dict, **kwargs) -> str:
         mapper = {

@@ -215,7 +215,7 @@ class STS(PPHBookBase):
     async def back_up_auth_runner(self) -> bool:
         from Authentication.sts_auth import STSAuth
 
-        redis_instance = RedisAsyncManager(database=5)
+        redis_instance = RedisAsyncManager(database=1)
         async with CurlAsyncSession(impersonate="firefox133") as session:  # Match auth script
             sts = STSAuth()
             try:

@@ -19,11 +19,11 @@ BASE_DIR = Path(__file__).resolve().parent
 async def lifespan(app: FastAPI):
     app.state.redis = {
         "dfs": RedisAsyncManager(database=0),
-        "sportsbooks": RedisAsyncManager(database=6),
+        "sportsbooks": RedisAsyncManager(database=0),
         "sgp_mapped_ids": RedisAsyncManager(database=2),
-        "sgp_auth": RedisAsyncManager(database=5),
-        "auto_sgp": RedisAsyncManager(database=10),
-        "prediction_liquidity": RedisAsyncManager(database=1),
+        "sgp_auth": RedisAsyncManager(database=1),
+        "auto_sgp": RedisAsyncManager(database=3),
+        "prediction_liquidity": RedisAsyncManager(database=0),
     }
 
     async_engine()
