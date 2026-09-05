@@ -1,7 +1,9 @@
 import os
 from dataclasses import dataclass
+from typing import Optional
+
 from dotenv import load_dotenv
-from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector, APSchedulerDetails
+from Settings.Providers.base_provider import BaseProvider, AuthJobDict, RedisSelector, APSchedulerDetails, CeleryDetails
 
 load_dotenv()
 
@@ -9,6 +11,14 @@ load_dotenv()
 class DFSProvider(BaseProvider):
     base_file_path = "Books.DFS"
     base_interval = 180
+    celery_details: CeleryDetails = CeleryDetails(
+        interval=45,
+        lock_timeout=180,
+        book_type="DFS",
+        soft_limit=120,
+        hard_limit=160,
+    )
+
 
 
 # List of DFS providers with their configurations.

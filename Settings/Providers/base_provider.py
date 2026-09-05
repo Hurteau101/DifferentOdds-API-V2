@@ -58,6 +58,14 @@ class MapperJobDict(BaseJobDict):
     def __post_init__(self):
         self.class_path = f"{self.base_file_path}.Mapping.{self.file_name}"
 
+@dataclass(frozen=True)
+class CeleryDetails:
+    interval: int
+    lock_timeout: int
+    book_type: str
+    soft_limit: int
+    hard_limit: int
+
 
 @dataclass
 class BaseProvider:

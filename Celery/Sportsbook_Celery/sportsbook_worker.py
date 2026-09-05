@@ -1,322 +1,39 @@
+import importlib
 from asgiref.sync import async_to_sync
-from celery import shared_task
-from celery.utils.log import get_task_logger
-from redis.exceptions import LockNotOwnedError
-
-from Books.DFS.sleeper import Sleeper
-from Books.DFS.splashsports import SplashSports
-from Books.DFS.underdog import Underdog
-from Books.DFS.betr import Betr
-from Books.DFS.boom import Boom
-from Books.DFS.chalkboard import Chalkboard
-from Books.DFS.dabble import Dabble
-from Books.DFS.drafters import Drafters
-from Books.DFS.draftkings_6 import DraftKingsPickSix
-from Books.DFS.epicks import Epicks
-from Books.DFS.parlaye import Parlaye
-from Books.DFS.parlayplay import Parlayplay
-from Books.DFS.prizepicks import Prizepicks
-from Books.Prediction_Liquidity.novig import Novig
-from Books.Prediction_Liquidity.prophetx import Prophetx
-
-from Books.Sportsbooks.bet105 import Bet105
-from Books.Sportsbooks.ace import Ace
-from Books.Sportsbooks.buckeye_1 import Buckeye1
-from Books.Sportsbooks.buckeye_2 import Buckeye2
-from Books.Sportsbooks.metalic import Metallic
-from Books.Sportsbooks.onebv import OneBv
-from Books.Sportsbooks.sts import STS
-
-from Books.Prediction_Liquidity.fourcx import FourCX
-
-from Redis.redis_manager import RedisSyncManager
 import time
+from celery import shared_task
+from Redis.redis_manager import RedisSyncManager
+from loguru import logger
 
-logger = get_task_logger(__name__)
+async def _run_book(config: dict):
+    redis_instance = RedisSyncManager(database=14)
+    book_key = config.get("book_key")
 
-DEFAULT_INTERVAL = 45
-DEFAULT_TIMEOUT = 180
+    lock_key = f"{book_key}_lock"
+    lock = redis_instance.redis_client.lock(lock_key, timeout=60, blocking_timeout=3)
 
-SOFT_LIMIT=120
-HARD_LIMIT=160
-
-BOOKS = {
-    "underdog": {
-        "class": Underdog,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "betr": {
-        "class": Betr,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "boom": {
-        "class": Boom,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": False,
-    },
-    "chalkboard": {
-        "class": Chalkboard,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "dabble": {
-        "class": Dabble,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "drafters": {
-        "class": Drafters,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": False,
-    },
-    "pick_6": {
-        "class": DraftKingsPickSix,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "epicks": {
-        "class": Epicks,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": False,
-    },
-    "parlaye": {
-        "class": Parlaye,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": False,
-    },
-    "parlayplay": {
-        "class": Parlayplay,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "prizepicks": {
-        "class": Prizepicks,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "sleeper": {
-        "class": Sleeper,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "splashsports": {
-        "class": SplashSports,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "dfs",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": False,
-    },
-    "4cx": {
-        "class": FourCX,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "prediction_liquidity",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-    "soft_limit": SOFT_LIMIT,
-    "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "bet105": {
-        "class": Bet105,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-    "soft_limit": SOFT_LIMIT,
-    "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "sts": {
-        "class": STS,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-    "soft_limit": SOFT_LIMIT,
-    "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "novig": {
-        "class": Novig,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "prophetx": {
-        "class": Prophetx,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "ace": {
-        "class": Ace,
-        "interval": 120,
-        "lock_timeout": 240,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "1bv": {
-        "class": OneBv,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "metallic": {
-        "class": Metallic,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "buckeye2": {
-        "class": Buckeye2,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-    "buckeye1": {
-        "class": Buckeye1,
-        "interval": DEFAULT_INTERVAL,
-        "lock_timeout": DEFAULT_TIMEOUT,
-        "type": "sportsbook",
-        "task": "Sportsbook_Celery.sportsbook_worker.run_sportsbooks",
-        "soft_limit": SOFT_LIMIT,
-        "hard_limit": HARD_LIMIT,
-        "is_active": True,
-    },
-}
-
-
-async def _run_books(book_name: str, lock_timeout: int):
-    redis_instance = RedisSyncManager(database=16)
-    lock_key = f"{book_name}_lock"
-    lock = redis_instance.redis_client.lock(lock_key, timeout=lock_timeout, blocking_timeout=3)
-
-    logger.info(f"TASK RECEIVED book={book_name} lock_timeout={lock_timeout}")
-
+    logger.info(f"-> Task Received for book: {book_key}")
     if not lock.acquire(blocking=False):
-        logger.info(f"Could not acquire lock for {book_name}. Another instance may be running.")
+        logger.info(f"Could not acquire lock for {book_key}. Another instance may be running.")
         return
 
     start_time = time.perf_counter()
 
     try:
-        logger.info(
-            "\n"
-            "========================================\n"
-            f"-> STARTING BOOK: {book_name.upper()}\n"
-            "========================================"
-        )
-        cls = BOOKS[book_name]["class"]()
-        await cls.run_book()
+        module = importlib.import_module(config.get("class_path"))
+        my_class = getattr(module, config.get("class_name"))
+        class_instance = my_class()
+        await class_instance.run_book()
     finally:
         try:
             if lock.locked():
                 lock.release()
-        except LockNotOwnedError:
-            logger.warning(f"{book_name} lock expired before release.")
+        except Exception as e:
+            logger.warning(f"Error releasing lock for {book_key}: {e}")
 
     elapsed_time = time.perf_counter() - start_time
-
-    logger.info(
-        "\n"
-        "========================================\n"
-        f"-> COMPLETED BOOK: {book_name.upper()}\n"
-        f"->  DURATION: {elapsed_time:.4f} seconds\n"
-        "========================================"
-    )
+    logger.info(f"Task completed for book: {book_key} in {elapsed_time:.2f} seconds")
 
 @shared_task(name="Sportsbook_Celery.sportsbook_worker.run_sportsbooks")
-def run_sportsbooks(book_name: str, lock_timeout):
-    async_to_sync(_run_books)(book_name, lock_timeout)
-
-
-
-
+def run_sportsbooks(config: dict):
+    async_to_sync(_run_book)(config)
