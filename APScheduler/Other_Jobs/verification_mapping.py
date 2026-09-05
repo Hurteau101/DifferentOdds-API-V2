@@ -109,7 +109,7 @@ class VerificationMapping:
         """Removes the keys from redis"""
         if redis_keys:
             print(f"Deleting {redis_keys} keys from Redis")
-            self.mapping_redis_manager.delete_keys(keys=redis_keys, redis_client=self.mapping_redis_manager.redis_client)
+            self.mapping_redis_manager.delete_keys(keys=redis_keys)
 
     # Use fuzzy matching to see if there is any very close matches, before passing to AI.
     def fuzzy_match(self, unmapped_data: list, mapped_keys: set, verified_teams: dict) -> dict:

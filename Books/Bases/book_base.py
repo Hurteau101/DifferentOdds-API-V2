@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio
-from Redis.redis_manager import static_mapping_service
 from abc import ABC
 from Redis.redis_manager import RedisAsyncManager
 from Settings.book_configurations import BookConfiguration
@@ -151,7 +150,7 @@ class BookBase(ABC):
         pipeline = self.mapping_redis_manager.redis_client.pipeline()
 
         for key, value in payload.items():
-            pipeline.set(key, orjson.dumps(value), ex=86400)
+            await pipeline.set(key, orjson.dumps(value), ex=86400)
 
         await pipeline.execute()
 

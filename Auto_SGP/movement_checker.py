@@ -100,8 +100,8 @@ class MovementChecker:
                             previous_stored_keys.add(unique_id)
                             break
 
-        previously_stored_redis_instance.delete_keys(keys=previous_stored_keys, redis_client=previously_stored_redis_instance.redis_client)
-        previously_stored_endpoint_instance.delete_keys(keys=endpoint_keys, redis_client=previously_stored_endpoint_instance.redis_client)
+        previously_stored_redis_instance.delete_keys(keys=previous_stored_keys)
+        previously_stored_endpoint_instance.delete_keys(keys=endpoint_keys)
 
 
 

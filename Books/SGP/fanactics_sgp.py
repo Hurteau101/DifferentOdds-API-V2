@@ -58,7 +58,7 @@ class FanaticsSGP(SGPBookBase):
             }
         )
 
-        data = await socket_helper.send(payload=payload)
+        data = await socket_helper.send(payload=payload, use_proxy=True)
 
         if not data:
             return None
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     sgp_data = {
         'book_name': 'fanatics',
         'links': [
-            "https://fanatics.onelink.me/5kut?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%225274140%22%2C%22marketId%22%3A%22690122318%22%2C%22selectionId%22%3A%221702394588%22%7D%5D%7D&deep_link_value=consume-betslip",
-            "https://fanatics.onelink.me/5kut?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%225274140%22%2C%22marketId%22%3A%22690124468%22%2C%22selectionId%22%3A%221702399791%22%7D%5D%7D&deep_link_value=consume-betslip"
+            "https://fanatics.onelink.me/5kut?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%225307178%22%2C%22marketId%22%3A%22693912666%22%2C%22selectionId%22%3A%221711486846%22%7D%5D%7D&deep_link_value=consume-betslip",
+          "https://fanatics.onelink.me/5kut?deep_link_sub1=%7B%22legs%22%3A%5B%7B%22eventId%22%3A%225307178%22%2C%22marketId%22%3A%22693657061%22%2C%22selectionId%22%3A%221710853203%22%7D%5D%7D&deep_link_value=consume-betslip"
         ]
     }
 
