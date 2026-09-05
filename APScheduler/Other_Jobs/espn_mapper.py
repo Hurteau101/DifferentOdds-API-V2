@@ -84,7 +84,8 @@ class ESPNMapper(APICaller):
                 method=method,
                 headers=headers,
                 data=data,
-                use_proxy=use_proxy
+                use_proxy=use_proxy,
+                proxy_abort_text=["Bad request for team with value", "Error invoking"]
             )
 
 

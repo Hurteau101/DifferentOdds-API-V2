@@ -49,7 +49,8 @@ class NovigSGP(SGPBookBase):
             url=self.book_data.url.get("main_url"),
             method="POST",
             json=payload,
-            valid_codes=[201]
+            valid_codes=[201],
+            proxy_abort_text=['Cannot price parlay']
         )
 
         if not api_data:
@@ -69,8 +70,8 @@ if __name__ == "__main__":
             sgp_data = {
                 "book_name": "novig",
                 "links": [
-                    "https://novig.com/events/01a05abf-58f0-7df2-af4d-8f0e2a6b418e/null?referralCode=null",
-                    "https://novig.com/events/01a05abf-58e9-7df2-9d3f-f20634fd5f25/null?referralCode=null"
+                    "https://novig.com/events/01a06dee-ed49-7c91-be67-8c163c405e29/null?referralCode=null",
+                    "https://novig.com/events/01a06dee-ed49-7c91-be67-8ba5f56f7c4f/null?referralCode=null"
                 ],
                 "is_sgp": True
             }

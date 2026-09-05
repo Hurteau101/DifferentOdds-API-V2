@@ -45,7 +45,8 @@ class OnyxSGP(SGPBookBase):
             headers={
                 "Authorization": f"Bearer {auth_token}"
             },
-            json=payload
+            json=payload,
+            proxy_abort_text=["Error fetching parlay odds"]
         )
 
         if not api_data:
