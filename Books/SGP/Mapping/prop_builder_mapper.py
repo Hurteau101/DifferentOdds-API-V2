@@ -154,12 +154,9 @@ class PropBuilderMapper(MapperBase):
         if any(special_team in raw_stat_name for special_team in special_mapping.keys()):
             for special_team, team_name in special_mapping.items():
                 if special_team in raw_stat_name:
-                    modify_stat_name = self._clean_string(current_stat_name.replace(special_team, '').strip())
+                    return team_name, "team total"
 
-                    # return f"{team_name}_{modify_stat_name}".lower().replace(" ", "_")
-                    return team_name
-
-        return None
+        return None, None
 
     def _special_spread_mapper(self, stat_name: str, league: str):
         mapper = {
@@ -185,8 +182,6 @@ class PropBuilderMapper(MapperBase):
                 inner_mapper = {
                     "1": team_1_abbrv if any(stat in current_stat for stat in self.spread_types) else team_1_name,
                     "2": team_2_abbrv if any(stat in current_stat for stat in self.spread_types) else team_2_name,
-                    # "1": team_1_name if current_stat not in self.spread_types else team_1_abbrv,
-                    # "2": team_2_name if current_stat not in self.spread_types else team_2_abbrv,
                     "x": "draw",
                     "none": "none",
                     "yes": "over 0.5",
@@ -203,16 +198,12 @@ class PropBuilderMapper(MapperBase):
                     line = -float(game_line)
                     game_line = str(line)
 
-                return [team, game_line] if has_game_line is not None else [team]
-
-
+                return self.build_prop_key(stat=current_stat, side=team, line=game_line) if has_game_line else self.build_prop_key(stat=current_stat, side=team, line=None)
 
             if game_type in ["over", "under"]:
-                # return f"{game_type}_{game_line}"
-                return [game_type, game_line]
+                return self.build_prop_key(stat=current_stat, side=game_type, line=game_line)
 
-            return [current_stat]
-            # return current_stat
+            return self.build_prop_key(stat=current_stat, side=None, line=game_line)
 
 
         for game in market.get("markets", []):
@@ -248,29 +239,16 @@ class PropBuilderMapper(MapperBase):
 
             game_title = " vs ".join(sorted([team_1_name, team_2_name]))
 
-            has_special_team_mapping = self._handle_special_game_team_mapping(raw_stat_name, current_stat_name, team_1_name, team_2_name)
-            if has_special_team_mapping:
-                current_stat_name = has_special_team_mapping
-
-
-            raw_gfm_game_key = handle_key_name(team_1_name, team_2_name, team_1_abbrv, team_2_abbrv, game_type, current_stat_name, str(line))
-
-            filtered_keys = [
-                game_key
-                for game_key in raw_gfm_game_key
-                if game_key and game_key.lower() not in (None, '', "none")
-            ]
-
-            if current_stat_name not in filtered_keys:
-                filtered_keys.append(current_stat_name)
-
-            gfm_game_key_sorted = sorted(filtered_keys)
-            gfm_game_key = "_".join(gfm_game_key_sorted).lower().replace(" ", "_")
+            special_direction, special_stat_name = self._handle_special_game_team_mapping(raw_stat_name, current_stat_name, team_1_name, team_2_name)
+            if special_direction and special_stat_name:
+                raw_gfm_game_key = self.build_prop_key(stat=special_stat_name, side=special_direction, line=str(line))
+            else:
+                raw_gfm_game_key = handle_key_name(team_1_name, team_2_name, team_1_abbrv, team_2_abbrv, game_type, current_stat_name, str(line))
 
             game_key = f"{game_title}_{game_date}".replace(" ", "_").lower()
 
             mapping.setdefault(game_key, {})
-            mapping[game_key].setdefault(gfm_game_key, {})
+            mapping[game_key].setdefault(raw_gfm_game_key, {})
 
             decimal_odds = game.get("odds")
             american_odds = decimal_to_american(decimal_odds)
@@ -278,7 +256,7 @@ class PropBuilderMapper(MapperBase):
             if american_odds:
                 american_odds = int(american_odds)
 
-            mapping[game_key][gfm_game_key].update({
+            mapping[game_key][raw_gfm_game_key].update({
                 "game_id": game_id,
                 "test_game_id": test_game_id,
                 "statistic": raw_stat_name,
@@ -350,6 +328,7 @@ class PropBuilderMapper(MapperBase):
                     "statistic": statistic_id,
                     "decimal_odds": decimal_odds,
                     "american_odds": american_odds,
+                    "market_name": current_stat_name,
                     "direction": direction,
                     "condition_value": original_line_value,
                     "line": line,
@@ -370,9 +349,6 @@ class PropBuilderMapper(MapperBase):
         seen = set()
 
         stat_mapping = self.static_mapping_manager.get("static_mapping") or {}
-
-        # stat_mapping = static_mapping.get("stats", {})
-
 
         for league, data in response:
             for market in data:
