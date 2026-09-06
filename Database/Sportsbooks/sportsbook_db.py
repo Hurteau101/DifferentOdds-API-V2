@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime, func, UniqueConstraint
+from sqlalchemy import DateTime, func, UniqueConstraint, delete
 from sqlalchemy import select
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, Session
@@ -126,6 +126,39 @@ class VerificationTeam(Base):
         return [(row.received_name, row.original_league) for row in rows]
 
 
+    @classmethod
+    def transfer_mapping(cls, db_session: Session):
+        """Get the mapping values as raw key name as the key and the normalized name as the value"""
+        rows = db_session.execute(
+            select(cls).where(cls.verified_successfully == True)
+        ).scalars().all()
+
+        verified_mapping = [{
+            "received_name": row.received_name,
+            "normalized_name": row.normalized_name,
+            "abbreviation": row.abbreviation,
+            "league": row.league,
+        } for row in rows]
+
+        if verified_mapping:
+            stmt = insert(VerifiedTeams).values(verified_mapping)
+            stmt = stmt.on_conflict_do_nothing(
+                index_elements=["received_name", "league"]
+            )
+            session.execute(stmt)
+
+            session.execute(
+                delete(cls)
+                .where(cls.verified_successfully == True)
+                .execution_options(synchronize_session=False)
+            )
+
+            session.commit()
+
+
+
+
+
 class VerificationLeague(Base):
     __tablename__ = "verification_league"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -192,6 +225,11 @@ if __name__ == "__main__":
     engine = sync_engine()
     Base.metadata.create_all(engine)
     from sqlalchemy.orm import sessionmaker
+    Session = sessionmaker(engine)
+
+    with Session() as session:
+        VerificationTeam.transfer_mapping(db_session=session)
+
 
     # Session = sessionmaker(bind=engine)
     #
