@@ -77,6 +77,7 @@ async def get_auto_sgp_data(request: Request, include_ev_data=False):
 def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=None, exclusive_books=None,
                         min_books=None, max_ev=None):
     if books:
+        books = [SPECIAL_MAPPING.get(book.lower(), book.lower()) for book in books]
         if not (set(sgp["book_list"]) & set(books)):
             return False
 
