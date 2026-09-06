@@ -10,7 +10,7 @@ import uuid
 
 class PropBuilderMapper(MapperBase):
     def __init__(self):
-        super().__init__(book_name="prop builder*", category="sgp")
+        super().__init__(book_name="prop builder", category="sgp")
         self.ignore_stats = ["ppd", "specials", "all markets", "acca", "field", "h2h", "h2h", "pops"]
         self.spread_types = ["spread", "run line", "puck line", "point spread"]
         self.special_team_mapping = {

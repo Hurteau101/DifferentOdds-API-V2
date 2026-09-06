@@ -630,7 +630,7 @@ SGP_PROVIDERS = [
     ),
     SGPProvider(
         title="Prop Builder",
-        name="prop builder*",
+        name="prop builder",
         url={
             "sgp_url": "https://bv2-us.digitalsportstech.com/api/v2/odds/acca",
         },

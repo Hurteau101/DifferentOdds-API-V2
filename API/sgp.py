@@ -8,6 +8,12 @@ from Database.AutoSGP.sgp_db import SGPHistory
 
 router = APIRouter(prefix="/sgp", tags=["SGP"])
 
+SPECIAL_MAPPING = {
+    "hardrock": "hard rock",
+    "onyxodds": "onyx odds",
+    "prophetx": "prophet x",
+    "propbuilder": "prop builder"
+}
 
 @router.get("/books_list",
             summary="Get SGP Books List",
@@ -71,6 +77,7 @@ async def get_auto_sgp_data(request: Request, include_ev_data=False):
 def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=None, exclusive_books=None,
                         min_books=None, max_ev=None):
     if books:
+        books = [SPECIAL_MAPPING.get(book.lower(), book.lower()) for book in books]
         if not (set(sgp["book_list"]) & set(books)):
             return False
 
