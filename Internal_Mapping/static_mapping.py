@@ -1,5 +1,4 @@
 from enum import Enum
-
 from Redis.redis_manager import static_mapping_service
 from Utils.helpers import clean_structure, ordinal_formatter
 
@@ -26,7 +25,14 @@ class StaticMapping:
         cleaned_name = clean_structure(name)
         raw_name = ordinal_formatter(cleaned_name).lower()
 
-        mapped = bucket.get(raw_name, {})
+        if category == Category.TEAMS:
+            mapped = next((
+                mapped_data
+                for received_name, mapped_data in bucket.items()
+                if received_name == raw_name and league == mapped_data.get("league")
+            ), {})
+        else:
+            mapped = bucket.get(raw_name, {})
 
         if not mapped:
             self.unmapped[category.value].add(f"{league.upper()}|{raw_name}" if league else raw_name)
@@ -34,7 +40,7 @@ class StaticMapping:
 
         return mapped
 
-    def stat_look_up(self, name: str, remove_player_prefix: bool = True):
+    def stat_look_up(self, name: str):
         return self._look_up(self.mapping.get("static_mapping", {}), name=name, category=Category.STATS)
 
     def team_look_up(self, name: str, league: str):

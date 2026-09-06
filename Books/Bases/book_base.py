@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import orjson
 from dotenv import load_dotenv
 load_dotenv()
@@ -81,12 +83,13 @@ class BookBase(ABC):
         return found_mapping if found_mapping else mapping_name
 
 
-    async def store_data(self, data_to_store: dict | list | str, key_name: str, expiration_time: int = None):
+    async def store_data(self, data_to_store: dict | list | str, key_name: str, expiration_time: int = None, wrapped_data: bool = True):
         """
         Store data in Redis with a specified key and expiration time.
         :param data_to_store: The data to be stored.
         :param key_name: The name of the book.
         :param expiration_time: The expiration time for the data in seconds. If not provided, the default expiration time is used.
+        :param wrapped_data: Whether to wrap the data in a dictionary with keys 'last_refresh' and 'data'. As well store with prefex of base: and game:
         """
         if not data_to_store:
             return
@@ -94,11 +97,31 @@ class BookBase(ABC):
         if not expiration_time:
             expiration_time = self.redis_expiration
 
+        if not wrapped_data:
+            await self.redis_manager.store_data(
+                data_to_store=data_to_store,
+                key_name=key_name,
+                key_expiration=expiration_time
+            )
+            return
+
+        wrapped_data = {
+            "last_refresh": datetime.now(timezone.utc).isoformat(),
+            "data": data_to_store
+        }
+
         await self.redis_manager.store_data(
+            key_name=f"{key_name}:game",
             data_to_store=data_to_store,
-            key_name=key_name,
             key_expiration=expiration_time
         )
+
+        await self.redis_manager.store_data(
+            key_name=f"{key_name}:base",
+            data_to_store=wrapped_data,
+            key_expiration=expiration_time
+        )
+
 
     def add_to_events(self, events: dict, item, game_data_cls):
         """Helper to add sportsbook data to events dictionary grouped by team_key."""

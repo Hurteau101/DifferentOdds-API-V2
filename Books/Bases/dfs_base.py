@@ -19,33 +19,3 @@ class DFSBookBase(BookBase, ABC):
                 if game_data:
                     yield game_data
 
-    async def store_data(self, data_to_store: dict | list, key_name: str, expiration_time: int = None):
-        """
-        Store data in Redis with a specified key and expiration time.
-        :param data_to_store: The data to be stored.
-        :param key_name: The name of the book.
-        :param expiration_time: The expiration time for the data in seconds. If not provided, the default expiration time is used.
-        """
-        if not data_to_store:
-            return
-
-        if not expiration_time:
-            expiration_time = self.redis_expiration
-
-
-        wrapped_data = {
-            "last_refresh": datetime.now(timezone.utc).isoformat(),
-            "data": data_to_store
-        }
-
-        await self.redis_manager.store_data(
-            key_name=f"{key_name}:game",
-            data_to_store=data_to_store,
-            key_expiration=expiration_time
-        )
-
-        await self.redis_manager.store_data(
-            key_name=f"{key_name}:base",
-            data_to_store=wrapped_data,
-            key_expiration=expiration_time
-        )

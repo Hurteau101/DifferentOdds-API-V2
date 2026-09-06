@@ -329,7 +329,8 @@ class Betr(DFSBookBase):
 
             await self.store_data(
                 data_to_store=betr_data,
-                key_name=self.book_data.name
+                key_name=self.book_data.name,
+                wrapped_data=True,
             )
 
             await self.flush_unmapped()

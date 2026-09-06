@@ -324,6 +324,7 @@ class Underdog(DFSBookBase):
             await self.store_data(
                 key_name=self.book_data.name,
                 data_to_store=underdog_data,
+                wrapped_data=True,
             )
 
             await self.flush_unmapped()
