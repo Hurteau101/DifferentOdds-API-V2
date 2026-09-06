@@ -78,7 +78,7 @@ class VerifiedTeams(Base):
             select(cls.received_name, cls.normalized_name, cls.abbreviation, cls.league)
         ).all()
         return {
-            row.received_name: {
+            f"{row.received_name}_{row.league}".lower(): {
                 "normalized_name": row.normalized_name,
                 "abbreviation": row.abbreviation,
                 "league": row.league,

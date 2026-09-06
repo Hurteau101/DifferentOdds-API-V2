@@ -26,13 +26,9 @@ class StaticMapping:
         raw_name = ordinal_formatter(cleaned_name).lower()
 
         if category == Category.TEAMS:
-            mapped = next((
-                mapped_data
-                for received_name, mapped_data in bucket.items()
-                if received_name == raw_name and league == mapped_data.get("league")
-            ), {})
-        else:
-            mapped = bucket.get(raw_name, {})
+            raw_name = f"{raw_name}_{league}".lower()
+
+        mapped = bucket.get(raw_name, {})
 
         if not mapped:
             self.unmapped[category.value].add(f"{league.upper()}|{raw_name}" if league else raw_name)
@@ -44,7 +40,7 @@ class StaticMapping:
         return self._look_up(self.mapping.get("static_mapping", {}), name=name, category=Category.STATS)
 
     def team_look_up(self, name: str, league: str):
-        if not league:
+        if not league or not name:
             return name
 
         return self._look_up(self.mapping.get("team_mapping", {}), name=name, category=Category.TEAMS, league=league)
