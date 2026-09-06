@@ -17,6 +17,11 @@ SPREAD_PATTERN = re.compile(r'[+-]\d')
 SPREAD_SIDE_PATTERN = re.compile(r'^([A-Z]{2,3})\s+([+-]\d+(?:\.\d+)?)$')
 SKIPPED_PROPS = ["odd/even"]
 
+BOOK_MAPPING_KEYS = {
+    "prop builder": "prop_builder_old" # Allows removing this book.
+}
+
+
 def _input_team(game_details: dict, league: str, espn_mapping: dict, split_match: list):
     """In charge of adding the team name to the game details"""
     player_name = clean_and_normalize(game_details.get("Player", ''))
@@ -118,7 +123,7 @@ def _load_prop_builder(event_key: str, prop_key: str, prop_builder_ids: dict, fe
         return
 
     feed.update({
-        "prop builder*": {
+        "prop builder": {
             "american_odds": found.get("american_odds"),
             "bet_link": '',
         }
@@ -226,7 +231,8 @@ def _extract_book_feed(book_feed: dict, stat_type: str, valid_books: set):
     odds = {}
 
     for book_name, book_directions in book_feed.items():
-        book_name = book_name.lower()
+        lower_book_name = book_name.lower()
+        book_name = BOOK_MAPPING_KEYS.get(lower_book_name, lower_book_name)
 
         if book_name not in valid_books:
             continue

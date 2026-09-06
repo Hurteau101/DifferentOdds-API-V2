@@ -10,7 +10,7 @@ from Books.SGP.Mapping.prop_builder_mapper import PropBuilderMapper
 
 class PropBuilderSGP(SGPBookBase):
     def __init__(self, **kwargs):
-        super().__init__(category="SGP", book_name="prop builder*", **kwargs)
+        super().__init__(category="SGP", book_name="prop builder", **kwargs)
 
     def _rebuild_additional_data(self, additional_data: list):
         """Rebuilds the additional data"""
