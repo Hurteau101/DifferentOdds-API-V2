@@ -122,9 +122,9 @@ class DraftKingsPickSix(DFSBookBase):
                 start_date = start_date.split(".")[0]
 
             if team_a and team_b:
-                game_key = self.generate_key([team_a, team_b, start_date])
+                game_key_list = [team_a, team_b]
             else:
-                game_key = self.generate_key([player_name, start_date])
+                game_key_list = [player_name]
 
             league = game_found.get("leagueAbbreviation") or game_found.get("leagueName")
 
@@ -153,7 +153,7 @@ class DraftKingsPickSix(DFSBookBase):
                 "team_b_abbreviation": game_found.get("awayTeam", {}).get("abbreviation") if team_b else None,
                 "league": league,
                 "start_date": start_date,
-                "game_key": game_key,
+                "game_key_list": game_key_list,
                 "player_name": player_name,
                 "player_team": player_team,
                 "stats": []
@@ -231,7 +231,7 @@ class DraftKingsPickSix(DFSBookBase):
                         league=markets.get("league"),
                         start_date=markets.get("start_date"),
                         solo_game=False,
-                        game_key=markets.get("game_key"),
+                        game_key_items=markets.get("game_key_list", []),
                         team_a=markets.get("team_a"),
                         team_a_abbreviation=markets.get("team_a_abbreviation"),
                         team_b=markets.get("team_b"),

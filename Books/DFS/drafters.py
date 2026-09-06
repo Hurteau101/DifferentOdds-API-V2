@@ -36,9 +36,9 @@ class Drafters(DFSBookBase):
             start_date = datetime.fromtimestamp(start_date).isoformat()
 
             if team_a and team_b:
-                team_key = Drafters.generate_key([team_a, team_b, start_date])
+                game_key_list = [team_a, team_b]
             else:
-                team_key = Drafters.generate_key([player_name, start_date])
+                game_key_list = [player_name]
 
             stats = [
                 DFSStats(
@@ -59,7 +59,7 @@ class Drafters(DFSBookBase):
             else:
                 merged_players[player_id] = GameData(
                     league=league,
-                    game_key=team_key,
+                    game_key_items=game_key_list,
                     start_date=start_date,
                     team_a=team_a,
                     team_b=team_b,

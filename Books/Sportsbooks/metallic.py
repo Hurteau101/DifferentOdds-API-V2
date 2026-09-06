@@ -187,7 +187,7 @@ class Metallic(PPHBookBase):
                 if not team_data:
                     return None
 
-                game_key = self.generate_key([team_data.get("team_a"), team_data.get("team_b"), game_date])
+                game_key_list = [team_data.get("team_a"), team_data.get("team_b")]
 
                 game = GameData(
                     start_date=game_date,
@@ -195,7 +195,7 @@ class Metallic(PPHBookBase):
                     team_a=team_data.get("team_a"),
                     team_b=team_data.get("team_b"),
                     odds=[],
-                    game_key=game_key
+                    game_key_items=game_key_list
                 )
 
                 # Enumerate, as first index in the list is over [index: 0], whereas the second is under [index: 1].

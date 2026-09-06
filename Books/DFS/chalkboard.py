@@ -98,9 +98,9 @@ class Chalkboard(DFSBookBase):
         player_team = team_a if player_team_id == team_a_id else team_b if player_team_id == team_b_id else None
 
         if team_a and team_b:
-            team_key = Chalkboard.generate_key([team_a, team_b, start_date])
+            game_key_list = [team_a, team_b]
         else:
-            team_key = Chalkboard.generate_key([player_name, start_date])
+            game_key_list = [player_name]
 
         market_base = base_map.get("markets", {}).get("mapValue", {}).get("fields")
 
@@ -116,7 +116,7 @@ class Chalkboard(DFSBookBase):
         return GameData(
             league=league,
             start_date=start_date,
-            game_key=team_key,
+            game_key_items=game_key_list,
             team_a=team_a,
             team_b=team_b,
             team_a_abbreviation=team_a_abbreviation,

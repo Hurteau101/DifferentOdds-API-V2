@@ -69,9 +69,9 @@ class Epicks(DFSBookBase):
         player_team = player_info.get("team_name")
 
         if home_team and away_team:
-            team_key = Epicks.generate_key([home_team, away_team, start_date])
+            game_key_list = [home_team, away_team]
         else:
-            team_key = Epicks.generate_key([player_team, start_date])
+            game_key_list = [player_team]
 
         return {
             "team_a": home_team,
@@ -79,7 +79,7 @@ class Epicks(DFSBookBase):
             "team_b": away_team,
             "team_b_abbreviation": away_abbreviation,
             "player_team": player_team,
-            "team_key": team_key,
+            "game_key_list": game_key_list,
         }
 
     def _extract_data(self, projections: dict, teams: dict, events: dict, players: dict, props: dict) -> GameData | None:
@@ -113,7 +113,7 @@ class Epicks(DFSBookBase):
 
         return GameData(
             league=projections.get("league").lower(),
-            game_key=team_data.get("team_key"),
+            game_key_items=team_data.get("game_key_list", []),
             start_date=start_date,
             team_a=team_data.get("team_a"),
             team_a_abbreviation=team_data.get("team_a_abbreviation"),

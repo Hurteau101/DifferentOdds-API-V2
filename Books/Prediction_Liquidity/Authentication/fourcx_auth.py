@@ -42,6 +42,7 @@ class FourcxAuth(AuthBase):
 
                 return False
 
+
             await self.store_data(
                 key_name=self.auth_id_name,
                 data_to_store=auth,

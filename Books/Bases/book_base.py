@@ -36,6 +36,7 @@ class BookBase(ABC):
         config = BookConfiguration.get_provider(category=category, book_name=book_name)
         return config.curl_impersonation
 
+    ## REMOE FROM HERE AFTER FULL CONVERSION.
     @staticmethod
     def generate_key(key_data) -> str | None:
         """Generate a unique key based on the provided data."""
@@ -43,7 +44,7 @@ class BookBase(ABC):
             return None
 
         generate_key = sorted(key_data, reverse=True)
-        return "_".join([str(key.replace(" ", "_")).lower() for key in generate_key])
+        return "_".join([str(key.replace(" ", "_")).lower() for key in generate_key if key])
 
     def split_colon_at_proxy(self, proxy: str) -> list | None:
         """Splits a proxy string into parts based on the colon (:) & (@) characters."""
@@ -83,7 +84,7 @@ class BookBase(ABC):
         return found_mapping if found_mapping else mapping_name
 
 
-    async def store_data(self, data_to_store: dict | list | str, key_name: str, expiration_time: int = None, wrapped_data: bool = True):
+    async def store_data(self, data_to_store: dict | list | str, key_name: str, expiration_time: int = None, wrapped_data: bool = False):
         """
         Store data in Redis with a specified key and expiration time.
         :param data_to_store: The data to be stored.
@@ -130,8 +131,8 @@ class BookBase(ABC):
         if key not in events:
             events[key] = game_data_cls(
                 team_a=item.team_a,
+                game_key_items=item.game_key_items,
                 team_b=item.team_b,
-                game_key=key,
                 league=item.league,
                 start_date=item.start_date,
                 solo_game=item.solo_game,

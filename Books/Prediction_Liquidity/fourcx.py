@@ -113,12 +113,10 @@ class FourCX(PredictionBookBase):
 
         game_date = game.get("start")
 
-        team_keys = "_".join(team_list).replace(" ", "_")
-        key = f"{league}_{team_keys}_{game_date}".lower()
-
+        game_key_list = team_list
 
         return GameData(
-            game_key=key,
+            game_key_items=game_key_list,
             start_date=game_date,
             league=modified_league,
             team_a=team_list[0],
@@ -161,7 +159,7 @@ class FourCX(PredictionBookBase):
         return valid_leagues
 
     async def run_book(self) -> list | None:
-        auth_token = await self.redis_auth_manager.get_data("4cx_auth_token")
+        auth_token = await self.redis_auth_manager.get_data(self.book_data.auth_job_dict.auth_redis_key)
 
         if not auth_token:
             logger.error("No auth token found")

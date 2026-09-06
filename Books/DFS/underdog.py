@@ -80,11 +80,11 @@ class Underdog(DFSBookBase):
             delimiter = None
 
         if not delimiter:
-            return {"team_a": None, "team_b": None, "player_team": None, "start_date": None, "team_key": None}
+            return {"team_a": None, "team_b": None, "player_team": None, "start_date": None, "game_key_list": None}
 
         teams = match_title.split(delimiter)
         if len(teams) != 2:
-            return {"team_a": None, "team_b": None, "player_team": None, "start_date": None, "team_key": None}
+            return {"team_a": None, "team_b": None, "player_team": None, "start_date": None, "game_key_list": None}
 
         home_team, away_team = teams if delimiter == " vs " else (teams[1], teams[0])
 
@@ -96,14 +96,10 @@ class Underdog(DFSBookBase):
         team_b_abbrev = abbreviation_split.get("team_b") if abbreviation_split else None
 
         player_team = home_team if team_id == home_team_id else away_team
-        generate_key = Underdog.generate_key([
-            home_team,league,
-            away_team,league,
-            game_section.get("scheduled_at")
-        ])
+        game_key_list = [home_team, away_team]
 
         return {"team_a": home_team, "team_b": away_team, "player_team": player_team, "team_a_abbreviation": team_a_abbrev,
-                "team_b_abbreviation": team_b_abbrev, "team_key": generate_key}
+                "team_b_abbreviation": team_b_abbrev, "game_key_list": game_key_list}
 
     def _extract_solo_games(self, game_section: dict, player_name: str, league) -> dict:
         """Extract Solo Game Details"""
@@ -111,7 +107,7 @@ class Underdog(DFSBookBase):
         if valid_split:
             team_a = valid_split["team_a"]
             team_b = valid_split["team_b"]
-            game_key = Underdog.generate_key([team_a, team_b, game_section.get("scheduled_at")])
+            game_key_list = [team_a, team_b]
         else:
             team_a = None
             team_b = None
@@ -120,14 +116,14 @@ class Underdog(DFSBookBase):
             if full_title:
                 full_title = full_title.replace("-", "").replace("_", "").replace(".", "")
                 full_title = re.sub(r"\s+", " ", full_title).strip()
-                game_key = Underdog.generate_key([player_name, full_title, game_section.get("scheduled_at")])
+                game_key_list = [player_name, full_title]
 
         return {
             "match_title": game_section.get("title").strip(),
             "player_team": player_name,
             "team_a": team_a,
             "team_b": team_b,
-            "team_key": game_key,
+            "game_key_list": game_key_list,
         }
 
     def _get_game_details(self, game_section: dict, game_type: str, player_name: str, team_id: str, league: str) -> dict:
@@ -252,11 +248,12 @@ class Underdog(DFSBookBase):
         stat_details = self._extract_stats(league=league, line_section=grouped_stats, player_name=player_details.get("player_name"),
                                            player_team=player_team)
 
+
         return GameData(
             league=league,
             start_date=game_details.get("start_date"),
             solo_game=game_details.get("solo_game"),
-            game_key=game_details.get("team_key"),
+            game_key_items=game_details.get("game_key_list", []),
             team_a=game_details.get("team_a"),
             team_b=game_details.get("team_b"),
             team_a_abbreviation=game_details.get("team_a_abbreviation"),
@@ -308,6 +305,7 @@ class Underdog(DFSBookBase):
             events = {}
             for player in api_data.get("appearances", []):
                 player_data = self._extract_api_data(mapped_data, player, stats_dict)
+
                 if player_data:
                     self.add_to_events(events, player_data, GameData)
 

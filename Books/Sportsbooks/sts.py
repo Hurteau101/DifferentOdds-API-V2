@@ -69,7 +69,7 @@ class STS(PPHBookBase):
             utc_time = combined_date.astimezone(timezone.utc).replace(tzinfo=None)  # Remove timezone info after conversion
             start_date = utc_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-            game_key = self.generate_key([teams.get("team_a"), teams.get("team_b"), start_date]) if teams else None
+            game_key_list = [teams.get("team_a"), teams.get("team_b")] if teams else []
             league = league_map.get(line.get("idsport"), {}).get("name", "unknown league")
 
             game_data = GameData(
@@ -78,7 +78,7 @@ class STS(PPHBookBase):
                 team_a=teams.get("team_a"),
                 team_b=teams.get("team_b"),
                 odds=[],
-                game_key=game_key
+                game_key_items=game_key_list
             )
 
             for side in line.get("sides", []):

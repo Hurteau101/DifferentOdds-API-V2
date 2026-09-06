@@ -226,7 +226,7 @@ class OneBv(PPHBookBase):
             return None
 
 
-        game_key = self.generate_key([team_dict.get("team_a"), team_dict.get("team_b"), start_date])
+        game_key_list = [team_dict.get("team_a"), team_dict.get("team_b")]
 
         league = found_league.get("sport_id", '')
 
@@ -236,7 +236,7 @@ class OneBv(PPHBookBase):
             team_a=team_dict.get("team_a"),
             team_b=team_dict.get("team_b"),
             odds=[],
-            game_key=game_key
+            game_key_items=game_key_list
         )
 
         market_name = found_league.get("market_type", '').lower()

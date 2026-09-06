@@ -1,7 +1,8 @@
-from dataclasses import dataclass, field, InitVar
+from dataclasses import dataclass, field
 from typing import Optional, TypedDict
-from Utils.helpers import clean_structure, cache_time
+from Utils.helpers import cache_time
 from Internal_Mapping.static_mapping import static_mapping
+from Books.Bases.book_base import BookBase
 
 
 def map_teams(name: str | None, league: str) -> tuple:
@@ -33,10 +34,11 @@ class GameData:
     event_name: str = field(init=False)
     league: str
     start_date: str
-    game_key: str
+    game_key_items: list
     team_a: str | None
     team_b: str | None
     odds: list[Stats]
+    game_key: str = field(init=False)
     solo_game: Optional[bool] = None
     team_a_abbreviation: Optional[str] = None
     team_b_abbreviation: Optional[str] = None
@@ -60,6 +62,18 @@ class GameData:
         # If the team_a league is not set, set it to the team_b league if it exists.
         if not team_a_league:
             self.league = team_b_league if team_b_league else self.league
+
+        mapped_game_keys = []
+        for key in self.game_key_items:
+            if key:
+                team, _, _ = map_teams(key, self.league)
+                mapped_game_keys.append(team)
+
+        if not mapped_game_keys:
+            # print(f"No mapped game keys found for {self.game_key_items}")
+            self.game_key = BookBase.generate_key([self.team_a, self.team_b, self.start_date])
+
+        self.game_key = BookBase.generate_key([*mapped_game_keys, self.start_date])
 
         self.event_name = " vs ".join(sorted([self.team_a, self.team_b])) if self.team_a and self.team_b else "N/A"
 

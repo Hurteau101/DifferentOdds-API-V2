@@ -152,20 +152,18 @@ class Betr(DFSBookBase):
             team_a, team_b = data.get("name").split("@")
             team_a = team_a.strip()
             team_b = team_b.strip()
-            team_key = Betr.generate_key([team_a, team_b, data.get("date")])
+            game_key_list = [team_a, team_b]
 
             return {
                 "team_a": team_a,
                 "team_b": team_b,
-                "team_key": team_key,
+                "game_key_list": game_key_list,
             }
 
-        # Solo games won't have team names, so we use the player's name and date to generate a key.
-        team_key = Betr.generate_key([player_name, data.get("date")])
         return {
             "team_a": player_name,
             "team_b": None,
-            "team_key": team_key,
+            "game_key_list": [player_name], # Solo games won't have team names, so we use the player's name and date to generate a key.
         }
 
 
@@ -226,7 +224,7 @@ class Betr(DFSBookBase):
             results.append(
                 GameData(
                     league=league,
-                    game_key=team_names.get("team_key"),
+                    game_key_items=team_names.get("game_key_list"),
                     start_date=game_date,
                     team_a=team_names.get("team_a"),
                     team_b=team_names.get("team_b"),

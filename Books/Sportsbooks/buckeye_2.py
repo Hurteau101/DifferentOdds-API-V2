@@ -256,7 +256,7 @@ class Buckeye2(PPHBookBase):
             league=league,
             team_a=team_a,
             team_b=team_b,
-            game_key=self.generate_key([team_a, team_b, found_schedule.get("date")]),
+            game_key_items=[team_a, team_b],
             odds=[]
         )
 
@@ -291,7 +291,7 @@ class Buckeye2(PPHBookBase):
             team_a=team_dict.get("team_a"),
             team_b=team_dict.get("team_b"),
             odds=[],
-            game_key=self.generate_key([event_data.get("Team1ID"), event_data.get("Team2ID"), modified_date]),
+            game_key_items=[event_data.get("Team1ID"), event_data.get("Team2ID")],
         )
 
         game_data.odds.extend(self.moneyline_type(

@@ -193,12 +193,13 @@ class Bet105(SportsbooksBookBase):
         for market in self.yeild_markets(market_results):
             data = self._extract_market_data(market_data=market, fixture_data=fixtures, mapped_data=mapped_data)
             if data:
-                key=data.game_key
+                key=data.game_key_items
+                temp_key = '_'.join(key)
 
-                if key in data_dict:
-                    data_dict[key].odds.extend(data.odds)
+                if temp_key in data_dict:
+                    data_dict[temp_key].odds.extend(data.odds)
                 else:
-                    data_dict[key] = data
+                    data_dict[temp_key] = data
 
         return list(data_dict.values())
 
@@ -223,7 +224,7 @@ class Bet105(SportsbooksBookBase):
             if len(teams) != 2:
                 return None
 
-            key = Bet105.generate_key([teams[0], teams[1], parent_dict.get("start_date")])
+            game_key_list = [teams[0], teams[1]]
 
             team_dict.update({"team_a":teams[0].strip(), "team_b":teams[1].strip()})
 
@@ -234,13 +235,13 @@ class Bet105(SportsbooksBookBase):
                 for participant in teams
                 for team in participant.values()
             ]
-            key = Bet105.generate_key([team_list[0], team_list[1], parent_dict.get("start_date")]) if len(teams) == 2 else (
-                Bet105.generate_key([team_list[0], parent_dict.get("start_date")]))
+
+            game_key_list = [team_list[0], team_list[1]] if len(teams) == 2 else [team_list[0]]
 
             team_dict.update({"team_a":team_list[0].strip(), "team_b":team_list[1].strip() if len(teams) == 2 else None})
         else:
             team_dict.update({"team_a": None, "team_b": None})
-            key = f"{parent_dict.get('event_name')}_{parent_dict.get('start_date')}"
+            game_key_list = [parent_dict.get('event_name')]
 
         bet_type = mapped_data.get("sides").get(str(market_data.get("side_id")))
 
@@ -267,7 +268,7 @@ class Bet105(SportsbooksBookBase):
 
         return GameData(
             start_date=parent_dict.get("start_date"),
-            game_key=key.replace(" ", "_"),
+            game_key_items=game_key_list,
             league=parent_dict.get("league"),
             team_a=team_dict.get("team_a"),
             team_b=team_dict.get("team_b"),

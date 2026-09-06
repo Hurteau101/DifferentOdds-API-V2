@@ -24,12 +24,12 @@ class Dabble(DFSBookBase):
         team_a = teams[0]
         team_b = teams[1] if len(teams) > 1 else None
 
-        team_key = Dabble.generate_key([team_a, team_b, start_time]) if team_b else Dabble.generate_key([player_team, start_time])
+        game_key_list = [team_a, team_b] if team_b else [player_team]
 
         return {
             "team_a": team_a,
             "team_b": team_b,
-            "team_key": team_key,
+            "game_key_list": game_key_list,
             "player_team": player_team
         }
 
@@ -77,7 +77,7 @@ class Dabble(DFSBookBase):
             if player_key not in merged_stats:
                 merged_stats[player_key] = GameData(
                     league=league,
-                    game_key=team_data.get("team_key"),
+                    game_key_items=team_data.get("game_key_list", []),
                     start_date=start_date,
                     team_a=team_data.get("team_a"),
                     team_b=team_data.get("team_b"),

@@ -49,10 +49,9 @@ class Sleeper(DFSBookBase):
         start_date = datetime.fromtimestamp(team_information.get('start_time') / 1000).isoformat()
 
         if team_a and team_b:
-            team_key = Sleeper.generate_key([team_a, team_b, start_date])
+            game_key_list = [team_a, team_b]
         else:
-
-            team_key = Sleeper.generate_key([player_name, start_date])
+            game_key_list = [player_name]
 
         league = game_data.get("sport")
 
@@ -62,7 +61,7 @@ class Sleeper(DFSBookBase):
 
         return GameData(
             league=league,
-            game_key=team_key,
+            game_key_items=game_key_list,
             start_date=start_date,
             team_a=team_a,
             team_b=team_b,

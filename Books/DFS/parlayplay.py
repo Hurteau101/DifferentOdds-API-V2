@@ -28,9 +28,9 @@ class Parlayplay(DFSBookBase):
         start_date = game_data.get("match", {}).get("matchDate")
 
         if team_a and team_b:
-            team_key = Parlayplay.generate_key([team_a, team_b, start_date])
+            game_key_list = [team_a, team_b]
         else:
-            team_key = Parlayplay.generate_key([game_data.get("player", {}).get("fullName"), start_date])
+            game_key_list = [game_data.get("player", {}).get("fullName")]
 
         return {
             "team_a":team_a,
@@ -38,7 +38,7 @@ class Parlayplay(DFSBookBase):
             "player_team":player_team,
             "team_a_abbreviation":team_a_abbreviation,
             "team_b_abbreviation":team_b_abbreviation,
-            "team_key":team_key
+            "game_key_list":game_key_list
         }
 
     @staticmethod
@@ -76,7 +76,7 @@ class Parlayplay(DFSBookBase):
         return GameData(
             league=player.get("match").get("league").get("leagueNameShort"),
             start_date=player.get("match").get("matchDate"),
-            game_key=team_data.get("team_key"),
+            game_key_items=team_data.get("game_key_list", []),
             team_a=team_data.get("team_a"),
             team_b=team_data.get("team_b"),
             team_a_abbreviation=team_data.get("team_a_abbreviation"),

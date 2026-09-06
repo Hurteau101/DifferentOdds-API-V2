@@ -110,9 +110,9 @@ class Prizepicks(DFSBookBase):
         live = True if league.lower() == "mlblive" else False
 
         if team and opponent:
-            team_key = Prizepicks.generate_key([team, opponent, start_date])
+            game_key_list = [team, opponent]
         else:
-            team_key = Prizepicks.generate_key([player_name, start_date])
+            game_key_list = [player_name]
 
         stats = [
             DFSStats(
@@ -142,7 +142,7 @@ class Prizepicks(DFSBookBase):
 
         return GameData(
             league=league,
-            game_key=team_key,
+            game_key_items=game_key_list,
             start_date=start_date,
             team_a=team,
             team_b=opponent,

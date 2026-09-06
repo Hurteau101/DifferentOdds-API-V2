@@ -51,7 +51,7 @@ class Prophetx(PredictionBookBase):
         game_data = GameData(
             league=league,
             start_date=event_information.get("start_date"),
-            game_key=event_information.get("event_name"),
+            game_key_items=[event_information.get("teams", {}).get("home", {}).get("name"), event_information.get("teams", {}).get("away", {}).get("name")],
             team_a=event_information.get("teams", {}).get("home", {}).get("name"),
             team_b=event_information.get("teams", {}).get("away", {}).get("name"),
             team_a_abbreviation=event_information.get("teams", {}).get("home", {}).get("abbreviation"),

@@ -252,7 +252,7 @@ class Ace(PPHBookBase):
             league=league,
             team_a=team_a,
             team_b=team_b,
-            game_key=self.generate_key([team_a, team_b, start_date]),
+            game_key_items=[team_a, team_b],
             odds=[]
         )
 
@@ -294,7 +294,7 @@ class Ace(PPHBookBase):
         team_a=self.league_dict.get(group_id, {}).get("home") if group_id else games.get("htm")
         team_b=self.league_dict.get(group_id, {}).get("away") if group_id else games.get("vtm")
 
-        game_key = self.generate_key([team_a, team_b, start_date])
+        game_key_list = [team_a, team_b]
 
         team_dict = {team_a: team_a, team_b: team_b}
 
@@ -303,7 +303,7 @@ class Ace(PPHBookBase):
             league=league,
             team_a=team_a,
             team_b=team_b,
-            game_key=game_key,
+            game_key_items=game_key_list,
             odds=[],
         )
 

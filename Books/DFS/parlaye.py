@@ -16,9 +16,9 @@ class Parlaye(DFSBookBase):
         start_date = game_data.get("game_start_time")
 
         if team_a and team_b:
-            team_key = Parlaye.generate_key([team_a, team_b, start_date])
+            game_key_list = [team_a, team_b]
         else:
-            team_key = Parlaye.generate_key([player_name, start_date])
+            game_key_list = [player_name]
 
         odds_mapper = {
             "over": {
@@ -33,7 +33,7 @@ class Parlaye(DFSBookBase):
 
         return GameData(
             league=game_data.get("league"),
-            game_key=team_key,
+            game_key_items=game_key_list,
             start_date=start_date,
             team_a=team_a,
             team_b=team_b,

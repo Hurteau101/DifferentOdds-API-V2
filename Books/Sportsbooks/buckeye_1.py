@@ -264,7 +264,7 @@ class Buckeye1(PPHBookBase):
                 team_a=team_1_name,
                 team_b=team_2_name,
                 odds=[],
-                game_key=self.generate_key([team_1_name, team_2_name, start_date])
+                game_key_items=[team_1_name, team_2_name]
             )
 
 

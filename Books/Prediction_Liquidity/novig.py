@@ -128,7 +128,7 @@ class Novig(PredictionBookBase):
             event_obj = GameData(
                 league=league_name,
                 start_date=start_date_minus_5,
-                game_key=event_name,
+                game_key_items=[*teams],
                 team_a=teams[0],
                 team_b=teams[1],
                 odds=[],
