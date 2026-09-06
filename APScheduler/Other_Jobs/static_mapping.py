@@ -16,9 +16,9 @@ def store_static_mapping():
         team_mapping = VerifiedTeams.get_mapping(db_session=session)
 
 
-    redis_instance.store_data(key_name="stat_mapper", data_to_store=static_mapping, key_expiration=780)
-    redis_instance.store_data(key_name="league_mapper", data_to_store=league_mapping, key_expiration=780)
-    redis_instance.store_data(key_name="team_mapper", data_to_store=team_mapping, key_expiration=780)
+    redis_instance.store_data(key_name="stat_mapper", data_to_store=static_mapping, key_expiration=1200)
+    redis_instance.store_data(key_name="league_mapper", data_to_store=league_mapping, key_expiration=1200)
+    redis_instance.store_data(key_name="team_mapper", data_to_store=team_mapping, key_expiration=1200)
 
 if __name__ == "__main__":
     store_static_mapping()
