@@ -1,5 +1,9 @@
-from fastapi import APIRouter, Request, Query, Depends
+from datetime import datetime, UTC
+from fastapi import APIRouter, Request, Query, Depends, HTTPException
 from typing import List, Optional
+
+from pydantic import AwareDatetime
+
 from API.Helpers.common import get_books
 from API.Helpers.parlay_helper import ParlayFetcher, SGPBooks
 from API.security import get_api_key
@@ -14,6 +18,12 @@ SPECIAL_MAPPING = {
     "prophetx": "prophet x",
     "propbuilder": "prop builder"
 }
+
+def default_midnight():
+    return datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+
+def default_end_of_day():
+    return datetime.now(UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
 
 @router.get("/books_list",
             summary="Get SGP Books List",
@@ -138,9 +148,29 @@ async def get_auto_sgp_by_book(
             description="Fetch Auto SGP history.",
             dependencies=[Depends(get_api_key)]
             )
-async def get_auto_sgp_history(db: DB):
-    return await SGPHistory.all_history(db)
+async def get_auto_sgp_history(
+        db: DB,
+        date_from: AwareDatetime = Query(default_factory=default_midnight, description="Date to start fetching history from (UTC, ISO 8601 with offset | Example: 2026-09-05T13:30:00Z)"),
+        date_to: AwareDatetime = Query(default_factory=default_end_of_day, description="Date to end fetching history from (UTC, ISO 8601 with offset | Example: 2026-09-05T13:30:00Z)"),
+        league: Optional[str] = Query(None, description="Optional league to filter by"),
+        event_name: Optional[str] = Query(None, description="Optional event name to filter by"),
+        books: Optional[List[str]] = Query(None, description="Optional list of books to filter by"),
+):
+    days_difference = (date_to - date_from).days
 
+    if days_difference > 30:
+        raise HTTPException(status_code=422, detail="Date range must be less than 30 days")
+
+    books = [SPECIAL_MAPPING.get(b.lower(), b.lower()) for b in books] if books else None
+
+    return await SGPHistory.all_history(
+        session=db,
+        date_from=date_from,
+        date_to=date_to,
+        league=league,
+        event_name=event_name,
+        books=books
+    )
 
 
 @router.get("/auto_sgp",

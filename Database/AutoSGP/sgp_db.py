@@ -1,5 +1,5 @@
 from typing import List
-from sqlalchemy import ARRAY, String, DateTime
+from sqlalchemy import ARRAY, String, DateTime, and_, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import ForeignKey, UniqueConstraint, Index, select
 from datetime import datetime
@@ -104,14 +104,31 @@ class SGPHistory(Base):
         }
 
     @classmethod
-    async def all_history(cls, session: AsyncSession):
-        result = await session.execute(
-            select(cls).options(
+    async def all_history(cls, session: AsyncSession, date_from: datetime, date_to: datetime,
+                          league: str = None, event_name: str = None, books: list[str] = None):
+        stmt = (
+            select(cls)
+            .options(
                 selectinload(cls.leg),
                 selectinload(cls.sgp_book),
                 selectinload(cls.extra_info),
             )
+            .where(cls.leg.any(and_(SGPLeg.event_date >= date_from,
+                                    SGPLeg.event_date <= date_to)))
         )
+
+        if league:
+            stmt = stmt.where(cls.leg.any(SGPLeg.event_league == league.upper()))
+
+        if event_name:
+            stmt = stmt.where(cls.leg.any(func.lower(SGPLeg.event_name) == event_name.lower()))
+
+        if books:
+            stmt = stmt.where(cls.sgp_book.any(
+                func.lower(SGPBook.book_name).in_([b.lower() for b in books])
+            ))
+
+        result = await session.execute(stmt)
 
         rows = result.scalars().all()
 
@@ -126,7 +143,6 @@ class SGPHistory(Base):
         ]
 
         return cls._organize_history(rows=row_list)
-
 
 class SGPLeg(Base):
     __tablename__ = "sgp_history_leg"
@@ -200,7 +216,26 @@ class SGPExtraInfo(Base):
 if __name__ == "__main__":
     from Database.base_db import sync_engine
     engine = sync_engine()
-    Base.metadata.create_all(engine)
+    # Base.metadata.create_all(engine)
+
+    # return await SGPHistory.all_history(db)
+
+    Session = sessionmaker(engine)
+    from zoneinfo import ZoneInfo
+
+    # with Session.begin() as session:
+    #     from datetime import datetime
+    #     # from_date = "2026-09-05T13:30:00"
+    #     # to_date = "2026-09-06T13:30:00"
+    #     #
+    #     # from_date_dt = datetime.fromisoformat(from_date).replace(tzinfo=ZoneInfo("America/Edmonton"))
+    #     # to_date_dt = datetime.fromisoformat(to_date).replace(tzinfo=ZoneInfo("America/Edmonton"))
+    #     # from_date_dt = datetime.fromisoformat(from_date)
+    #     # to_date_dt = datetime.fromisoformat(to_date)
+    #
+    #     date_history = SGPHistory.all_history(session=session, date_from=from_date_dt, date_to=to_date_dt, league="MLB",
+    #                                           event_name="Colorado ROCKIES vs St. Louis Cardinals", books=["fliff", "fanatics"])
+    #
 
     # Session = sessionmaker(engine)
     # leagues = [{"league_name": "WNBA"}, {"league_name": "MLB"}, {"league_name": "NFL"}, {"league_name": "NBA"},
