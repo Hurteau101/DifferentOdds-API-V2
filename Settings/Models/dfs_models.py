@@ -38,6 +38,7 @@ class DFSStats(Stats):
     def __post_init__(self, league: str):
         self.player_name = clean_structure(self.player_name)
 
+        league = static_mapping.league_look_up(league)
         player_team, _, _ = map_teams(self.player_team, league)
         self.player_team = player_team
 
