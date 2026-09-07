@@ -1,5 +1,7 @@
 import re
 from collections import defaultdict
+from itertools import chain
+
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
 from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -340,7 +342,10 @@ class Underdog(DFSBookBase):
             tasks = [self._run_per_sport(api_data) for api_data in results]
             raw_final_results = await asyncio.gather(*tasks)
 
-            underdog_data = [list(result.values()) for result in raw_final_results if result]
+            underdog_data = list(chain.from_iterable(
+                result.values() for result in raw_final_results if result
+            ))
+
 
             await self.store_data(
                 key_name=self.book_data.name,
