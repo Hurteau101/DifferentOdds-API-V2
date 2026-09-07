@@ -22,7 +22,7 @@ def extract_esport_lines(lines):
                             "player_team": odds.get("player_team"),
                             "league": line_data.get("league"),
                             "start_date": line_data.get("start_date"),
-                            "team_data": line_data.get("teams")[0] if line_data.get("teams") else {},
+                            "team_data": line_data.get("team_data", {}),
                             "stats": []
                         })
 
@@ -77,6 +77,9 @@ def create_differences(esports_data):
                 continue
 
             team_data = entry.get("team_data", {})
+            if not team_data.get("team_a", "") or not team_data.get("team_b", ""):
+                continue
+
             teams = sorted([team_data.get("team_a").strip(), team_data.get("team_b").strip()])
 
             if league in ["COD"]:
