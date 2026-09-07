@@ -352,6 +352,5 @@ class Underdog(DFSBookBase):
             return underdog_data
 
 if __name__ == "__main__":
-    import asyncio
     ud = Underdog()
     asyncio.run(ud.run_book())
