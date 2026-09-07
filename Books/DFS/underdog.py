@@ -19,6 +19,7 @@ class Underdog(DFSBookBase):
         players = {player.get("id"): player for player in api_data.get("players", [])}
         lines = {line.get("over_under", {}).get("appearance_stat", {}).get("appearance_id"): line for line in
                  api_data.get("over_under_lines", [])}
+
         return {
             "team_games": team_games,
             "solo_games": solo_games,
@@ -284,42 +285,62 @@ class Underdog(DFSBookBase):
 
         return grouped_stats
 
+    async def _run_per_sport(self, api_data: dict):
+        if not api_data:
+            return {}
+
+        mapped_data = self._mapper(api_data)
+        stats_dict = self.regroup_stats(api_data)
+
+        events = {}
+        for player in api_data.get("appearances", []):
+            player_data = self._extract_api_data(mapped_data, player, stats_dict)
+
+            if player_data:
+                self.add_to_events(events, player_data, GameData)
+
+
+        return events
+
     async def run_book(self) -> list | None:
         async with CurlAsyncSession(impersonate=self.impersonate) as session:
-            api_data = await self.api_caller(
+            league_data = await self.api_caller(
                 session=session,
-                url=self.book_data.url.get("main_url"),
+                url=self.book_data.url.get("league_url"),
                 method=self.book_data.method,
                 headers=self.book_data.headers,
             )
 
-            if not api_data:
+            leagues = [
+                league.get("id")
+                for league in league_data.get("sports", [])
+            ]
+
+            if not leagues:
                 insert_log(
                     book_name=self.book_data.title,
                     error_type=ErrorTypes.API_NO_DATA,
-                    error_message="No API data found"
+                    error_message="No API league data found"
                 )
                 return None
 
-            mapped_data = self._mapper(api_data)
-            stats_dict = self.regroup_stats(api_data)
-
-            events = {}
-            for player in api_data.get("appearances", []):
-                player_data = self._extract_api_data(mapped_data, player, stats_dict)
-
-                if player_data:
-                    self.add_to_events(events, player_data, GameData)
-
-            underdog_data = list(events.values())
-
-            if not underdog_data:
-                insert_log(
-                    book_name=self.book_data.title,
-                    error_type=ErrorTypes.NO_EXTRACTION_DATA,
-                    error_message="No event data found"
+            per_league_data = [
+                self.api_caller(
+                    session=session,
+                    params={"sport_id": league, "product": "fantasy", "state_config_id": "8176bf5b-d026-4be0-b6b8-02f1f101a8c6"},
+                    url=self.book_data.url.get("stat_url"),
+                    method=self.book_data.method,
+                    headers=self.book_data.headers,
                 )
-                return None
+                for league in leagues
+            ]
+
+            results = await asyncio.gather(*per_league_data)
+
+            tasks = [self._run_per_sport(api_data) for api_data in results]
+            raw_final_results = await asyncio.gather(*tasks)
+
+            underdog_data = [list(result.values()) for result in raw_final_results if result]
 
             await self.store_data(
                 key_name=self.book_data.name,
