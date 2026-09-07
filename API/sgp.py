@@ -83,9 +83,12 @@ async def get_auto_sgp_data(request: Request, include_ev_data=False):
 
     return game_details
 
+def _convert_date_string(date_str: str):
+    return datetime.fromisoformat(date_str)
+
 
 def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=None, exclusive_books=None,
-                        min_books=None, max_ev=None):
+                        min_books=None, max_ev=None, event_start_date=None, event_end_date=None, min_leg=None, max_leg=None):
     if books:
         books = [SPECIAL_MAPPING.get(book.lower(), book.lower()) for book in books]
         if not (set(sgp["book_list"]) & set(books)):
@@ -99,6 +102,13 @@ def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=No
         if not all(book in [b.lower() for b in sgp["book_list"]] for book in required_books):
             return False
 
+    if event_start_date is not None:
+        if all(_convert_date_string(leg["date"]) < event_start_date for leg in sgp["legs"]):
+            return False
+
+    if event_end_date is not None:
+        if all(_convert_date_string(leg["date"]) > event_end_date for leg in sgp["legs"]):
+            return False
 
     if min_books:
         if len(sgp["book_list"]) < min_books:
@@ -110,6 +120,14 @@ def sgp_matches_filters(sgp, books=None, min_ev=None, leagues=None, best_book=No
 
     if min_ev is not None:
         if sgp["highest_ev"] < min_ev:
+            return False
+
+    if min_leg is not None:
+        if len(sgp["legs"]) <= min_leg:
+            return False
+
+    if max_leg is not None:
+        if len(sgp["legs"]) >= max_leg:
             return False
 
     if leagues:
@@ -205,6 +223,20 @@ async def get_auto_sgp_odds(
         max_ev: Optional[float] = Query(
             None, description="Optional Maximum EV allowed"
         ),
+        event_start_date: Optional[AwareDatetime] = Query(
+            None, description="Optional event date to start fetching SGPs from (UTC, ISO 8601 with offset | Example: 2026-09-05T13:30:00Z)"
+        ),
+        event_end_date: Optional[AwareDatetime] = Query(
+            None, description="Optional event date to end fetching SGPs from (UTC, ISO 8601 with offset | Example: 2026-09-05T13:30:00Z)"
+        ),
+        min_leg: Optional[int] = Query(
+            None, description="Optional minimum number of legs that must be included in the SGP"
+        ),
+        max_leg: Optional[int] = Query(
+            None, description="Optional maximum number of legs that must be included in the SGP"
+        )
+
+
 ):
     books = [SPECIAL_MAPPING.get(book.lower(), book.lower()) for book in books] if books else None
     exclusive_books = [SPECIAL_MAPPING.get(book.lower(), book.lower()) for book in exclusive_books] if exclusive_books else None
@@ -222,7 +254,11 @@ async def get_auto_sgp_odds(
             best_book=best_book,
             exclusive_books=exclusive_books,
             min_books=min_books,
-            max_ev=max_ev
+            max_ev=max_ev,
+            event_start_date=event_start_date,
+            event_end_date=event_end_date,
+            min_leg=min_leg,
+            max_leg=max_leg
         )
     ]
 
