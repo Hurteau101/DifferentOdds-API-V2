@@ -27,7 +27,8 @@ DFS_PROVIDERS = [
         title="Underdog Fantasy",
         name="underdog",
         url={
-            "main_url": "https://api.underdogfantasy.com/beta/v6/over_under_lines",
+            "league_url": "https://stats.underdogfantasy.com/v2/sports?product=fantasy",
+            "stat_url": "https://api.underdogfantasy.com/v2/pickem_search/search_results"
         },
         method="GET",
         is_active=True,
