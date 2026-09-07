@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from itertools import chain
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -250,8 +250,7 @@ class Ace(PPHBookBase):
         game_data = GameData(
             start_date=start_date,
             league=league,
-            team_a=team_a,
-            team_b=team_b,
+            team_data=TeamData(team_a=team_a, team_b=team_b),
             game_key_items=[team_a, team_b],
             odds=[]
         )
@@ -301,8 +300,7 @@ class Ace(PPHBookBase):
         game_data = GameData(
             start_date=start_date,
             league=league,
-            team_a=team_a,
-            team_b=team_b,
+            team_data=TeamData(team_a=team_a, team_b=team_b),
             game_key_items=game_key_list,
             odds=[],
         )

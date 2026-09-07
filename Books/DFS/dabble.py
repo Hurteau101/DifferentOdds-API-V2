@@ -3,7 +3,7 @@ import re
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData
+from Settings.Models.base_models import GameData, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Dabble(DFSBookBase):
@@ -79,8 +79,10 @@ class Dabble(DFSBookBase):
                     league=league,
                     game_key_items=team_data.get("game_key_list", []),
                     start_date=start_date,
-                    team_a=team_data.get("team_a"),
-                    team_b=team_data.get("team_b"),
+                    team_data=TeamData(
+                        team_a=team_data.get("team_a"),
+                        team_b=team_data.get("team_b")
+                    ),
                     odds=[],
                     solo_game=False if all([team_data.get("team_a"), team_data.get("team_b")]) or is_future else True
                 )

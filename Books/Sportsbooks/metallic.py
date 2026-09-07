@@ -8,7 +8,7 @@ from trio import Semaphore
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -192,8 +192,7 @@ class Metallic(PPHBookBase):
                 game = GameData(
                     start_date=game_date,
                     league=self.INTERNAL_LEAGUE_MAPPER.get(found_league_dict.get("league").lower(), found_league_dict.get("league")),
-                    team_a=team_data.get("team_a"),
-                    team_b=team_data.get("team_b"),
+                    team_data=TeamData(team_a=team_data.get("team_a"), team_b=team_data.get("team_b")),
                     odds=[],
                     game_key_items=game_key_list
                 )

@@ -11,7 +11,7 @@ from requests_toolbelt.utils.formdata import urlencode
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
 
@@ -254,8 +254,7 @@ class Buckeye2(PPHBookBase):
         game_data = GameData(
             start_date=modified_date,
             league=league,
-            team_a=team_a,
-            team_b=team_b,
+            team_data=TeamData(team_a=team_a, team_b=team_b),
             game_key_items=[team_a, team_b],
             odds=[]
         )
@@ -288,8 +287,7 @@ class Buckeye2(PPHBookBase):
         game_data = GameData(
             start_date=modified_date,
             league=league,
-            team_a=team_dict.get("team_a"),
-            team_b=team_dict.get("team_b"),
+            team_data=TeamData(team_a=team_dict.get("team_a"), team_b=team_dict.get("team_b")),
             odds=[],
             game_key_items=[event_data.get("Team1ID"), event_data.get("Team2ID")],
         )

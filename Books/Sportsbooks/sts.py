@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Redis.redis_manager import RedisAsyncManager
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
 import json
@@ -75,8 +75,7 @@ class STS(PPHBookBase):
             game_data = GameData(
                 start_date=start_date,
                 league=league,
-                team_a=teams.get("team_a"),
-                team_b=teams.get("team_b"),
+                team_data=TeamData(team_a=teams.get("team_a"), team_b=teams.get("team_b")),
                 odds=[],
                 game_key_items=game_key_list
             )

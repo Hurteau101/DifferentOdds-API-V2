@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Iterator
 from Books.Bases.sportsbook_base import SportsbooksBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Utils.helpers import convert_to_utc
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -270,8 +270,7 @@ class Bet105(SportsbooksBookBase):
             start_date=parent_dict.get("start_date"),
             game_key_items=game_key_list,
             league=parent_dict.get("league"),
-            team_a=team_dict.get("team_a"),
-            team_b=team_dict.get("team_b"),
+            team_data=TeamData(team_a=team_dict.get("team_a"), team_b=team_dict.get("team_b")),
             odds=[
                 SportsbookStats(
                     league=parent_dict.get("league"),
