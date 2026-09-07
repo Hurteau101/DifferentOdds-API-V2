@@ -27,8 +27,6 @@ def get_cached_books(book_type: str) -> list[dict]:
 def get_books(book_type: str) -> BooksListResponse:
     """Retrieve a list of books for the specified book type."""
     books_info = get_cached_books(book_type=book_type)
-    if not books_info:
-        raise HTTPException(status_code=500, detail=f"No {book_type.title()} books available. Please try again later.")
 
     books = [Books(**book) for book in books_info]
     return BooksListResponse(books=books)
@@ -49,13 +47,14 @@ def validate_format_header(
 
 async def get_book_odds(request: Request, passed_in_books: list, book_type: str, format_type: str, timeout: int = 5, dict_format: bool = False):
     """Helper function to get odds for multiple books concurrently with timeout handling."""
+    cleaned_results = {}
+
     books = [book.get("book_key") for book in get_cached_books(book_type=book_type)]
     for book in passed_in_books:
         if book.lower() not in books:
-            raise HTTPException(status_code=400, detail=f"Invalid book name: {book}")
+            cleaned_results[book] = {}
 
     format = format_type.lower()
-
 
     tasks = [
         get_redis_data(
@@ -70,8 +69,6 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
     # Use return_exceptions=True to handle individual task failures
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    cleaned_results = {}
-
     for book, result in zip(passed_in_books, results):
         if dict_format:
             if format.startswith("base") and isinstance(result, dict):
@@ -84,12 +81,12 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
                     data.get("game_key"): {
                         "league": data.get("league"),
                         "start_date": data.get("start_date"),
-                        "teams": [{
+                        "teams": {
                             "team_a": data.get("team_a"),
                             "team_a_abbreviation": data.get("team_a_abbreviation"),
                             "team_b": data.get("team_b"),
                             "team_b_abbreviation": data.get("team_b_abbreviation"),
-                        }],
+                        },
                         "solo_game": data.get("odds", [])[0].get("solo_game", False),
                         "combo": data.get("odds", [])[0].get("combo", False),
                         "future": data.get("odds", [])[0].get("future", False),
