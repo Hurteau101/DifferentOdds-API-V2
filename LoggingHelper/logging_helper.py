@@ -53,6 +53,8 @@ def production_log(book_name: str, error_type: ErrorTypes, error_message: str):
                 count=count
             )
 
+            LoggingDetails.update_last_sent(db_session, log_id)
+
 def env_log(book_name: str, error_type: ErrorTypes, error_message: str):
     logger.error(f"{book_name} - {error_type} - {error_message}")
 
