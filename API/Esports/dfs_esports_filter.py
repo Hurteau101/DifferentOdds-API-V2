@@ -61,7 +61,6 @@ def find_highest_discrep(differences: dict):
 
 def create_differences(esports_data):
     """Create a structure to identify differences in esports DFS lines across books."""
-
     differences = {}
 
     for book_name, book_data in esports_data.items():
@@ -77,8 +76,6 @@ def create_differences(esports_data):
                 continue
 
             team_data = entry.get("team_data", {})
-            if not team_data.get("team_a", "") or not team_data.get("team_b", ""):
-                continue
 
             teams = sorted([team_data.get("team_a").strip(), team_data.get("team_b").strip()])
 

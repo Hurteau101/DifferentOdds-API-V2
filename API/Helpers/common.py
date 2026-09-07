@@ -81,11 +81,11 @@ async def get_book_odds(request: Request, passed_in_books: list, book_type: str,
                     data.get("game_key"): {
                         "league": data.get("league"),
                         "start_date": data.get("start_date"),
-                        "teams": {
-                            "team_a": data.get("team_a"),
-                            "team_a_abbreviation": data.get("team_a_abbreviation"),
-                            "team_b": data.get("team_b"),
-                            "team_b_abbreviation": data.get("team_b_abbreviation"),
+                        "team_data": {
+                            "team_a": data.get("team_data", {}).get("team_a"),
+                            "team_a_abbreviation": data.get("team_data",{}).get("team_a_abbreviation"),
+                            "team_b": data.get("team_data", {}).get("team_b"),
+                            "team_b_abbreviation": data.get("team_data", {}).get("team_b_abbreviation"),
                         },
                         "solo_game": data.get("odds", [])[0].get("solo_game", False),
                         "combo": data.get("odds", [])[0].get("combo", False),
