@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
@@ -254,10 +254,12 @@ class Underdog(DFSBookBase):
             start_date=game_details.get("start_date"),
             solo_game=game_details.get("solo_game"),
             game_key_items=game_details.get("game_key_list", []),
-            team_a=game_details.get("team_a"),
-            team_b=game_details.get("team_b"),
-            team_a_abbreviation=game_details.get("team_a_abbreviation"),
-            team_b_abbreviation=game_details.get("team_b_abbreviation"),
+            team_data=TeamData(
+                team_a=game_details.get("team_a"),
+                team_b=game_details.get("team_b"),
+                team_a_abbreviation=game_details.get("team_a_abbreviation"),
+                team_b_abbreviation=game_details.get("team_b_abbreviation"),
+            ),
             odds=stat_details,
         )
 

@@ -130,9 +130,8 @@ class BookBase(ABC):
 
         if key not in events:
             events[key] = game_data_cls(
-                team_a=item.team_a,
+                team_data=item.team_data,
                 game_key_items=item.game_key_items,
-                team_b=item.team_b,
                 league=item.league,
                 start_date=item.start_date,
                 solo_game=item.solo_game,
