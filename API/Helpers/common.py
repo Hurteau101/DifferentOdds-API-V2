@@ -19,6 +19,15 @@ class BooksListResponse(BaseModel):
     books: List[Books]
 
 
+SPECIAL_MAPPING = {
+    "hardrock": "hard rock",
+    "onyxodds": "onyx odds",
+    "onyx": "onyx odds",
+    "prophetx": "prophet x",
+    "propbuilder": "prop builder"
+}
+
+
 @lru_cache(maxsize=5)
 def get_cached_books(book_type: str) -> list[dict]:
     return BookConfiguration.get_book_info(book_type=book_type)

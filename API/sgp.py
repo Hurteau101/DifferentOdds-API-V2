@@ -4,20 +4,13 @@ from typing import List, Optional
 
 from pydantic import AwareDatetime
 
-from API.Helpers.common import get_books
+from API.Helpers.common import get_books, SPECIAL_MAPPING
 from API.Helpers.parlay_helper import ParlayFetcher, SGPBooks
 from API.security import get_api_key
 from Database.base_db import DB
 from Database.AutoSGP.sgp_db import SGPHistory
 
 router = APIRouter(prefix="/sgp", tags=["SGP"])
-
-SPECIAL_MAPPING = {
-    "hardrock": "hard rock",
-    "onyxodds": "onyx odds",
-    "prophetx": "prophet x",
-    "propbuilder": "prop builder"
-}
 
 def default_midnight():
     return datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
