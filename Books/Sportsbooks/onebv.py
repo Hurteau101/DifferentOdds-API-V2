@@ -6,7 +6,7 @@ from rapidfuzz import process, fuzz
 from datetime import datetime, timezone
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Settings.Models.sportsbooks_models import SportsbookStats
 import asyncio
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -233,8 +233,7 @@ class OneBv(PPHBookBase):
         game_data = GameData(
             start_date=start_date,
             league=league,
-            team_a=team_dict.get("team_a"),
-            team_b=team_dict.get("team_b"),
+            team_data=TeamData(team_a=team_dict.get("team_a"), team_b=team_dict.get("team_b")),
             odds=[],
             game_key_items=game_key_list
         )

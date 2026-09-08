@@ -28,6 +28,12 @@ class Stats:
     odds_format: Optional[OddsFormat] = field(default=None)
     live: bool = False
 
+@dataclass
+class TeamData:
+    team_a: str | None
+    team_b: str | None
+    team_a_abbreviation: Optional[str] = None
+    team_b_abbreviation: Optional[str] = None
 
 @dataclass
 class GameData:
@@ -35,8 +41,7 @@ class GameData:
     league: str
     start_date: str
     game_key_items: list
-    team_a: str | None
-    team_b: str | None
+    team_data: TeamData
     odds: list[Stats]
     game_key: str = field(init=False)
     solo_game: Optional[bool] = None
@@ -49,15 +54,15 @@ class GameData:
 
         self.league = static_mapping.league_look_up(self.league)
 
-        team_a, team_a_abbreviation, team_a_league = map_teams(self.team_a, self.league)
+        team_a, team_a_abbreviation, team_a_league = map_teams(self.team_data.team_a, self.league)
 
-        self.team_a = team_a
-        self.team_a_abbreviation = team_a_abbreviation if team_a_abbreviation else self.team_a_abbreviation
+        self.team_data.team_a = team_a
+        self.team_data.team_a_abbreviation = team_a_abbreviation if team_a_abbreviation else self.team_data.team_a_abbreviation
         self.league = team_a_league if team_a_league else self.league
 
-        team_b, team_b_abbreviation, team_b_league = map_teams(self.team_b, self.league)
-        self.team_b = team_b
-        self.team_b_abbreviation = team_b_abbreviation if team_b_abbreviation else self.team_b_abbreviation
+        team_b, team_b_abbreviation, team_b_league = map_teams(self.team_data.team_b, self.league)
+        self.team_data.team_b = team_b
+        self.team_data.team_b_abbreviation = team_b_abbreviation if team_b_abbreviation else self.team_data.team_b_abbreviation
 
         # If the team_a league is not set, set it to the team_b league if it exists.
         if not team_a_league:
@@ -71,9 +76,9 @@ class GameData:
 
         if not mapped_game_keys:
             # print(f"No mapped game keys found for {self.game_key_items}")
-            self.game_key = BookBase.generate_key([self.team_a, self.team_b, self.start_date])
+            self.game_key = BookBase.generate_key([self.team_data.team_a, self.team_data.team_b, self.start_date])
 
         self.game_key = BookBase.generate_key([*mapped_game_keys, self.start_date])
 
-        self.event_name = " vs ".join(sorted([self.team_a, self.team_b])) if self.team_a and self.team_b else "N/A"
+        self.event_name = " vs ".join(sorted([self.team_data.team_a, self.team_data.team_b])) if self.team_data.team_a and self.team_data.team_b else "N/A"
 

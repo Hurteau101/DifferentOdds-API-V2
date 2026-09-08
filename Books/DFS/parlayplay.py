@@ -3,7 +3,7 @@ import re
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData
+from Settings.Models.base_models import GameData, TeamData
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 class Parlayplay(DFSBookBase):
@@ -77,10 +77,12 @@ class Parlayplay(DFSBookBase):
             league=player.get("match").get("league").get("leagueNameShort"),
             start_date=player.get("match").get("matchDate"),
             game_key_items=team_data.get("game_key_list", []),
-            team_a=team_data.get("team_a"),
-            team_b=team_data.get("team_b"),
-            team_a_abbreviation=team_data.get("team_a_abbreviation"),
-            team_b_abbreviation=team_data.get("team_b_abbreviation"),
+            team_data=TeamData(
+                team_a=team_data.get("team_a"),
+                team_b=team_data.get("team_b"),
+                team_a_abbreviation=team_data.get("team_a_abbreviation"),
+                team_b_abbreviation=team_data.get("team_b_abbreviation"),
+            ),
             solo_game=self._check_solo_sport(player),
             odds=[
                 DFSStats(

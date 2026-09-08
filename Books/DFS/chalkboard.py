@@ -5,7 +5,7 @@ from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Redis.redis_manager import RedisAsyncManager
 
 class Chalkboard(DFSBookBase):
@@ -117,10 +117,12 @@ class Chalkboard(DFSBookBase):
             league=league,
             start_date=start_date,
             game_key_items=game_key_list,
-            team_a=team_a,
-            team_b=team_b,
-            team_a_abbreviation=team_a_abbreviation,
-            team_b_abbreviation=team_b_abbreviation,
+            team_data=TeamData(
+                team_a=team_a,
+                team_b=team_b,
+                team_a_abbreviation=team_a_abbreviation,
+                team_b_abbreviation=team_b_abbreviation
+            ),
             odds=[
                 DFSStats(
                     league=league,

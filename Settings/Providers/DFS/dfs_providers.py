@@ -27,7 +27,8 @@ DFS_PROVIDERS = [
         title="Underdog Fantasy",
         name="underdog",
         url={
-            "main_url": "https://api.underdogfantasy.com/beta/v6/over_under_lines",
+            "league_url": "https://stats.underdogfantasy.com/v2/sports?product=fantasy",
+            "stat_url": "https://api.underdogfantasy.com/v2/pickem_search/search_results"
         },
         method="GET",
         is_active=True,
@@ -53,16 +54,10 @@ DFS_PROVIDERS = [
         },
         method="POST",
         headers={
-            'Referer': 'https://picks.betr.app/',
-            'fantasy-api-version': '11.0',
-            'fantasy-application-version': '3.26.6',
-            'jurisdiction': 'IL',
+            'promotions-api-version': '6.0',
+            'jurisdiction': 'FL',
             'channel': 'WEB',
-            'authorization': '',
-            'content-type': 'application/json',
-            'Origin': 'https://picks.betr.app',
-            'Connection': 'keep-alive',
-            'TE': 'trailers'
+            'authorization': os.getenv("BETR_AUTH_TOKEN"),
         },
         is_active=True,
         class_name="Betr",

@@ -22,7 +22,7 @@ def extract_esport_lines(lines):
                             "player_team": odds.get("player_team"),
                             "league": line_data.get("league"),
                             "start_date": line_data.get("start_date"),
-                            "team_data": line_data.get("teams")[0] if line_data.get("teams") else {},
+                            "team_data": line_data.get("team_data", {}),
                             "stats": []
                         })
 
@@ -61,7 +61,6 @@ def find_highest_discrep(differences: dict):
 
 def create_differences(esports_data):
     """Create a structure to identify differences in esports DFS lines across books."""
-
     differences = {}
 
     for book_name, book_data in esports_data.items():
@@ -77,6 +76,7 @@ def create_differences(esports_data):
                 continue
 
             team_data = entry.get("team_data", {})
+
             teams = sorted([team_data.get("team_a").strip(), team_data.get("team_b").strip()])
 
             if league in ["COD"]:

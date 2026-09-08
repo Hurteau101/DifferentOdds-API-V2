@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from rapidfuzz import process, fuzz
 from Books.Bases.pph_base import PPHBookBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Settings.Models.base_models import GameData, OddsFormat
+from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
 from urllib.parse import urlencode
@@ -261,8 +261,7 @@ class Buckeye1(PPHBookBase):
             game_data = GameData(
                 start_date=start_date,
                 league=league,
-                team_a=team_1_name,
-                team_b=team_2_name,
+                team_data=TeamData(team_a=team_1_name, team_b=team_2_name),
                 odds=[],
                 game_key_items=[team_1_name, team_2_name]
             )

@@ -1,6 +1,6 @@
 import re
 from Settings.Models.dfs_models import DFSStats, Discounts, OptionalStatInformation
-from Settings.Models.base_models import GameData
+from Settings.Models.base_models import GameData, TeamData
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from curl_cffi import AsyncSession as CurlAsyncSession
@@ -144,8 +144,7 @@ class Prizepicks(DFSBookBase):
             league=league,
             game_key_items=game_key_list,
             start_date=start_date,
-            team_a=team,
-            team_b=opponent,
+            team_data=TeamData(team_a=team, team_b=opponent),
             solo_game=True if league in Prizepicks.SOLO_GAMES else False,
             odds=stats,
         )
