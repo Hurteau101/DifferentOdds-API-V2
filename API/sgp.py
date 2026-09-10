@@ -144,7 +144,7 @@ async def get_auto_sgp_by_book(
         request: Request,
         book: str = Query(..., description="Book to check Auto SGP's")
 ):
-    book = SPECIAL_MAPPING.get(book.lower())
+    book = SPECIAL_MAPPING.get(book.lower(), book.lower())
     sgp_data = await get_auto_sgp_data(request, include_ev_data=True)
     return [
         {
@@ -152,7 +152,7 @@ async def get_auto_sgp_by_book(
             "book_ev": sgp.get("ev_data", {}).get(book.lower(), {}).get("ev")
         }
         for sgp in sgp_data
-        if book.lower() in sgp["book_list"]
+        if book in sgp["book_list"]
     ]
 
 @router.get("/auto_sgp/history",
