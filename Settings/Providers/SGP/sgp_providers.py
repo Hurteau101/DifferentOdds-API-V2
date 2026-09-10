@@ -13,6 +13,7 @@ class SGPProvider(BaseProvider):
     regex: Optional[dict] = None
     mapping: Optional[SGPMapper] = None
     base_file_path = "Books.SGP"
+    is_rfq_book: bool = False
 
 
 SGP_PROVIDERS = [
@@ -194,6 +195,7 @@ SGP_PROVIDERS = [
             'TE': 'trailers'
         },
         is_active=True,
+        is_rfq_book=True,
         class_name="NovigSGP",
         file_name="novig_sgp",
     ),
@@ -270,6 +272,7 @@ SGP_PROVIDERS = [
             'Content-Type': 'application/json'
         },
         method="POST",
+        is_rfq_book=True,
         is_active=True,
         class_name="ProphetxSGP",
         file_name="prophetx_sgp",

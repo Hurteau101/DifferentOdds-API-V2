@@ -1,3 +1,5 @@
+import re
+
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Books.Bases.dfs_base import DFSBookBase
 from Settings.Models.dfs_models import DFSStats, OptionalStatInformation
@@ -79,7 +81,6 @@ class Betr(DFSBookBase):
                   __typename
                 }
                 fragment TeamInfo on Team {
-                  id
                   name
                   league
                   sport
@@ -149,7 +150,11 @@ class Betr(DFSBookBase):
         # Extract team names and generate a unique key for the match up
 
         if data.get("playerStructure") == "TEAM":
-            team_a, team_b = data.get("name").split("@")
+            parts = [p.strip() for p in re.split(r"\s*@\s*|\s+vs?\.?\s+", data.get("name") or "", maxsplit=1, flags=re.I) if p.strip()]
+            if len(parts) != 2:
+                return {}
+
+            team_a, team_b = parts
             team_a = team_a.strip()
             team_b = team_b.strip()
             game_key_list = [team_a, team_b]

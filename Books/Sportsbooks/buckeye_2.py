@@ -19,7 +19,7 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 class Buckeye2(PPHBookBase):
     load_dotenv()
     VALID_LEAGUES = {
-        "mainlines": ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL", "NBA Player Props"],
+        "mainlines": ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL", "NBA Player Props", "NCAA FOOTBALL"],
         "player_props": ["NBA PLAYER PROPS", "MLB PLAYER PROPS"]
     }
 
@@ -221,13 +221,21 @@ class Buckeye2(PPHBookBase):
 
     @staticmethod
     def _convert_date(start_date: str):
-        pst = ZoneInfo("America/Los_Angeles")
-        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=pst)
+        pst = ZoneInfo("America/Chicago")
+        start_date_dt = (
+            datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f")
+            .replace(tzinfo=pst)
+        )
+
+        if start_date_dt.second == 1:
+            start_date_dt = start_date_dt.replace(second=0)
+
         return start_date_dt.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
     async def build_player_markets(self, event_data: dict):
         modified_date = self._convert_date(event_data.get("GameDateTime"))
+
         league = event_data.get("SportSubTypeDisplay", '').lower().replace("player props", '').strip().lower()
 
         # Team1ID - Player Name | Team2Id - Market Name
@@ -283,6 +291,9 @@ class Buckeye2(PPHBookBase):
         }
 
         league = event_data.get("SportSubType", '').strip()
+
+        if league.lower() == "college":
+            league = event_data.get("SportSubTypeDisplay", '').lower().replace("player props", '').strip().lower()
 
         game_data = GameData(
             start_date=modified_date,

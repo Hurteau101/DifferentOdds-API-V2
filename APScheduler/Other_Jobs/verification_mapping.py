@@ -25,7 +25,8 @@ solo sport such as tennis, MMA, or golf.
 Rules:
 - Teams: use the full official team name (e.g. 'Boston Celtics', 'Manchester United'). \
 Do NOT include 'University', 'College', or other institution names unless they are \
-officially part of the team name.
+officially part of the team name. Also for college teams, don't include there team name, such as
+'Tulane Green Wave', you will only include 'Tulane' NOT 'Green Wave'
 - Individual athletes: use the official first and last name ONLY. No middle names, \
 suffixes, or nicknames.
 - 'abbreviation': the official team abbreviation. For individual athletes, return null.
