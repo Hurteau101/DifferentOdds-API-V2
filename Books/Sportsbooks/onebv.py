@@ -13,7 +13,7 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class OneBv(PPHBookBase):
-    VALID_LEAGUES = ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB"]
+    VALID_LEAGUES = ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAAF"]
 
     # Filter out markets/leagues that are not relevant.
     ALLOWED_MARKETS = ["ncaa", "nfl", "nba", "mlb", "nhl", "national hockey league", "college football", "college basketball"]
@@ -24,7 +24,7 @@ class OneBv(PPHBookBase):
     LEAGUE_NAME_MAPPER = {
         "national hockey league": "NHL",
         "ncaa": "NCAAW",
-        "ncaab": "NCAAB"
+        "ncaab": "NCAAB",
     }
 
     def __init__(self):
@@ -182,7 +182,7 @@ class OneBv(PPHBookBase):
 
         # Store these ideas for future markets, as we can get the proper team names.
         if all([
-            found_league.get("market_type", '').lower() == "game lines",
+            # found_league.get("market_type", '').lower() == "game lines",
             # event_data.get("GAME_TYPE_ID", -1) in [1, 59],
             game_stat_id != "B",
         ]):
@@ -228,7 +228,7 @@ class OneBv(PPHBookBase):
 
         game_key_list = [team_dict.get("team_a"), team_dict.get("team_b")]
 
-        league = found_league.get("sport_id", '')
+        league = found_league.get("api_sport_id", '')
 
         game_data = GameData(
             start_date=start_date,

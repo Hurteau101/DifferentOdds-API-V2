@@ -25,10 +25,12 @@ class StaticMapping:
         cleaned_name = clean_structure(name)
         raw_name = ordinal_formatter(cleaned_name).lower()
 
-        if category == Category.TEAMS:
-            raw_name = f"{raw_name}_{league}".lower()
+        search_name = raw_name
 
-        mapped = bucket.get(raw_name, {})
+        if category == Category.TEAMS:
+            search_name = f"{raw_name}_{league}".lower()
+
+        mapped = bucket.get(search_name, {})
 
         if not mapped:
             self.unmapped[category.value].add(f"{league.upper()}|{raw_name}" if league else raw_name)
