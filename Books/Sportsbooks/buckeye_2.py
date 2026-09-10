@@ -222,12 +222,20 @@ class Buckeye2(PPHBookBase):
     @staticmethod
     def _convert_date(start_date: str):
         pst = ZoneInfo("America/Los_Angeles")
-        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=pst)
+        start_date_dt = (
+            datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f")
+            .replace(tzinfo=pst)
+        )
+
+        if start_date_dt.second == 1:
+            start_date_dt = start_date_dt.replace(second=0)
+
         return start_date_dt.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
     async def build_player_markets(self, event_data: dict):
         modified_date = self._convert_date(event_data.get("GameDateTime"))
+
         league = event_data.get("SportSubTypeDisplay", '').lower().replace("player props", '').strip().lower()
 
         # Team1ID - Player Name | Team2Id - Market Name
