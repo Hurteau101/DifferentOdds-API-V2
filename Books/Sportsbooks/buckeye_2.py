@@ -221,7 +221,7 @@ class Buckeye2(PPHBookBase):
 
     @staticmethod
     def _convert_date(start_date: str):
-        pst = ZoneInfo("America/Los_Angeles")
+        pst = ZoneInfo("America/Chicago")
         start_date_dt = (
             datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f")
             .replace(tzinfo=pst)
