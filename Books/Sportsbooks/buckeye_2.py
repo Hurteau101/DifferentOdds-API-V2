@@ -19,7 +19,7 @@ from curl_cffi import AsyncSession as CurlAsyncSession
 class Buckeye2(PPHBookBase):
     load_dotenv()
     VALID_LEAGUES = {
-        "mainlines": ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL", "NBA Player Props"],
+        "mainlines": ["NBA", "MLB", "NHL", "NFL", "CBB", "CFB", "NCAA BASKETBALL", "NBA Player Props", "NCAA FOOTBALL"],
         "player_props": ["NBA PLAYER PROPS", "MLB PLAYER PROPS"]
     }
 
@@ -283,6 +283,9 @@ class Buckeye2(PPHBookBase):
         }
 
         league = event_data.get("SportSubType", '').strip()
+
+        if league.lower() == "college":
+            league = event_data.get("SportSubTypeDisplay", '').lower().replace("player props", '').strip().lower()
 
         game_data = GameData(
             start_date=modified_date,
