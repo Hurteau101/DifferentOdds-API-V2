@@ -1,4 +1,6 @@
 import os
+import secrets
+
 from cryptography.fernet import Fernet
 from sqlalchemy import DateTime, func, select
 from sqlalchemy import UniqueConstraint
@@ -47,6 +49,12 @@ class APIKeys(Base):
         DateTime(timezone=True),
         server_default=func.now()
     )
+
+    @classmethod
+    def create_api_key(cls, db_session: Session, client_name: str) -> str:
+        api_key = secrets.token_urlsafe(32)
+        db_session.add(cls(client=client_name, api_key=api_key))
+        return api_key
 
     @classmethod
     def get_api_keys(cls, db_session: Session):

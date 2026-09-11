@@ -31,9 +31,10 @@ officially part of the team name. Also for college teams, don't include there te
 suffixes, or nicknames.
 - 'abbreviation': the official team abbreviation. For individual athletes, return null.
 - 'league': the specific competition or organization the competitor plays in \
-(e.g. 'NFL', 'CFB', 'NHL', 'CBB', 'ATP', 'WTA', 'UFC', 'PGA', 'EPL', 'La Liga', \
+(e.g. 'NFL', 'NCAAF', 'NHL', 'CBB', 'ATP', 'WTA', 'UFC', 'PGA', 'EPL', 'La Liga', \
 'MLS', 'Bundesliga', 'Serie A', 'UEFA CL'). Do NOT use generic names like \
 'BASKETBALL', 'HOCKEY', 'SOCCER', 'TENNIS', 'MMA', or 'FIFA'.
+- For college football, if you find the league, ensure its 'NCAAF'.
 - For soccer, identify the exact league or competition based on the team name.
 - If the league cannot be confidently determined, return null for 'league'.
 - If the competitor cannot be identified, return null for 'normalized_name'.
