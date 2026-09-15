@@ -497,7 +497,7 @@ class AutoSGP(APICaller):
                     "league_name": league,
                     "stat_types": [*combo],
                     "multiple_teams": bool(random.getrandbits(1)), # Random True or False
-                    "discord_min_ev": 15.0,
+                    "discord_min_ev": 10.0,
                     "max_uses": random.randint(1, 3),
                     "is_active": True,
                 })

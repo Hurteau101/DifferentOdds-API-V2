@@ -94,7 +94,7 @@ class DiscordSGP:
             "prophetx": os.getenv("PROPHETX_ROLE_ID"),
             "thescore": os.getenv("THESCORE_ROLE_ID"),
             "caesars": os.getenv("CAESARS_ROLE_ID"),
-
+            "prop builder": os.getenv("PROP_BUILDER_ROLE_ID"),
         }
 
         role_id = role_mapper.get(book_name.lower())
