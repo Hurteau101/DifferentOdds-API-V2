@@ -11,16 +11,14 @@ class BetmgmSGP(SGPBookBase):
     @SGPBookBase.ensure_link_data
     async def run_book(self, session: CurlAsyncSession | None = None) -> dict | None:
         mapped_ids = await self.mapper_redis_manager.get_data(self.mapper_id_name)
-        import json
-        with open("betmgm_ids.json", "w") as f:
-            json.dump(mapped_ids, f, indent=2)
-
 
         if not mapped_ids:
             logger.error("No mapped ids found")
             return None
 
         payload = self._create_payload(mapped_ids)
+
+
 
         api_data = await self.api_caller(
             session=session,
@@ -33,13 +31,29 @@ class BetmgmSGP(SGPBookBase):
         if not api_data:
             return None
 
-        return self._extract_odds(api_data)
+        return self._extract_odds(api_data, payload_length=len(payload))
 
-    def _extract_odds(self, api_data: dict) -> None | dict:
+    def _extract_odds(self, api_data: dict, payload_length: int) -> None | dict:
         """Extract the SGP Odds"""
-
         if not api_data.get("betBuilderPricingGroups"):
             return None
+
+        extra_info = list(api_data.get("betBuilderPricingGroups", {}).values())
+
+        if not extra_info:
+            return None
+
+        leg_information = next((
+            info.get("legInformation")
+            for info in extra_info
+            if isinstance(info.get("legInformation"), list) and len(info.get("legInformation")) == payload_length
+        ), None)
+
+        if not leg_information:
+            return None
+
+        # leg_information = next(iter(list(extra_info.get("legInformation"))))
+        # print(leg_information)
 
         odds_section = next(iter(api_data["betBuilderPricingGroups"].values()))
         if not odds_section:
@@ -106,8 +120,8 @@ if __name__ == "__main__":
     async def main():
         async with CurlAsyncSession(impersonate="chrome") as session:
             sgp_data = {'book_name': 'betmgm', 'links': [
-                "https://sports.{state}.betmgm.com/en/sports/events/19888186?options=2:7827687-203886485-779526886&type=Single",
-                "https://sports.{state}.betmgm.com/en/sports/events/19888186?options=2:7827687-203886657-779527230&type=Single"
+                "https://sports.{state}.betmgm.com/en/sports/events/2:7858588?options=2:7858588-204103903-780890491&type=Single",
+                "https://sports.{state}.betmgm.com/en/sports/events/2:7858588?options=2:7858588-204103922-780890549&type=Single"
             ]}
 
             book = BetmgmSGP(sgp_data=sgp_data)
