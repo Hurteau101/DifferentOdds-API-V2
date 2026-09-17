@@ -579,7 +579,7 @@ class AutoSGP(APICaller):
 
                     if all([
                         ev_count == 1,
-                        len(slip.get("median_met_books", 0)) >= 4,
+                        len(slip.get("median_met_books", 0)) >= 3,
                         game_key,
                         game_key not in previous_game_keys
                     ]):
