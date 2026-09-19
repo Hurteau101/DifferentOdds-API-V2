@@ -1,0 +1,32 @@
+{
+  "buckeye2": {
+    "NFL": {
+      "accepted_sub_type_display": {"nfl": "game"}
+    },
+    "NCAAF": {
+      "accepted_sub_type_display": {
+        "ncaa football": "game",
+        "ncaa alternate lines": "game",
+        "ncaa game props": "game",
+        "ncaaf player props": "player"
+      }
+    },
+    "MLB": {
+      "accepted_sub_type_display": {
+        "mlb": "game",
+        "mlb alternate lines": "game",
+        "mlb player props": "player",
+        "mlb score in 1st inning": "game"
+      }
+    },
+    "NBA": {
+      "accepted_sub_type_display": {"nba": "game"}
+    },
+    "WNBA": {
+      "accepted_sub_type_display": {"wnba": "game"}
+    },
+    "NHL": {
+      "accepted_sub_type_display": {"nhl": "game"}
+    }
+  }
+}
