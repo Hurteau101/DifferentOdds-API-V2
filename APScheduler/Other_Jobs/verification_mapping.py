@@ -237,6 +237,7 @@ class VerificationMapping:
         with self.session_factory() as db_session:
             verified_teams = VerifiedTeams.get_mapping(db_session=db_session)
             normalized_names = set(verified.get("normalized_name").lower() for verified in verified_teams.values())
+            verification_teams = VerificationTeam.get_mapping(db_session=db_session)
 
         modified_teams = [
             {
@@ -249,6 +250,7 @@ class VerificationMapping:
 
             for team in teams
             if len(split_team := team.get("name").split("|", 1)) == 2
+            and (split_team[1].lower(), split_team[0].upper()) not in verification_teams
         ]
 
         actions = self.fuzzy_match(unmapped_data=modified_teams, mapped_keys=normalized_names, verified_teams=verified_teams)
