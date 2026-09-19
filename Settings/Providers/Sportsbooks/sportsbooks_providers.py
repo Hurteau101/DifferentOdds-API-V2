@@ -187,12 +187,9 @@ SPORTSBOOKS_PROVIDERS = [
         title="Buckeye 2",
         name="buckeye2",
         url={
-            # "league_url": "https://wwcd.me/cloud/api/League/Get_SportsLeagues",
-            # "market_url": "https://wwcd.me/cloud/api/Lines/Get_LeagueLines2",
-            # "point_group_url": "https://wwcd.me/cloud/api/Lines/getBuyPointsGroup"
-            "league_url": "https://www.247bettor.com/cloud/api/League/Get_SportsLeagues",
-            "market_url": "https://www.247bettor.com/cloud/api/Lines/Get_LeagueLines2",
-            "point_group_url": "https://www.247bettor.com/cloud/api/Lines/getBuyPointsGroup"
+            "leagues": "https://www.247bettor.com/cloud/api/League/Get_SportsLeagues",
+            "markets": "https://www.247bettor.com/cloud/api/Lines/Get_LeagueLines2",
+            "point_group": "https://www.247bettor.com/cloud/api/Lines/getBuyPointsGroup"
         },
         headers={
             # 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0',

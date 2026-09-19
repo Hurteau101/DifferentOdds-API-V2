@@ -1,12 +1,17 @@
 import asyncio
+import os
 import re
 from datetime import datetime, timezone
 from itertools import chain
 import asyncio
 import aiohttp
+from dotenv import load_dotenv
+
 from Redis.redis_manager import RedisAsyncManager
 from Utils.request_caller import APICaller
 from curl_cffi import AsyncSession as CurlAsyncSession
+
+load_dotenv()
 
 ## Try Datacenter Proxies.
 
@@ -19,6 +24,7 @@ class ESPNMapper(APICaller):
         # {"espn_league": "fiba", "sport": "basketball"},
         {"espn_league": "mens-college-basketball", "sport": "basketball"},
         {"espn_league": "wnba", "sport": "basketball"},
+        {"espn_league": "college-football", "sport": "football"},
     ]
 
     def __init__(self):
@@ -56,8 +62,29 @@ class ESPNMapper(APICaller):
                 }
 
                 sport = results[index]["sports"][0]["slug"]
-                schedules = await self._get_schedule(team_ids=list(teams.values()), sport=sport, league=league_name, session=session)
-                players = await self._get_players(team_ids=list(teams.values()), sport=sport, league=league_name, session=session)
+                # schedules = await self._get_schedule(team_ids=list(teams.values()), sport=sport, league=league_name, session=session)
+                # players = await self._get_players(team_ids=list(teams.values()), sport=sport, league=league_name, session=session)
+                schedules = await self._get_schedule(team_ids=list(teams.values()), sport=sport,
+                                                     league=league.get("slug"), session=session)
+                players = await self._get_players(team_ids=list(teams.values()), sport=sport, league=league.get("slug"),
+                                                  session=session)
+
+                # Backfill college football players ESPN's roster endpoint misses
+                if league.get("slug") == "college-football":
+                    cfbd_players = await self._get_cfbd_players(session=session, year=datetime.now().year)
+
+                    for team in league.get("teams", []):
+                        team_info = team.get("team", {})
+                        team_id = team_info.get("id")
+                        school = team_info.get("location")
+
+                        existing = set(players.get(team_id, []))
+                        for name in cfbd_players.get(school, []):
+                            if name not in existing:
+                                players.setdefault(team_id, []).append(name)
+                                existing.add(name)
+
+
 
                 for team_name, team_id in teams.items():
                     mapping.setdefault(league_name, {})[team_name] = {
@@ -93,7 +120,7 @@ class ESPNMapper(APICaller):
         tasks = [
             self.call_with_semaphore(
                 session=session,
-                url=f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams/{team_id}/roster?limit=5000",
+                url=f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams/{team_id}/roster",
                 method="GET",
                 use_proxy=True,
                 semaphore=self.semaphore
@@ -194,7 +221,25 @@ class ESPNMapper(APICaller):
 
         return leagues, results
 
+    async def _get_cfbd_players(self, session: CurlAsyncSession, year: int) -> dict:
+        """Returns {school_name: [player names]} from CollegeFootballData."""
+        result = await self.api_caller(
+            session=session,
+            url=f"https://api.collegefootballdata.com/roster?year={year}",
+            method="GET",
+            headers={"Authorization": f"Bearer {os.getenv('COLLEGE_FOOTBALL_DATA_API_KEY')}"},
+            use_proxy=False,
+        )
 
+        players = {}
+        for p in result or []:
+            first = p.get("firstName") or p.get("first_name") or ""
+            last = p.get("lastName") or p.get("last_name") or ""
+            name = f"{first} {last}".strip().lower()
+            if name and p.get("team"):
+                players.setdefault(p["team"], []).append(name)
+
+        return players
 
 
 if __name__ == "__main__":

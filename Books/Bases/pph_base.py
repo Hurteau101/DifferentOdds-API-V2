@@ -1,15 +1,23 @@
 from datetime import datetime
 from typing import Callable
-from rapidfuzz import process, fuzz
+from rapidfuzz import process, fuzz, utils
 from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import OddsFormat, GameData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from Books.Bases.sportsbook_base import SportsbooksBookBase
-
+import json
 
 class PPHBookBase(SportsbooksBookBase):
     def __init__(self, book_name: str):
         super().__init__(book_name=book_name)
+        self.mapping_configs = self._load_mapping_configs(book_name=book_name)
+
+    def _load_mapping_configs(self, book_name: str):
+        with open("../Sportsbooks/mapping_configs.json", "r") as f:
+            mapping_configs = json.load(f)
+
+        return mapping_configs.get(book_name)
+
 
     def spread_type(self, team_data: dict, game_data: dict, market_name: str, name_mapper_func: Callable,
                        home_spread_odds_name:str, away_spread_odds_name: str,
@@ -48,7 +56,7 @@ class PPHBookBase(SportsbooksBookBase):
                 league=league,
                 market=self.convert_spread_name(mapped_market_name, league),
                 bet_team=team,
-                line=float(spread_line),
+                line=float(spread_line) if spread_line else '',
                 bet_type=None,
                 future=False,
                 odds_format=OddsFormat(american_odds=float(spread_odds)),
@@ -142,29 +150,38 @@ class PPHBookBase(SportsbooksBookBase):
         )
 
     def _fuzzy_match_backup(self, player_name: str, player_list: list, espn_mapping: dict) -> tuple:
-        match, score, _ = process.extractOne(player_name, player_list, scorer=fuzz.token_sort_ratio)
+        if not player_list:
+            return None, None
+
+        match, score, _ = process.extractOne(
+            player_name,
+            player_list,
+            scorer=fuzz.token_sort_ratio,
+            processor=utils.default_process,
+        )
 
         if score >= 90:
             return next((
                 {team_name: team_data}
                 for team_name, team_data in espn_mapping.items()
-                if match in [player for player in team_data.get("players", [])]
+                if match in team_data.get("players", [])
             ), None), match
-
 
         return None, None
 
+    async def _load_espn_mapping(self):
+        espn_redis = RedisAsyncManager(database=8)
+        return await espn_redis.get_data("espn_mapping")
 
-    async def find_espn_mapping(self, player_name: str, league: str, game_date: datetime | str):
+    async def find_espn_mapping(self, espn_mapping: dict, player_name: str, league: str, game_date: datetime | str):
         """Find the appropriate ESPN mapping for a given player, league, and game date. First tries to find a direct match,
         then falls back to fuzzy matching if no direct match is found."""
-        espn_redis = RedisAsyncManager(database=8)
-        espn_mapping = await espn_redis.get_data("espn_mapping")
-
         if not espn_mapping:
             return {}
 
         found_league = espn_mapping.get(league.upper())
+        if not found_league:
+            return {}
 
         found_team = next((
             {team_name: team_data}
@@ -185,11 +202,13 @@ class PPHBookBase(SportsbooksBookBase):
             if not found_team:
                 return {}
 
+        window = 360 if league.upper() in ["NCAAF", "NFL"] else 30
+
         found_scheduled_game_data = next((
             schedule
             for team_data in found_team.values()
             for schedule in team_data.get("schedule", [])
-            if self.is_within_minutes(30, schedule.get("date"), game_date)
+            if self.is_within_minutes(window, schedule.get("date"), game_date)
         ), {})
 
         return found_scheduled_game_data

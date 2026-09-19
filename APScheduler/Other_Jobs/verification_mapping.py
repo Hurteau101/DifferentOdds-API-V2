@@ -120,9 +120,16 @@ class VerificationMapping:
         redis_keys = set()
 
         for data in unmapped_data:
+            # Only compare against verified teams in the same league
+            league_keys = {
+                v.get("normalized_name").lower()
+                for v in verified_teams.values()
+                if (v.get("league") or "").upper() == (data.get("league") or "").upper()
+            }
+
             match = process.extractOne(
                 query=data.get("name"),
-                choices=mapped_keys,
+                choices=league_keys,
                 scorer=fuzz.ratio,
                 score_cutoff=95,
             )
@@ -133,6 +140,7 @@ class VerificationMapping:
                     verified
                     for verified in verified_teams.values()
                     if matched_str.lower() == verified.get("normalized_name").lower()
+                    and (verified.get("league") or "").upper() == (data.get("league") or "").upper()
                 ), None)
 
                 if found_normalized:
@@ -143,8 +151,7 @@ class VerificationMapping:
                         "abbreviation": found_normalized.get("abbreviation"),
                         "league": found_normalized.get("league"),
                     }
-
-                continue
+                    continue
 
             non_matched[(data.get("league"), data.get("name"))] = {
                 "sportsbook": data.get("book"),
@@ -224,7 +231,7 @@ class VerificationMapping:
             response = await asyncio.gather(*task)
 
             if response:
-                ai_responses.extend(response)
+                ai_responses.extend(r for r in response if r)
 
         self.update_verification_teams(ai_teams=ai_responses)
         self.update_redis(redis_keys=set(row.get("redis_key") for row in non_matched_data))
