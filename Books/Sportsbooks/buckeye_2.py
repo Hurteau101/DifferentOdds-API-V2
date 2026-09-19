@@ -361,7 +361,7 @@ class Buckeye2(PPHBookBase):
             {"market": "Team1TtlPtsAdj1", "team": team_1, "line_look_up_id": "Team1TotalPoints", "direction": "Over", "odds_look_up_id": "Team1TtlPtsAdj1", "mapped_name": "Team Total"},
             {"market": "Team1TtlPtsAdj2", "team": team_1, "line_look_up_id": "Team1TotalPoints", "direction": "Under", "odds_look_up_id": "Team1TtlPtsAdj2", "mapped_name": "Team Total"},
             {"market": "Team2TtlPtsAdj1", "team": team_2, "line_look_up_id": "Team2TotalPoints", "direction": "Over", "odds_look_up_id": "Team2TtlPtsAdj1", "mapped_name": "Team Total"},
-            {"market": "Team2TtlPtsAdj2", "team": team_1, "line_look_up_id": "Team2TotalPoints", "direction": "Under", "odds_look_up_id": "Team2TtlPtsAdj2", "mapped_name": "Team Total"},
+            {"market": "Team2TtlPtsAdj2", "team": team_2, "line_look_up_id": "Team2TotalPoints", "direction": "Under", "odds_look_up_id": "Team2TtlPtsAdj2", "mapped_name": "Team Total"},
 
         ]
 
