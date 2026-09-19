@@ -17,5 +17,7 @@ class SportsbookStats(Stats):
     def __post_init__(self, league: str):
         self.bet_player = clean_structure(self.bet_player)
         self.market = static_mapping.stat_look_up(self.market)
+        if self.bet_player:
+            self.market = f"Player {self.market}"
         bet_team, _, _ = map_teams(self.bet_team, league)
         self.bet_team = bet_team
