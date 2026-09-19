@@ -449,7 +449,7 @@ class Ace(PPHBookBase):
                 wrapped_data=True,
             )
 
-            await self.flush_unmapped()
+            # await self.flush_unmapped()
             return final_data
 
 

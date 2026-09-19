@@ -317,7 +317,7 @@ class Metallic(PPHBookBase):
                 wrapped_data=True,
             )
 
-            await self.flush_unmapped()
+            # await self.flush_unmapped()
             return metalic_data
 
 
