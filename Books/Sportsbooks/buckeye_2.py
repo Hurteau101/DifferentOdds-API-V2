@@ -528,17 +528,6 @@ class Buckeye2(PPHBookBase):
 
 
             buckeye_2_data = list(event_data.values())
-            stats = set()
-
-            for buckeye in buckeye_2_data:
-                for odd in buckeye.odds:
-                    stats.add(odd.market)
-                # stats.add()
-            #         stats.add(stat)
-            #
-
-            for stat in stats:
-                print(stat)
 
             await self.store_data(
                 data_to_store=buckeye_2_data,
