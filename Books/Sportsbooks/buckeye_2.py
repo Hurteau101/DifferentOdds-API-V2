@@ -1,23 +1,16 @@
 import asyncio
 import os
-from collections import defaultdict
 from datetime import datetime
-from itertools import chain
-from typing import Callable
 from zoneinfo import ZoneInfo
-import aiohttp
-from dotenv import load_dotenv
 from requests_toolbelt.utils.formdata import urlencode
-
 from Books.Bases.pph_base import PPHBookBase
-from LoggingHelper.logging_helper import insert_log, ErrorTypes
-from Redis.redis_manager import RedisAsyncManager
 from Settings.Models.base_models import GameData, OddsFormat, TeamData
 from Settings.Models.sportsbooks_models import SportsbookStats
 from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class Buckeye2(PPHBookBase):
+    ALLOWED_BUY_POINT_SPORTS = ["NFL", "NBA", "NCAAF"]
     def __init__(self):
         super().__init__(book_name="buckeye2")
 
@@ -338,10 +331,6 @@ class Buckeye2(PPHBookBase):
 
         if odds:
             game_data.odds.extend(odds)
-            # # print(game_data.odds)
-            # from dataclasses import asdict
-            # import json
-            # print(json.dumps([asdict(odd) for odd in game_data.odds], indent=2))
             return game_data
 
         return None
@@ -406,36 +395,32 @@ class Buckeye2(PPHBookBase):
             if not stat:
                 continue
 
-            if option.get("has_buy_points") and option.get("buy_points_type") == "spread":
-                game_data.odds.extend(self.calulate_spread_buy_points(
-                    spread_line=stat.line,
-                    spread_odds=stat.odds_format.get("american_odds"),
-                    buy_points=buy_points,
-                    period_description=event_data.get("PeriodDescription", ''),
-                    market_name=stat.market,
-                    bet_team=stat.bet_team,
-                    league=league
-                ))
-            elif option.get("buy_points_type") == "total":
-                game_data.odds.extend(self.calulate_total_buy_points(
-                    total_line=stat.line,
-                    total_odds=stat.odds_format.get("american_odds"),
-                    buy_points=buy_points,
-                    period_description=event_data.get("PeriodDescription", ''),
-                    market_name=stat.market,
-                    direction=stat.bet_type,
-                    league=league
-                ))
-
+            if league in self.ALLOWED_BUY_POINT_SPORTS:
+                if option.get("has_buy_points") and option.get("buy_points_type") == "spread":
+                    game_data.odds.extend(self.calulate_spread_buy_points(
+                        spread_line=stat.line,
+                        spread_odds=stat.odds_format.get("american_odds"),
+                        buy_points=buy_points,
+                        period_description=event_data.get("PeriodDescription", ''),
+                        market_name=stat.market,
+                        bet_team=stat.bet_team,
+                        league=league
+                    ))
+                elif option.get("buy_points_type") == "total":
+                    game_data.odds.extend(self.calulate_total_buy_points(
+                        total_line=stat.line,
+                        total_odds=stat.odds_format.get("american_odds"),
+                        buy_points=buy_points,
+                        period_description=event_data.get("PeriodDescription", ''),
+                        market_name=stat.market,
+                        direction=stat.bet_type,
+                        league=league
+                    ))
 
             odds.append(stat)
 
         if odds:
             game_data.odds.extend(odds)
-            # # print(game_data.odds)
-            # from dataclasses import asdict
-            # import json
-            # print(json.dumps([asdict(odd) for odd in game_data.odds], indent=2))
             return game_data
 
         return None
