@@ -487,7 +487,7 @@ class Buckeye2(PPHBookBase):
             leagues = [
                 league
                 for league in raw_leagues.get("Leagues", [])
-                if league.get("SportSubTypeDisplay", '').upper() in list(chain.from_iterable(self.VALID_LEAGUES.values()))
+                if league.get("SportSubTypeDisplay", '').strip().upper() in list(chain.from_iterable(self.VALID_LEAGUES.values()))
             ]
 
             raw_data = [
