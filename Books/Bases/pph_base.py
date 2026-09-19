@@ -13,7 +13,7 @@ class PPHBookBase(SportsbooksBookBase):
         self.mapping_configs = self._load_mapping_configs(book_name=book_name)
 
     def _load_mapping_configs(self, book_name: str):
-        with open("../Sportsbooks/mapping_configs.json", "r") as f:
+        with open("Books/Sportsbooks/mapping_configs.json", "r") as f:
             mapping_configs = json.load(f)
 
         return mapping_configs.get(book_name)
