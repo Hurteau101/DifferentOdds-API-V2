@@ -315,16 +315,18 @@ class AutoSGP(APICaller):
                         fair_value = []
 
                         game_key = f"{'__'.join(sorted(str(leg['id']) for leg in combo))}___{unique_name}"
+                        combo_key = game_key.rsplit("___", 1)[0]
 
-                        if game_key in seen_keys or previous_leg_uses.get(game_key, 0) >= 1 or any(leg_uses[f"{leg['id']}__{unique_name}"]["count"] >= max_uses for leg in combo):
+                        if combo_key in seen_keys or previous_leg_uses.get(combo_key, 0) >= 1 or any(
+                                leg_uses[f"{leg['id']}__{unique_name}"]["count"] >= max_uses for leg in combo):
                             continue
 
-                        seen_keys.add(game_key)
+                        seen_keys.add(combo_key)
 
-                        leg_uses[game_key] = {
+                        leg_uses[combo_key] = {
                             "count": 1,
                             "date": combo[0]["date"],
-                            "leg_id": game_key,
+                            "leg_id": combo_key,
                         }
 
                         for leg in combo:
