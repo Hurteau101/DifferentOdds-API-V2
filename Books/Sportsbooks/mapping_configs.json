@@ -1,7 +1,10 @@
 {
   "buckeye2": {
     "NFL": {
-      "accepted_sub_type_display": {"nfl": "game"}
+      "accepted_sub_type_display": {
+        "nfl": "game",
+        "nfl player props": "player"
+      }
     },
     "NCAAF": {
       "accepted_sub_type_display": {
