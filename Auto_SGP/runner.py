@@ -243,6 +243,7 @@ class AutoSGP(APICaller):
         slips = []
 
         stat_types = [db_filter.lower() for db_filter in filter_dict.get("stat_types", [])]
+        same_team_constraint = filter_dict.get("same_team_constraint")
 
         max_uses = filter_dict.get("max_uses", 1)
         leg_uses = {}
@@ -285,18 +286,24 @@ class AutoSGP(APICaller):
 
                 # How many times to re-loop. This allows for stat types to be used again but only the max of max_uses.
                 for _ in range(max_uses):
+                    enforce_same_team = bool(random.getrandbits(1)) if same_team_constraint is None else same_team_constraint
+
                     # One shuffled slot per stat_type. Returns copies so duplicate stats don't pair with themselves.
                     slots = [random.sample(active_buckets[stat], len(active_buckets[stat])) for stat in stat_types]
-                    use_multiple_teams = bool(random.getrandbits(1))
 
                     for combo in zip(*slots):
                         # Ensure same player + stat isn't used. Ex. (Lebron James Over 5.5 Rebounds + Lebron James Under 5.5 Rebounds)
                         if len(set(leg["unique_stat"] for leg in combo)) != len(combo):
                             continue
 
-                        # Ensure 2 teams.
-                        if use_multiple_teams and (len({leg["team"] for leg in combo}) < 2 or any(leg["team"] is None for leg in combo)):
-                            continue
+                        # Ensure same team.
+                        if enforce_same_team:
+                            teams = {leg["team"] for leg in combo}
+                            if len(teams) != 1 or None in teams:
+                                continue
+
+                        # if use_multiple_teams and (len({leg["team"] for leg in combo}) < 2 or any(leg["team"] is None for leg in combo)):
+                        #     continue
 
                         common_books = set.intersection(*(set(leg["book_feed"]) for leg in combo))
                         if len(common_books) <= 1:

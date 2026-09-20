@@ -31,6 +31,7 @@ class AutoSGPConfigs(Base):
     discord_min_ev: Mapped[float] = mapped_column()
     max_uses: Mapped[int] = mapped_column(default=1)
     is_active: Mapped[bool] = mapped_column(default=True)
+    same_team_constraint: Mapped[bool] = mapped_column(default=None)
 
     @classmethod
     def get_active_configs(cls, session: Session):
