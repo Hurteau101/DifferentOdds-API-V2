@@ -316,10 +316,16 @@ class AutoSGP(APICaller):
 
                         game_key = f"{'__'.join(sorted(str(leg['id']) for leg in combo))}___{unique_name}"
 
-                        if game_key in seen_keys or any(leg_uses[f"{leg['id']}__{unique_name}"]["count"] >= max_uses for leg in combo):
+                        if game_key in seen_keys or previous_leg_uses.get(game_key, 0) >= 1 or any(leg_uses[f"{leg['id']}__{unique_name}"]["count"] >= max_uses for leg in combo):
                             continue
 
                         seen_keys.add(game_key)
+
+                        leg_uses[game_key] = {
+                            "count": 1,
+                            "date": combo[0]["date"],
+                            "leg_id": game_key,
+                        }
 
                         for leg in combo:
                             leg_uses[f"{leg['id']}__{unique_name}"]["count"] += 1
@@ -523,7 +529,7 @@ class AutoSGP(APICaller):
         if not auto_filters:
             raise Exception("No active AutoSGP configs found.")
 
-        auto_filters = self._add_random_filters(auto_filters, avoid_markets)
+        # auto_filters = self._add_random_filters(auto_filters, avoid_markets)
 
         for filters in auto_filters:
             logger.info(f"-> Running {filters.get('unique_name')} [{' | '.join(filters.get('stat_types'))}]")
@@ -562,84 +568,84 @@ class AutoSGP(APICaller):
                                       previous_leg_uses=previous_leg_uses, unique_name=unique_name, league=filter_league,
                                       filter_dict=filters)
 
-            if not slips:
-                logger.warning(f"No slips created for {unique_name}")
-                continue
-
-            batch_legs = {}
-            batch_discord = {}
-            endpoint = {}
-
-            for i in range(0, len(slips[0:AutoSGP.SLIP_LENGTH]), 10):
-                batch = slips[i:i + 10]
-                print(f"  → Batch {i // 10 + 1}: {len(batch)} items")
-                results = await self.get_sgp_odds(slips_list=batch)
-
-                for slip in results:
-                    ev_count = sum(
-                        1
-                        for book_data in slip.get("weighted_sgp_odds").values()
-                        if book_data.get("ev", 0) >= filters.get("discord_min_ev")
-                    )
-
-                    game_key = slip.get("game_key")
-
-                    if all([
-                        ev_count == 1,
-                        len(slip.get("median_met_books", 0)) >= 3,
-                        game_key,
-                        game_key not in previous_game_keys
-                    ]):
-                        slip["discord_sent"] = True
-                        self.discord_sgp.send_alert(slip=slip)
-
-                    game_dates = [leg["date"] for leg in slip["legs"] if leg.get("date")]
-                    soonest_date = min(game_dates, key=datetime.fromisoformat) if game_dates else slip.get("date")
-
-                    if slip["discord_sent"]:
-                        batch_discord.update({
-                            game_key: {
-                                "date": soonest_date,
-                                "game_key": game_key,
-                            }
-                        })
-
-                    batch_legs.update({
-                        f"{leg['id']}__{unique_name}": {
-                            "date": leg["date"],
-                            "leg_id": f"{leg['id']}__{unique_name}",
-                        }
-                        for leg in slip["legs"]
-                    })
-
-                    slip.pop("payload")
-
-                    endpoint.update({
-                        game_key: {
-                            **slip,
-                            "date": soonest_date
-                        }
-                    })
-
-            if batch_legs:
-                await self.previously_stored_redis_instance.bulk_insert_individual(
-                    data_to_store=batch_legs
-
-                )
-
-            if batch_discord:
-                await self.previously_sent_discord_redis.bulk_insert_individual(
-                    data_to_store=batch_discord
-
-                )
-
-            if endpoint:
-                await self.endpoint_redis.bulk_insert_individual(
-                    data_to_store=endpoint
-
-                )
-
-                self._store_history(endpoint_data=endpoint)
+            # if not slips:
+            #     logger.warning(f"No slips created for {unique_name}")
+            #     continue
+            #
+            # batch_legs = {}
+            # batch_discord = {}
+            # endpoint = {}
+            #
+            # for i in range(0, len(slips[0:AutoSGP.SLIP_LENGTH]), 10):
+            #     batch = slips[i:i + 10]
+            #     print(f"  → Batch {i // 10 + 1}: {len(batch)} items")
+            #     results = await self.get_sgp_odds(slips_list=batch)
+            #
+            #     for slip in results:
+            #         ev_count = sum(
+            #             1
+            #             for book_data in slip.get("weighted_sgp_odds").values()
+            #             if book_data.get("ev", 0) >= filters.get("discord_min_ev")
+            #         )
+            #
+            #         game_key = slip.get("game_key")
+            #
+            #         if all([
+            #             ev_count == 1,
+            #             len(slip.get("median_met_books", 0)) >= 3,
+            #             game_key,
+            #             game_key not in previous_game_keys
+            #         ]):
+            #             slip["discord_sent"] = True
+            #             self.discord_sgp.send_alert(slip=slip)
+            #
+            #         game_dates = [leg["date"] for leg in slip["legs"] if leg.get("date")]
+            #         soonest_date = min(game_dates, key=datetime.fromisoformat) if game_dates else slip.get("date")
+            #
+            #         if slip["discord_sent"]:
+            #             batch_discord.update({
+            #                 game_key: {
+            #                     "date": soonest_date,
+            #                     "game_key": game_key,
+            #                 }
+            #             })
+            #
+            #         batch_legs.update({
+            #             f"{leg['id']}__{unique_name}": {
+            #                 "date": leg["date"],
+            #                 "leg_id": f"{leg['id']}__{unique_name}",
+            #             }
+            #             for leg in slip["legs"]
+            #         })
+            #
+            #         slip.pop("payload")
+            #
+            #         endpoint.update({
+            #             game_key: {
+            #                 **slip,
+            #                 "date": soonest_date
+            #             }
+            #         })
+            #
+            # if batch_legs:
+            #     await self.previously_stored_redis_instance.bulk_insert_individual(
+            #         data_to_store=batch_legs
+            #
+            #     )
+            #
+            # if batch_discord:
+            #     await self.previously_sent_discord_redis.bulk_insert_individual(
+            #         data_to_store=batch_discord
+            #
+            #     )
+            #
+            # if endpoint:
+            #     await self.endpoint_redis.bulk_insert_individual(
+            #         data_to_store=endpoint
+            #
+            #     )
+            #
+            #     self._store_history(endpoint_data=endpoint)
 
 
 if __name__ == "__main__":
