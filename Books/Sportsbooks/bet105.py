@@ -193,13 +193,15 @@ class Bet105(SportsbooksBookBase):
         for market in self.yeild_markets(market_results):
             data = self._extract_market_data(market_data=market, fixture_data=fixtures, mapped_data=mapped_data)
             if data:
-                key=data.game_key_items
-                temp_key = '_'.join(key)
+                # key=data.game_key_items
+                # print(key)
+                # temp_key = '_'.join(key)
+                game_key = data.game_key
 
-                if temp_key in data_dict:
-                    data_dict[temp_key].odds.extend(data.odds)
+                if game_key in data_dict:
+                    data_dict[game_key].odds.extend(data.odds)
                 else:
-                    data_dict[temp_key] = data
+                    data_dict[game_key] = data
 
         return list(data_dict.values())
 
