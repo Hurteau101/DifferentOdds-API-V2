@@ -89,8 +89,6 @@ class CaesarsSGP(SGPBookBase):
             for data in self.link_data
         ]
 
-        print(mapped_data)
-
         if not mapped_data or any(data for data in mapped_data if
                                   not any([data.get("marketId"), data.get("selectionId"), data.get("eventId")])):
             return None
@@ -137,8 +135,8 @@ if __name__ == "__main__":
             sgp_data = {
                 "book_name": "caesars",
                 "links": [
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=4705a2d8-8250-3a27-ae98-ffe76f2956bf",
-                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=bac348d4-03a7-309a-bcac-df1bb4b55829",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=a7a1de61-180c-3bca-a679-8059f4dba7f4",
+                    "https://sportsbook.caesars.com/{country}/{state}/bet/betslip?selectionIds=ac97cb33-4643-37a5-abbc-aed103d6bec0"
                 ],
             }
 

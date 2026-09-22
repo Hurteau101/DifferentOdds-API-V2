@@ -1,106 +1,83 @@
 import os
-from playwright.async_api import async_playwright
 from Books.Bases.auth_base import AuthBase
 from LoggingHelper.logging_helper import insert_log, ErrorTypes
 from Utils.request_caller import PredefinedProxy
+from curl_cffi import AsyncSession as CurlAsyncSession
 
 
 class CaesarAuth(AuthBase):
-    _BLOCKED_RESOURCE_TYPES = {"image", "media", "font", "stylesheet"}
-
     def __init__(self):
-        super().__init__(book_name="caesars", category="sgp")
-
-    async def _block_heavy_resources(self, route):
-        request = route.request
-
-        if request.frame.parent_frame is not None:
-            await route.abort()
-            return
-
-        if request.resource_type in self._BLOCKED_RESOURCE_TYPES:
-            await route.abort()
-            return
-
-        await route.continue_()
-
-    async def extract_token(self, use_session: bool=True, session_length:int=13) -> str | None:
-        proxy_list = PredefinedProxy.PROXY_CHEAP_RESIDENTIAL_PROXIES.value
-        if not proxy_list:
-            raise ValueError("No proxies available.")
-
-        async with async_playwright() as p:
-            for proxy in proxy_list:
-                proxy_parts = self.split_colon_at_proxy(proxy)
-
-                if not proxy_parts:
-                    continue
-
-                proxy_dict = {
-                    "server": f"http://{proxy_parts[2]}:{proxy_parts[3]}",
-                    "username": proxy_parts[0],
-                    "password": proxy_parts[1]
-                }
-
-                browser = await p.chromium.launch(headless=False)
-
-                try:
-                    context = await browser.new_context(
-                        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                        proxy=proxy_dict
-                    )
-
-                    await context.route("**/*", self._block_heavy_resources)
-
-                    page = await context.new_page()
-
-                    await page.add_init_script("""
-                        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-                    """)
-
-                    await page.goto("https://sportsbook.caesars.com/us/az/bet/", wait_until="networkidle")
-                    await page.wait_for_timeout(5000) # Wait for any JS challenges to finish.
-
-                    for _ in range(10):
-                        cookies = await context.cookies()
-                        waf_token = next((c["value"] for c in cookies if c["name"] == "aws-waf-token"), None)
-
-                        if waf_token:
-                            print(waf_token)
-                            return waf_token
-
-                        await page.wait_for_timeout(500)
-
-                except Exception as e:
-                    pass
-
-                finally:
-                    await browser.close()
-
-            return None
+        super().__init__(book_name="caesars", category="sgp", precalculated_additional_time=240)
 
     async def run_auth(self) -> bool:
-        if os.name != 'nt':
-            os.environ['DISPLAY'] = ':99'
+        api_key = os.getenv("CAPSOLVER_API_KEY")
 
-        waf_token = await self.extract_token()
+        if not api_key:
+            raise ValueError("CAPSOLVER_API_KEY must be set in environment variables.")
 
-        if waf_token:
-            await self.store_data(
-                key_name=self.auth_id_name,
-                data_to_store=waf_token,
-                expiration_time=self.pre_calculated_redis_expiration
+        proxy_list = PredefinedProxy.PROXY_CHEAP_RESIDENTIAL_PROXIES.value
+        url = "https://api.americanwagering.com/regions/us/locations/az/brands/czr/sb/v2/bets/details"
+        challenge_js_url = "https://b470c5d1aeb4.edge.sdk.awswaf.com/b470c5d1aeb4/06faba802dee/challenge.js"
+
+        async with CurlAsyncSession(impersonate=self.impersonate) as session:
+            for proxy in proxy_list:
+                task = {
+                    "type": "AntiAwsWafTask",
+                    "websiteURL": url,
+                    "awsChallengeJS": challenge_js_url,
+                    "proxy": f"http://{proxy}"
+                }
+
+                response = await self.api_caller(
+                    session=session,
+                    url="https://api.capsolver.com/createTask",
+                    method="POST",
+                    json={"clientKey": api_key, "task": task},
+                )
+
+                if not response or not response.get("taskId"):
+                    insert_log(
+                        book_name=self.book_data.title,
+                        error_type=ErrorTypes.MISC,
+                        error_message="Couldn't create task ID with Capsolver"
+                    )
+
+                    return False
+
+                for _ in range(15):
+                    response = await self.api_caller(
+                        session=session,
+                        url=f"https://api.capsolver.com/getTaskResult",
+                        method="POST",
+                        json={"clientKey": api_key, "taskId": response["taskId"]},
+                    )
+
+                    status = response.get("status")
+
+                    if status == "ready":
+                        token = response.get("solution", {}).get("cookie")
+                        if not token:
+                            break
+
+                        await self.store_data(
+                            key_name=self.auth_id_name,
+                            data_to_store=token,
+                            expiration_time=self.pre_calculated_redis_expiration
+                        )
+
+                        return True
+
+                    if response.get("errorId") or status == "failed":
+                        break
+
+            insert_log(
+                book_name=self.book_data.title,
+                error_type=ErrorTypes.AUTH,
+                error_message="All proxies failed and no captcha could be solved, could not extract auth"
             )
 
-            return True
+            return False
 
-        insert_log(
-            book_name=self.book_data.title,
-            error_type=ErrorTypes.AUTH,
-            error_message="All proxies failed, could not extract auth"
-        )
-
-        return False
 
 
 if __name__ == "__main__":

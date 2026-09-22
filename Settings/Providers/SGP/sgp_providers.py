@@ -327,12 +327,12 @@ SGP_PROVIDERS = [
             "select_id": r'selectionIds=([0-9a-fA-F-]+)',
         },
         method="POST",
-        is_active=False,
+        is_active=True,
         class_name="CaesarsSGP",
         file_name="caesar_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            job_active=False,
+            job_active=True,
             requires_auth=True,
             mapper_redis_key="caesar_mapped_ids",
             base_file_path=SGPProvider.base_file_path,
@@ -346,14 +346,14 @@ SGP_PROVIDERS = [
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            job_active=False,
+            job_active=True,
             auth_redis_key="caesar_auth",
             base_file_path=SGPProvider.base_file_path,
             class_name="CaesarAuth",
             file_name="caesars_auth",
             ap_scheduler=APSchedulerDetails(
                 job_id="sgp_caesar_auth",
-                interval=540,
+                interval=300,
                 name="SGP Caesar Auth",
             )
         ),
