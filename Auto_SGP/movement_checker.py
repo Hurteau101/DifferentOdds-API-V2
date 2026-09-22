@@ -96,7 +96,7 @@ class MovementChecker:
                             continue
 
                         if self.calculate_cent_movement(old_value, new_value):
-                            logger.info(f"Cent Movement Detected for Key {leg_id}: Old Value: {old_value}, New Value: {new_value}")
+                            # logger.info(f"Cent Movement Detected for Key {leg_id}: Old Value: {old_value}, New Value: {new_value}")
                             endpoint_keys.add(game_key)
                             previous_stored_keys.add(unique_id)
 
