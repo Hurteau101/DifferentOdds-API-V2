@@ -2,6 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from APScheduler.Other_Jobs.verification_mapping import VerificationMapping
+from Auto_SGP.movement_checker import MovementChecker
 from Settings.book_configurations import BookConfiguration
 from itertools import chain
 from datetime import datetime, timedelta
@@ -178,6 +179,19 @@ class BaseScheduleRunner:
             misfire_grace_time=120,
         )
 
+    def _auto_sgp_movement_checker(self, scheduler: AsyncIOScheduler):
+        movement = MovementChecker()
+
+        scheduler.add_job(
+            movement.run_checker,
+            trigger=IntervalTrigger(seconds=120),
+            name="auto_sgp_movement_job",
+            coalesce=True,
+            max_instances=1,
+            next_run_time=datetime.now(),
+            misfire_grace_time=180,
+        )
+
 
     async def run_schedule(self):
         job_dict = self._pre_book_setup()
@@ -196,6 +210,7 @@ class BaseScheduleRunner:
         self._store_espn_mapper(scheduler=scheduler)
         self._store_bettorodds_job(scheduler=scheduler)
         self._store_cached_verification_mapping(scheduler=scheduler)
+        self._auto_sgp_movement_checker(scheduler=scheduler)
 
         scheduler.start()
 
