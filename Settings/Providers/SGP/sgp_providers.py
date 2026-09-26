@@ -327,7 +327,7 @@ SGP_PROVIDERS = [
             "select_id": r'selectionIds=([0-9a-fA-F-]+)',
         },
         method="POST",
-        is_active=True,
+        is_active=False,
         class_name="CaesarsSGP",
         file_name="caesar_sgp",
         mapper_job_dict=MapperJobDict(
@@ -346,7 +346,7 @@ SGP_PROVIDERS = [
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            job_active=True,
+            job_active=False,
             auth_redis_key="caesar_auth",
             base_file_path=SGPProvider.base_file_path,
             class_name="CaesarAuth",
@@ -687,6 +687,45 @@ SGP_PROVIDERS = [
         is_active=True,
         class_name="UnderdogSGP",
         file_name="underdog_sgp",
+    ),
+    SGPProvider(
+        title="Playnow Sportsbook",
+        name="playnow",
+        url={
+            "sgp_url": ""
+        },
+        headers={
+            'Referer': 'https://www.playnow.com/',
+            'Content-Type': 'application/json',
+            'Origin': 'https://www.playnow.com',
+        },
+        method="POST",
+        is_active=True,
+        class_name="PlaynowSGP",
+        file_name="playnow_sgp",
+        mapper_job_dict=MapperJobDict(
+            job_type=RedisSelector.MAPPER,
+            job_active=True,
+            requires_auth=False,
+            mapper_redis_key="playnow_ids",
+            base_file_path=SGPProvider.base_file_path,
+            class_name="PlaynowMapper",
+            file_name="playnow_mapper",
+            ap_scheduler=APSchedulerDetails(
+                job_id="sgp_playnow_mapper",
+                interval=600,
+                name="SGP Playnow Mapper",
+            )
+
+        ),
+        mapping=SGPMapper(
+            url={
+                "league_id_url": "https://content.sb.playnow.com/content-service/api/v1/q/drilldown-tree",
+                "event_id_url": "https://content.sb.playnow.com/content-service/api/v1/q/time-band-event-list",
+                "game_url": "https://content.sb.playnow.com/content-service/api/v1/q/events-by-ids"
+            },
+            method="GET",
+        )
     ),
 ]
 
