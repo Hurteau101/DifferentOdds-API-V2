@@ -509,7 +509,7 @@ SGP_PROVIDERS = [
         file_name="fliff_sgp",
         mapper_job_dict=MapperJobDict(
             job_type=RedisSelector.MAPPER,
-            job_active=True,
+            job_active=False,
             requires_auth=True,
             mapper_redis_key="fliff_ids",
             base_file_path=SGPProvider.base_file_path,
@@ -523,7 +523,7 @@ SGP_PROVIDERS = [
         ),
         auth_job_dict=AuthJobDict(
             job_type=RedisSelector.AUTH,
-            job_active=True,
+            job_active=False,
             auth_redis_key="fliff_auth",
             base_file_path=SGPProvider.base_file_path,
             class_name="FliffAuth",
