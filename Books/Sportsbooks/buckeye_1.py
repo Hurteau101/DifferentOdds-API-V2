@@ -331,7 +331,7 @@ class Buckeye1(PPHBookBase):
             semaphore = asyncio.Semaphore(2)
 
             results = await asyncio.gather(*[
-                self.post_with_semaphore(semaphore, task) for task in tasks
+                self.api_with_semaphore(semaphore, task) for task in tasks
             ])
 
             if not results:

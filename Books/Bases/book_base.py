@@ -140,7 +140,7 @@ class BookBase(ABC):
 
         events[key].odds.extend(item.odds)
 
-    async def post_with_semaphore(self, semaphore: asyncio.Semaphore, task, retries: int = 3, delay: float = 1.0):
+    async def api_with_semaphore(self, semaphore: asyncio.Semaphore, task, retries: int = 3, delay: float = 1.0):
         async with semaphore:
             for attempt in range(retries):
                 try:

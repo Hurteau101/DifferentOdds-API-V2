@@ -288,7 +288,7 @@ class STS(PPHBookBase):
             semaphore = asyncio.Semaphore(1)
 
             league_results = await asyncio.gather(*[
-                self.post_with_semaphore(semaphore, task) for task in league_name_tasks
+                self.api_with_semaphore(semaphore, task) for task in league_name_tasks
             ])
 
             cleaned_leagues = [self.clean_return(result) for result in league_results]
@@ -334,7 +334,7 @@ class STS(PPHBookBase):
             ]
 
             market_results = await asyncio.gather(*[
-                self.post_with_semaphore(semaphore, task) for task in market_tasks
+                self.api_with_semaphore(semaphore, task) for task in market_tasks
             ])
 
             cleaned_markets = [self.clean_return(result) for result in market_results]
