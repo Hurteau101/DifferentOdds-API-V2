@@ -428,19 +428,36 @@ class PropBuilderMapper(MapperBase):
             for team in game_detail.get(team_key, [])
         ), None)
 
-    async def _get_game_details(self, session: CurlAsyncSession):
+    async def _get_game_details(self, session: CurlAsyncSession, league_data: dict):
+        # tasks = [
+        #     self.api_caller(
+        #         session=session,
+        #         url=self.book_data.mapping.url.get("game_details_url"),
+        #         method=self.book_data.mapping.method,
+        #         headers={
+        #             **self.book_data.headers,
+        #             **await self.security_token(session=session,
+        #                                         security_url=self.book_data.mapping.url.get("security_url"),
+        #                                         api_caller=self.api_caller),
+        #         },
+        #     )
+        # ]
         tasks = [
             self.api_caller(
                 session=session,
                 url=self.book_data.mapping.url.get("game_details_url"),
+                params={"league": league},
                 method=self.book_data.mapping.method,
                 headers={
                     **self.book_data.headers,
-                    **await self.security_token(session=session,
-                                                security_url=self.book_data.mapping.url.get("security_url"),
-                                                api_caller=self.api_caller),
+                    **await self.security_token(
+                        session=session,
+                        security_url=self.book_data.mapping.url.get("security_url"),
+                        api_caller=self.api_caller,
+                    ),
                 },
             )
+            for league in league_data.keys()
         ]
 
         responses = await asyncio.gather(*tasks)
@@ -547,7 +564,7 @@ class PropBuilderMapper(MapperBase):
             }
 
             game_ids = await self._get_game_ids(session=session, league_data=leagues)
-            game_details = await self._get_game_details(session=session)
+            game_details = await self._get_game_details(session=session, league_data=leagues)
             market_mapper = await self._market_mapper(session=session, league_data=leagues)
 
             mapped_ids = await self._run_league_market_extractor(

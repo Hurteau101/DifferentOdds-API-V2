@@ -635,6 +635,7 @@ class AutoSGP(APICaller):
 
                 )
 
+            # May need to re-work this as recycled plays are senidng, due to movement removing them.
             if batch_discord:
                 await self.previously_sent_discord_redis.bulk_insert_individual(
                     data_to_store=batch_discord
