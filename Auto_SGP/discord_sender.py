@@ -91,7 +91,7 @@ class DiscordSGP:
             "onyxodds": os.getenv("ONYX_ROLE_ID"),
             "betmgm": os.getenv("BETMGM_ROLE_ID"),
             "novig": os.getenv("NOVIG_ROLE_ID"),
-            "prophetx": os.getenv("PROPHETX_ROLE_ID"),
+            "prophet x": os.getenv("PROPHETX_ROLE_ID"),
             "thescore": os.getenv("THESCORE_ROLE_ID"),
             "caesars": os.getenv("CAESARS_ROLE_ID"),
             "prop builder": os.getenv("PROP_BUILDER_ROLE_ID"),
