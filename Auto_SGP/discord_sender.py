@@ -85,10 +85,10 @@ class DiscordSGP:
         role_mapper = {
             "fanatics": os.getenv("FANATICS_ROLE_ID"),
             "fanduel": os.getenv("FANDUEL_ROLE_ID"),
-            "hardrock": os.getenv("HARDROCK_ROLE_ID"),
+            "hard rock": os.getenv("HARDROCK_ROLE_ID"),
             "draftkings": os.getenv("DRAFTKINGS_ROLE_ID"),
             "kambi": os.getenv("KAMBI_ROLE_ID"),
-            "onyxodds": os.getenv("ONYX_ROLE_ID"),
+            "onyx odds": os.getenv("ONYX_ROLE_ID"),
             "betmgm": os.getenv("BETMGM_ROLE_ID"),
             "novig": os.getenv("NOVIG_ROLE_ID"),
             "prophet x": os.getenv("PROPHETX_ROLE_ID"),
