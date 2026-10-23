@@ -171,9 +171,9 @@ def configure_data(bettorodds_data: dict) -> dict:
 
         sorted_match_name = ' vs '.join(sorted(split_match)).lower()
         event_key = f"{sorted_match_name}_{normalized_date.lower()}".replace(" ", "_")
-        player = game_details.get("Player", '')
-        line = game_details.get("Line", '')
-        prop = game_details.get("Prop", '')
+        player = game_details.get("Player", '') or ''
+        line = game_details.get("Line", '') or ''
+        prop = game_details.get("Prop", '') or ''
 
         for side in book_feed:
             modified_side = side
@@ -184,7 +184,7 @@ def configure_data(bettorodds_data: dict) -> dict:
                 modified_side, line = match.groups()
 
             normalized_raw = f"{player} {modified_side} {line} {prop}"
-            unique_stat = f"{game_details.get('Player', '')} {game_details.get('Prop', '').replace('Player', '')}"
+            unique_stat = f"{player} {prop.replace('Player', '')}"
             prop_key = MapperBase.build_prop_key(stat=prop, side=modified_side, line=line, player=player)
 
             feed = book_feed.get(side)

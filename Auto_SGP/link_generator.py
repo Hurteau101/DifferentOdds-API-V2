@@ -16,7 +16,7 @@ class Link:
             "onyxodds": self._onyxodds,
             "betmgm": self._betmgm,
             "novig": self._novig,
-            "thescore": self._thescore,
+            # "thescore": self._thescore,
             "caesars": self._caesar
         }
 
