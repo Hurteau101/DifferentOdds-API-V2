@@ -252,7 +252,7 @@ def _extract_book_feed(book_feed: dict, stat_type: str, valid_books: set):
             odds[side].update({
                 book_name: {
                     "american_odds": american_odds,
-                    "bet_link": book_data.get("bet_link") if book_data.get("bet_link") else book_data.get(
+                    "bet_link": book_data.get("betlink") if book_data.get("betlink", None) else book_data.get(
                         "internal_betlink"),
                     "vig": book_data.get("vig_free_odds")
                 }
