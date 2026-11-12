@@ -14,7 +14,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 SPREAD_PATTERN = re.compile(r'[+-]\d')
-SPREAD_SIDE_PATTERN = re.compile(r'^([A-Z]{2,3})\s+([+-]\d+(?:\.\d+)?)$')
+# SPREAD_SIDE_PATTERN = re.compile(r'^([A-Z]{2,3})\s+([+-]\d+(?:\.\d+)?)$')
+SPREAD_SIDE_PATTERN = re.compile(r'^(.+?)\s*([+-]\d+(?:\.\d+)?)$')
 SKIPPED_PROPS = ["odd/even"]
 
 BOOK_MAPPING_KEYS = {
