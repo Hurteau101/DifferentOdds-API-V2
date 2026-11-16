@@ -10,31 +10,32 @@ class NovigSGP(SGPBookBase):
     def __init__(self, sgp_data: dict, **kwargs):
         super().__init__(category="SGP", book_name="novig", sgp_data=sgp_data, **kwargs)
 
-    def _extract_odds(self, api_data: list, is_sgp: bool) -> float | None:
-        if is_sgp:
-            check_sgp = set(
-                leg.get("outcome", {}).get("market", {}).get("event", {}).get("game", {}).get("id")
-                for odds in api_data
-                for leg in odds.get("legs", [])
-                if leg.get("outcome", {}).get("market", {}).get("event", {}).get("game", {}).get("id")
-            )
+    # def _extract_odds(self, api_data: list, is_sgp: bool) -> float | None:
+        # if is_sgp:
+        #     check_sgp = set(
+        #         leg.get("outcome", {}).get("market", {}).get("event", {}).get("game", {}).get("id")
+        #         for odds in api_data
+        #         for leg in odds.get("legs", [])
+        #         if leg.get("outcome", {}).get("market", {}).get("event", {}).get("game", {}).get("id")
+        #     )
+        #
+        #     # Ensure that it's a SGP
+        #     if len(check_sgp) > 1:
+        #         return None
 
-            # Ensure that it's a SGP
-            if len(check_sgp) > 1:
-                return None
+        # probability = "".join([
+        #     str(odds["price"])
+        #     for odds in api_data
+        # ])
 
-        probability = "".join([
-            str(odds["price"])
-            for odds in api_data
-        ])
-
-        return convert_probability_to_american_odds(probability)
+        # return convert_probability_to_american_odds(probability)
 
 
     @SGPBookBase.ensure_link_data
     async def run_book(self, session):
 
-        ids = [link.get("event_id") for link in self.link_data]
+        # ids = [link.get("event_id") for link in self.link_data]
+        ids = ["01a1a3d7-a41e-7b13-8d18-19b0e70f33ca","01a1a3d7-a41c-77b1-a388-e038eced1309"]
 
         payload = {
             "outcomeIds": ids
@@ -56,7 +57,8 @@ class NovigSGP(SGPBookBase):
             return None
 
         if api_data:
-            american_odds = self._extract_odds(api_data, is_sgp=is_sgp)
+            # american_odds = self._extract_odds(api_data, is_sgp=is_sgp)
+            american_odds = convert_probability_to_american_odds(probability_str=api_data.get("price", ''))
             return NovigSGP.return_odds(american_odds=american_odds, decimal_odds=None) if american_odds else None
 
 
