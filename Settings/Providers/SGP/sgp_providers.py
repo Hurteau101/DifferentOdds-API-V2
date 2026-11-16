@@ -181,7 +181,7 @@ SGP_PROVIDERS = [
         title="Novig",
         name="novig",
         url={
-            "main_url": "https://api.novig.us/nbx/v1/parlay/request/unauthenticated"
+            "main_url": "https://api.novig.us/rfq/v2/quote/unauthenticated"
         },
         regex={
             "event_id": r"events/([^/]+)",

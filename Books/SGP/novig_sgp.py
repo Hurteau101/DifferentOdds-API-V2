@@ -34,11 +34,10 @@ class NovigSGP(SGPBookBase):
     @SGPBookBase.ensure_link_data
     async def run_book(self, session):
 
-        ids = [{"id": link.get("event_id")} for link in self.link_data]
+        ids = [link.get("event_id") for link in self.link_data]
 
         payload = {
-            "boostId": None,
-            "outcomes": ids
+            "outcomeIds": ids
         }
 
         is_sgp = self.sgp_data.get("is_sgp", True)
@@ -50,7 +49,7 @@ class NovigSGP(SGPBookBase):
             method="POST",
             json=payload,
             valid_codes=[201],
-            proxy_abort_text=['Cannot price parlay', 'A parlay must include a valid combination', 'Invalid Parlay Request']
+            proxy_abort_text=['Cannot price parlay', 'A parlay must include a valid combination', 'Invalid Parlay Request', 'This event is no longer available.']
         )
 
         if not api_data:
