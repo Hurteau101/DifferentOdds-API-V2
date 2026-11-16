@@ -48,7 +48,7 @@ class NovigSGP(SGPBookBase):
             url=self.book_data.url.get("main_url"),
             method="POST",
             json=payload,
-            valid_codes=[201],
+            valid_codes=[201, 200],
             proxy_abort_text=['Cannot price parlay', 'A parlay must include a valid combination', 'Invalid Parlay Request', 'This event is no longer available.']
         )
 
