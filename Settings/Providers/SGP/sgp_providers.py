@@ -282,17 +282,28 @@ SGP_PROVIDERS = [
         name="thescore",
         url={
             "anonymous_token_url": "https://sportsbook.ca-default.thescore.bet/graphql/persisted_queries/e8fa300a9384c89576e6bec55cf1a4fc97a3e15255571cf9f841515abfb7c382?extensions=%7B%22clientLibrary%22:%7B%22name%22:%22apollo-ios%22,%22version%22:%221.21.0%22%7D,%22persistedQuery%22:%7B%22sha256Hash%22:%22e8fa300a9384c89576e6bec55cf1a4fc97a3e15255571cf9f841515abfb7c382%22,%22version%22:1%7D%7D&operationName=Startup&variables=%7B%22connectToken%22:null,%22globalRedirect%22:false,%22isMedia%22:false,%22latLongParams%22:%7B%22accuracy%22:35,%22latitude%22:40.7128,%22longitude%22:-74.0060%7D,%22logoHeight%22:24,%22toolbarIconMaxHeight%22:20%7D",
-            "draftbet_url": "https://sportsbook.us-default.thescore.bet/graphql/persisted_queries/11b043d75b61c332daff19bff740fb035a524d6d0fe9d12debc729c667633b61",
-            "sgp_url": "https://sportsbook.us-default.thescore.bet/graphql/persisted_queries/11b043d75b61c332daff19bff740fb035a524d6d0fe9d12debc729c667633b61"
+            # "draftbet_url": "https://sportsbook.us-default.thescore.bet/graphql/persisted_queries/11b043d75b61c332daff19bff740fb035a524d6d0fe9d12debc729c667633b61",
+            "draftbet_url": "https://sportsbook.ca-ab.thescore.bet/graphql/persisted_queries/2498f2b6a9a13dece42e3fc9acf539cceb3609882b1f7486ef96eebdaee0ee52",
+            # "sgp_url": "https://sportsbook.us-default.thescore.bet/graphql/persisted_queries/11b043d75b61c332daff19bff740fb035a524d6d0fe9d12debc729c667633b61"
+            "sgp_url": "https://sportsbook.ca-ab.thescore.bet/graphql/persisted_queries/2498f2b6a9a13dece42e3fc9acf539cceb3609882b1f7486ef96eebdaee0ee52"
         },
         headers={
+            'Referer': 'https://sportsbook.thescore.bet/',
+            'content-type': 'application/json',
             'apollographql-client-name': 'tsb-tsb-web',
-            'apollographql-client-version': '26.19.1',
+            'apollographql-client-version': '26.22.0',
             'x-install-id': '60d4reo8cwzszu8wvnywm',
+            'x-timezone': 'America/Cambridge_Bay',
+            'x-time-format': 'TWELVE_HOUR',
             'x-platform': 'web',
-            'x-app-version': '26.19.1',
+            'x-app-version': '26.22.0',
             'x-app': 'tsb',
             'x-client': 'tsb',
+            'x-dma': '',
+            'x-device': 'DESKTOP',
+            'Origin': 'https://sportsbook.thescore.bet',
+            'Connection': 'keep-alive',
+            'TE': 'trailers'
         },
         method="POST",
         is_active=True,

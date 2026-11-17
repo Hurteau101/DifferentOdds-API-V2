@@ -16,9 +16,9 @@ class ThescoreSGP(SGPBookBase):
             return None
 
         async with CurlAsyncSession(impersonate="chrome") as session:
-            data = await session.get("https://sportsbook.ca-default.thescore.bet/")
+            # data = await session.get("https://sportsbook.ca-default.thescore.bet/")
+            data = await session.get("https://sportsbook.thescore.bet/")
             token = await self._get_anonymous_token(session)
-
             if not token:
                 return None
 
@@ -68,6 +68,9 @@ class ThescoreSGP(SGPBookBase):
             json=payload
         )
 
+        import json
+        with open("thescore.json", "w") as file:
+            json.dump(api_data, file, indent=2)
 
         if not api_data:
             return None
@@ -131,7 +134,7 @@ class ThescoreSGP(SGPBookBase):
                 url=self.book_data.url.get("draftbet_url"),
                 method="POST",
                 headers={**self.book_data.headers, **auth_header},
-                json=payload
+                json=payload,
             )
 
             if not api_data:
@@ -201,8 +204,8 @@ if __name__ == "__main__":
     async def main():
         async with CurlAsyncSession(impersonate="safari15_5") as session:
             sgp_data = {'book_name': 'thescore', 'links': [
-                "https://sportsbook.thescore.bet/sport/baseball/organization/united-states/competition/mlb/event/9295c531-1a1c-4796-86b9-02cf4ca697ae/section/player_props?market_selection_id[0]=MarketSelection:c8ba616c-0957-40b6-baf8-f4b3b4777c5a&odds_numerator[0]=11&odds_denominator[0]=5",
-                "https://sportsbook.thescore.bet/sport/baseball/organization/united-states/competition/mlb/event/9295c531-1a1c-4796-86b9-02cf4ca697ae/section/player_props?market_selection_id[0]=MarketSelection:78c6afee-419a-4e99-9b7f-a2a0a86c7277&odds_numerator[0]=11&odds_denominator[0]=5"
+                "https://sportsbook.thescore.bet/sport/football/organization/united-states/competition/nfl/event/10bfb53d-8c96-44a1-a2b0-dfd0064c459f?market_selection_id[0]=e7b28fff-bfb6-4731-a6e5-37049057d241&odds_numerator[0]=16&odds_denominator[0]=5",
+                "https://sportsbook.thescore.bet/sport/football/organization/united-states/competition/nfl/event/10bfb53d-8c96-44a1-a2b0-dfd0064c459f?market_selection_id[0]=efab65ad-c9d2-4fc1-b3d4-5a178277cbc7&odds_numerator[0]=16&odds_denominator[0]=11"
             ]}
 
             book = ThescoreSGP(sgp_data=sgp_data)
