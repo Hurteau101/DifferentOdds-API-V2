@@ -194,7 +194,7 @@ SGP_PROVIDERS = [
             'Referer': 'https://novig.com/',
             'TE': 'trailers'
         },
-        is_active=False,
+        is_active=True,
         is_rfq_book=True,
         class_name="NovigSGP",
         file_name="novig_sgp",

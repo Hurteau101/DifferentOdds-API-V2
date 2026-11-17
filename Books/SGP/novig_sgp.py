@@ -34,8 +34,7 @@ class NovigSGP(SGPBookBase):
     @SGPBookBase.ensure_link_data
     async def run_book(self, session):
 
-        # ids = [link.get("event_id") for link in self.link_data]
-        ids = ["01a1a3d7-a41e-7b13-8d18-19b0e70f33ca","01a1a3d7-a41c-77b1-a388-e038eced1309"]
+        ids = [link.get("event_id") for link in self.link_data]
 
         payload = {
             "outcomeIds": ids
